@@ -1,0 +1,618 @@
+{
+  "user": {
+    "id": "11111111-1111-1111-1111-111111111111",
+    "name": "Alex",
+    "required_rise_time": "06:30:00",
+    "target_bed_time": "23:00:00",
+    "target_wake_time": "07:00:00",
+    "baseline_sol_min": 46.1,
+    "baseline_avg_tst_min": 374,
+    "current_offset_min": 60,
+    "warming_method": "foot bath (40\u201342C, 12 min)",
+    "phase": "maintenance"
+  },
+  "sleepLogs": [
+    {
+      "date": "2026-07-01",
+      "lightsOut": "23:07",
+      "sleepOnset": "23:48",
+      "solMin": 41.3,
+      "wakeTime": "07:14",
+      "tstMin": 426,
+      "ritualDone": false,
+      "prescribedOffsetMin": null,
+      "phase": "baseline"
+    },
+    {
+      "date": "2026-07-02",
+      "lightsOut": "23:08",
+      "sleepOnset": "23:54",
+      "solMin": 46.1,
+      "wakeTime": "07:06",
+      "tstMin": 421,
+      "ritualDone": false,
+      "prescribedOffsetMin": null,
+      "phase": "baseline"
+    },
+    {
+      "date": "2026-07-03",
+      "lightsOut": "23:12",
+      "sleepOnset": "00:00",
+      "solMin": 48.0,
+      "wakeTime": "07:15",
+      "tstMin": 425,
+      "ritualDone": false,
+      "prescribedOffsetMin": null,
+      "phase": "baseline"
+    },
+    {
+      "date": "2026-07-04",
+      "lightsOut": "23:01",
+      "sleepOnset": "23:27",
+      "solMin": 26.6,
+      "wakeTime": "07:14",
+      "tstMin": 452,
+      "ritualDone": true,
+      "prescribedOffsetMin": 90,
+      "phase": "titration"
+    },
+    {
+      "date": "2026-07-05",
+      "lightsOut": "23:02",
+      "sleepOnset": "23:27",
+      "solMin": 25.1,
+      "wakeTime": "07:02",
+      "tstMin": 448,
+      "ritualDone": true,
+      "prescribedOffsetMin": 90,
+      "phase": "titration"
+    },
+    {
+      "date": "2026-07-06",
+      "lightsOut": "23:09",
+      "sleepOnset": "23:36",
+      "solMin": 27.4,
+      "wakeTime": "07:12",
+      "tstMin": 436,
+      "ritualDone": true,
+      "prescribedOffsetMin": 90,
+      "phase": "titration"
+    },
+    {
+      "date": "2026-07-07",
+      "lightsOut": "23:10",
+      "sleepOnset": "23:31",
+      "solMin": 21.6,
+      "wakeTime": "07:05",
+      "tstMin": 448,
+      "ritualDone": true,
+      "prescribedOffsetMin": 75,
+      "phase": "titration"
+    },
+    {
+      "date": "2026-07-08",
+      "lightsOut": "23:08",
+      "sleepOnset": "23:30",
+      "solMin": 22.7,
+      "wakeTime": "07:02",
+      "tstMin": 445,
+      "ritualDone": true,
+      "prescribedOffsetMin": 75,
+      "phase": "titration"
+    },
+    {
+      "date": "2026-07-09",
+      "lightsOut": "23:00",
+      "sleepOnset": "23:18",
+      "solMin": 18.6,
+      "wakeTime": "07:06",
+      "tstMin": 455,
+      "ritualDone": true,
+      "prescribedOffsetMin": 75,
+      "phase": "titration"
+    },
+    {
+      "date": "2026-07-10",
+      "lightsOut": "23:09",
+      "sleepOnset": "23:20",
+      "solMin": 11.7,
+      "wakeTime": "07:00",
+      "tstMin": 440,
+      "ritualDone": true,
+      "prescribedOffsetMin": 60,
+      "phase": "titration"
+    },
+    {
+      "date": "2026-07-11",
+      "lightsOut": "23:05",
+      "sleepOnset": "23:20",
+      "solMin": 15.3,
+      "wakeTime": "07:14",
+      "tstMin": 462,
+      "ritualDone": true,
+      "prescribedOffsetMin": 60,
+      "phase": "titration"
+    },
+    {
+      "date": "2026-07-12",
+      "lightsOut": "23:08",
+      "sleepOnset": "23:22",
+      "solMin": 14.9,
+      "wakeTime": "07:07",
+      "tstMin": 450,
+      "ritualDone": true,
+      "prescribedOffsetMin": 60,
+      "phase": "titration"
+    }
+  ],
+  "prescriptions": [
+    {
+      "block": 1,
+      "prescribedOffsetMin": 90,
+      "warmingMethod": "foot bath",
+      "durationMin": 12,
+      "tempBand": "40\u201342C",
+      "medianSolPrior": null,
+      "action": "initiation",
+      "converged": false,
+      "rationale": "Baseline habitual SOL 46.1 min. Initiate warming ritual 90 min before bed (literature default, Haghayegh 2019)."
+    },
+    {
+      "block": 2,
+      "prescribedOffsetMin": 75,
+      "warmingMethod": "foot bath",
+      "durationMin": 12,
+      "tempBand": "40\u201342C",
+      "medianSolPrior": 26.6,
+      "action": "continue",
+      "converged": false,
+      "rationale": "Median SOL 26.6 min, improving vs prior (46.1) \u2192 continue toward 75 min."
+    },
+    {
+      "block": 3,
+      "prescribedOffsetMin": 60,
+      "warmingMethod": "foot bath",
+      "durationMin": 12,
+      "tempBand": "40\u201342C",
+      "medianSolPrior": 21.6,
+      "action": "continue",
+      "converged": false,
+      "rationale": "Median SOL 21.6 min, improving vs prior (26.6) \u2192 continue toward 60 min."
+    },
+    {
+      "block": 4,
+      "prescribedOffsetMin": 60,
+      "warmingMethod": "foot bath",
+      "durationMin": 12,
+      "tempBand": "40\u201342C",
+      "medianSolPrior": 14.9,
+      "action": "hold_converged",
+      "converged": true,
+      "rationale": "Median SOL 14.9 min < 20 target \u2192 lock personalized offset at 60 min."
+    }
+  ],
+  "cbtiLogs": [
+    {
+      "date": "2026-06-15",
+      "timeToBed": "22:30",
+      "sleepOnsetMin": 99,
+      "wasoMin": 0,
+      "finalWakeTime": "06:30",
+      "tstMin": 381,
+      "tibMin": 480,
+      "sePct": 79.4
+    },
+    {
+      "date": "2026-06-16",
+      "timeToBed": "22:30",
+      "sleepOnsetMin": 93,
+      "wasoMin": 0,
+      "finalWakeTime": "06:30",
+      "tstMin": 387,
+      "tibMin": 480,
+      "sePct": 80.6
+    },
+    {
+      "date": "2026-06-17",
+      "timeToBed": "22:30",
+      "sleepOnsetMin": 113,
+      "wasoMin": 0,
+      "finalWakeTime": "06:30",
+      "tstMin": 367,
+      "tibMin": 480,
+      "sePct": 76.5
+    },
+    {
+      "date": "2026-06-18",
+      "timeToBed": "22:30",
+      "sleepOnsetMin": 114,
+      "wasoMin": 0,
+      "finalWakeTime": "06:30",
+      "tstMin": 366,
+      "tibMin": 480,
+      "sePct": 76.2
+    },
+    {
+      "date": "2026-06-19",
+      "timeToBed": "22:30",
+      "sleepOnsetMin": 102,
+      "wasoMin": 0,
+      "finalWakeTime": "06:30",
+      "tstMin": 378,
+      "tibMin": 480,
+      "sePct": 78.8
+    },
+    {
+      "date": "2026-06-20",
+      "timeToBed": "22:30",
+      "sleepOnsetMin": 89,
+      "wasoMin": 0,
+      "finalWakeTime": "06:30",
+      "tstMin": 391,
+      "tibMin": 480,
+      "sePct": 81.5
+    },
+    {
+      "date": "2026-06-21",
+      "timeToBed": "22:30",
+      "sleepOnsetMin": 102,
+      "wasoMin": 0,
+      "finalWakeTime": "06:30",
+      "tstMin": 378,
+      "tibMin": 480,
+      "sePct": 78.8
+    },
+    {
+      "date": "2026-06-22",
+      "timeToBed": "00:10",
+      "sleepOnsetMin": 62,
+      "wasoMin": 0,
+      "finalWakeTime": "06:30",
+      "tstMin": 318,
+      "tibMin": 380,
+      "sePct": 83.7
+    },
+    {
+      "date": "2026-06-23",
+      "timeToBed": "00:10",
+      "sleepOnsetMin": 59,
+      "wasoMin": 0,
+      "finalWakeTime": "06:30",
+      "tstMin": 321,
+      "tibMin": 380,
+      "sePct": 84.5
+    },
+    {
+      "date": "2026-06-24",
+      "timeToBed": "00:10",
+      "sleepOnsetMin": 54,
+      "wasoMin": 0,
+      "finalWakeTime": "06:30",
+      "tstMin": 326,
+      "tibMin": 380,
+      "sePct": 85.8
+    },
+    {
+      "date": "2026-06-25",
+      "timeToBed": "00:10",
+      "sleepOnsetMin": 46,
+      "wasoMin": 0,
+      "finalWakeTime": "06:30",
+      "tstMin": 334,
+      "tibMin": 380,
+      "sePct": 87.9
+    },
+    {
+      "date": "2026-06-26",
+      "timeToBed": "00:10",
+      "sleepOnsetMin": 54,
+      "wasoMin": 0,
+      "finalWakeTime": "06:30",
+      "tstMin": 326,
+      "tibMin": 380,
+      "sePct": 85.8
+    },
+    {
+      "date": "2026-06-27",
+      "timeToBed": "00:10",
+      "sleepOnsetMin": 56,
+      "wasoMin": 0,
+      "finalWakeTime": "06:30",
+      "tstMin": 324,
+      "tibMin": 380,
+      "sePct": 85.3
+    },
+    {
+      "date": "2026-06-28",
+      "timeToBed": "00:10",
+      "sleepOnsetMin": 55,
+      "wasoMin": 0,
+      "finalWakeTime": "06:30",
+      "tstMin": 325,
+      "tibMin": 380,
+      "sePct": 85.5
+    },
+    {
+      "date": "2026-06-29",
+      "timeToBed": "00:10",
+      "sleepOnsetMin": 33,
+      "wasoMin": 0,
+      "finalWakeTime": "06:30",
+      "tstMin": 347,
+      "tibMin": 380,
+      "sePct": 91.3
+    },
+    {
+      "date": "2026-06-30",
+      "timeToBed": "00:10",
+      "sleepOnsetMin": 40,
+      "wasoMin": 0,
+      "finalWakeTime": "06:30",
+      "tstMin": 340,
+      "tibMin": 380,
+      "sePct": 89.5
+    },
+    {
+      "date": "2026-07-01",
+      "timeToBed": "00:10",
+      "sleepOnsetMin": 34,
+      "wasoMin": 0,
+      "finalWakeTime": "06:30",
+      "tstMin": 346,
+      "tibMin": 380,
+      "sePct": 91.1
+    },
+    {
+      "date": "2026-07-02",
+      "timeToBed": "00:10",
+      "sleepOnsetMin": 32,
+      "wasoMin": 0,
+      "finalWakeTime": "06:30",
+      "tstMin": 348,
+      "tibMin": 380,
+      "sePct": 91.6
+    },
+    {
+      "date": "2026-07-03",
+      "timeToBed": "00:10",
+      "sleepOnsetMin": 22,
+      "wasoMin": 0,
+      "finalWakeTime": "06:30",
+      "tstMin": 358,
+      "tibMin": 380,
+      "sePct": 94.2
+    },
+    {
+      "date": "2026-07-04",
+      "timeToBed": "00:10",
+      "sleepOnsetMin": 35,
+      "wasoMin": 0,
+      "finalWakeTime": "06:30",
+      "tstMin": 345,
+      "tibMin": 380,
+      "sePct": 90.8
+    },
+    {
+      "date": "2026-07-05",
+      "timeToBed": "00:10",
+      "sleepOnsetMin": 27,
+      "wasoMin": 0,
+      "finalWakeTime": "06:30",
+      "tstMin": 353,
+      "tibMin": 380,
+      "sePct": 92.9
+    },
+    {
+      "date": "2026-07-06",
+      "timeToBed": "23:55",
+      "sleepOnsetMin": 40,
+      "wasoMin": 0,
+      "finalWakeTime": "06:30",
+      "tstMin": 355,
+      "tibMin": 395,
+      "sePct": 89.9
+    },
+    {
+      "date": "2026-07-07",
+      "timeToBed": "23:55",
+      "sleepOnsetMin": 25,
+      "wasoMin": 0,
+      "finalWakeTime": "06:30",
+      "tstMin": 370,
+      "tibMin": 395,
+      "sePct": 93.7
+    },
+    {
+      "date": "2026-07-08",
+      "timeToBed": "23:55",
+      "sleepOnsetMin": 31,
+      "wasoMin": 0,
+      "finalWakeTime": "06:30",
+      "tstMin": 364,
+      "tibMin": 395,
+      "sePct": 92.2
+    },
+    {
+      "date": "2026-07-09",
+      "timeToBed": "23:55",
+      "sleepOnsetMin": 36,
+      "wasoMin": 0,
+      "finalWakeTime": "06:30",
+      "tstMin": 359,
+      "tibMin": 395,
+      "sePct": 90.9
+    },
+    {
+      "date": "2026-07-10",
+      "timeToBed": "23:55",
+      "sleepOnsetMin": 32,
+      "wasoMin": 0,
+      "finalWakeTime": "06:30",
+      "tstMin": 363,
+      "tibMin": 395,
+      "sePct": 91.9
+    },
+    {
+      "date": "2026-07-11",
+      "timeToBed": "23:55",
+      "sleepOnsetMin": 25,
+      "wasoMin": 0,
+      "finalWakeTime": "06:30",
+      "tstMin": 370,
+      "tibMin": 395,
+      "sePct": 93.7
+    },
+    {
+      "date": "2026-07-12",
+      "timeToBed": "23:55",
+      "sleepOnsetMin": 34,
+      "wasoMin": 0,
+      "finalWakeTime": "06:30",
+      "tstMin": 361,
+      "tibMin": 395,
+      "sePct": 91.4
+    }
+  ],
+  "cbtiPrescriptions": [
+    {
+      "week": 1,
+      "weekStart": "2026-06-15",
+      "tibMin": 480,
+      "wakeTime": "06:30",
+      "bedTime": "22:30",
+      "avgSePrior": null,
+      "action": "baseline",
+      "rationale": "Baseline observation week \u2014 full 8h window. Avg SE 78.8% (<85%) \u2192 next week restrict time-in-bed to actual sleep (~380 min) to consolidate."
+    },
+    {
+      "week": 2,
+      "weekStart": "2026-06-22",
+      "tibMin": 380,
+      "wakeTime": "06:30",
+      "bedTime": "00:10",
+      "avgSePrior": 78.8,
+      "action": "decrease",
+      "rationale": "Prior-week SE 78.8% (<85%) \u2014 restrict time-in-bed to actual sleep (380 min) to consolidate."
+    },
+    {
+      "week": 3,
+      "weekStart": "2026-06-29",
+      "tibMin": 380,
+      "wakeTime": "06:30",
+      "bedTime": "00:10",
+      "avgSePrior": 85.5,
+      "action": "hold",
+      "rationale": "Prior-week SE 85.5% (85\u201390% hold zone) \u2014 hold at 380 min."
+    },
+    {
+      "week": 4,
+      "weekStart": "2026-07-06",
+      "tibMin": 395,
+      "wakeTime": "06:30",
+      "bedTime": "23:55",
+      "avgSePrior": 91.6,
+      "action": "increase",
+      "rationale": "Prior-week SE 91.6% (\u226590%) \u2014 increase time-in-bed +15 to 395 min."
+    }
+  ],
+  "calendarEvents": [
+    {
+      "id": "dd07d2f1-6b52-465e-924a-10a913fa9561",
+      "title": "Concert at The Warehouse",
+      "startTs": "2026-07-17 21:00:00+00",
+      "endTs": "2026-07-18 01:00:00+00",
+      "type": "late_night",
+      "tzOffsetHours": null,
+      "direction": null
+    },
+    {
+      "id": "3dbc4efc-c4e1-4f63-b65a-508b0e72285a",
+      "title": "Board meeting",
+      "startTs": "2026-07-20 07:00:00+00",
+      "endTs": "2026-07-20 08:30:00+00",
+      "type": "early_meeting",
+      "tzOffsetHours": null,
+      "direction": null
+    },
+    {
+      "id": "3577cee6-69d9-4db2-b2e6-b456b181b6cf",
+      "title": "Flight NYC \u2192 London",
+      "startTs": "2026-07-22 19:00:00+00",
+      "endTs": "2026-07-23 07:00:00+00",
+      "type": "travel",
+      "tzOffsetHours": 5,
+      "direction": "east"
+    }
+  ],
+  "adaptations": [
+    {
+      "eventId": "dd07d2f1-6b52-465e-924a-10a913fa9561",
+      "scenario": "late_night",
+      "recommendation": "Keep your 07:00 wake time tomorrow \u2014 do not sleep in past 07:30. Take a 20\u201330 min nap between 13:00 and 15:00 if you feel drowsy.",
+      "scienceBasis": "Sleep REGULARITY predicts health more than duration \u2014 irregular wake times raise mortality risk 20\u201348% (Windred 2024). A short nap recovers alertness better than sleeping in.",
+      "applied": true
+    },
+    {
+      "eventId": "3577cee6-69d9-4db2-b2e6-b456b181b6cf",
+      "scenario": "travel_east",
+      "recommendation": "Eastward jet lag: shift bed & wake ~1h EARLIER starting 2\u20133 days before departure. At destination, seek bright light in the MORNING and consider 0.5\u20135 mg melatonin near London bedtime.",
+      "scienceBasis": "Timed bright light + melatonin is the validated anti-jet-lag protocol; direction determines timing \u2014 eastward = morning light + advance (Eastman & Burgess; St Hilaire 2014; Herxheimer Cochrane 2002).",
+      "applied": true
+    },
+    {
+      "eventId": "3dbc4efc-c4e1-4f63-b65a-508b0e72285a",
+      "scenario": "early_meeting",
+      "recommendation": "Move tonight's whole routine \u2014 including the warming ritual \u2014 90 minutes earlier so you still get a full sleep opportunity before the 07:00 meeting.",
+      "scienceBasis": "Anchoring a consistent wake time and full sleep opportunity protects performance and circadian alignment (Chaput 2020).",
+      "applied": true
+    }
+  ],
+  "pod": {
+    "name": "The Well-Rested",
+    "weeklyGoalNights": 5,
+    "members": [
+      {
+        "name": "You",
+        "status": "hit",
+        "nightsHit": 6,
+        "streakWeeks": 3
+      },
+      {
+        "name": "Maya",
+        "status": "hit",
+        "nightsHit": 5,
+        "streakWeeks": 2
+      },
+      {
+        "name": "Theo",
+        "status": "hit",
+        "nightsHit": 5,
+        "streakWeeks": 3
+      },
+      {
+        "name": "Jin",
+        "status": "partial",
+        "nightsHit": 4,
+        "streakWeeks": 1
+      }
+    ],
+    "weeks": [
+      {
+        "weekStart": "2026-06-29",
+        "membersHit": 2,
+        "allHit": false,
+        "rewardUnlocked": false,
+        "reward": null,
+        "redeemed": false
+      },
+      {
+        "weekStart": "2026-07-06",
+        "membersHit": 4,
+        "allHit": true,
+        "rewardUnlocked": true,
+        "reward": "20% off Blue Box bedding",
+        "redeemed": true
+      }
+    ]
+  }
+}

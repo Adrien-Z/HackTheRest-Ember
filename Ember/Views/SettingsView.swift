@@ -1,0 +1,135 @@
+import SwiftUI
+
+/// Data-source settings. Explicit toggle between live Apple Health data and the
+/// bundled sample data (no automatic fallback), plus the permission prompts and
+/// the handful of settings used when building live data.
+struct SettingsView: View {
+    @EnvironmentObject var store: DataStore
+    @EnvironmentObject var health: HealthManager
+    @EnvironmentObject var calendar: CalendarService
+    @Environment(\.dismiss) private var dismiss
+    @State private var apiKeyDraft = ""
+
+    private var modeBinding: Binding<DataSourceMode> {
+        Binding(get: { store.mode },
+                set: { new in Task { await store.setMode(new, health: health, calendar: calendar) } })
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Picker("Data source", selection: modeBinding) {
+                        Text("Live · Apple Health").tag(DataSourceMode.live)
+                        Text("Sample data").tag(DataSourceMode.sample)
+                    }
+                    .pickerStyle(.inline)
+                } header: {
+                    Text("Data source")
+                } footer: {
+                    Text(store.mode == .live
+                         ? "Your sleep charts and prescriptions are derived from Apple Health. Connect the sources below."
+                         : "Showing bundled sample data so you can explore the app without granting any permissions.")
+                }
+
+                if store.mode == .live {
+                    Section("Connections") {
+                        connectionRow(
+                            title: "Apple Health",
+                            systemImage: "heart.fill",
+                            tint: .pink,
+                            connected: health.authorized,
+                            action: { await health.requestAuthorization(); await store.refresh(health: health, calendar: calendar) })
+                        connectionRow(
+                            title: "Calendar",
+                            systemImage: "calendar",
+                            tint: Theme.ember,
+                            connected: calendar.isAuthorized,
+                            action: { await calendar.requestAccess(); await store.refresh(health: health, calendar: calendar) })
+                        if store.healthAuthorized && !store.liveHasData {
+                            Label("No sleep data found in Apple Health for the last 60 days.",
+                                  systemImage: "exclamationmark.triangle")
+                                .font(.footnote).foregroundStyle(.secondary)
+                        }
+                    }
+
+                    Section("Personalization") {
+                        TextField("Your name", text: $store.displayName)
+                        TextField("Warming method", text: $store.warmingMethod)
+                    }
+                }
+
+                Section {
+                    HStack {
+                        Label("AI categorization", systemImage: "sparkles")
+                        Spacer()
+                        if store.aiConfigured {
+                            Image(systemName: "checkmark.circle.fill").foregroundStyle(Theme.mint)
+                        }
+                    }
+                    SecureField(store.aiConfigured ? "OpenRouter key (saved)" : "OpenRouter API key", text: $apiKeyDraft)
+                        .textContentType(.password)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+                    TextField("Model", text: $store.llmModel)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+                    TextField("Base URL", text: $store.llmBaseURL)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+                    if store.aiConfigured {
+                        Button("Re-categorize calendar now") {
+                            Task { await store.categorizeCalendar(calendar: calendar) }
+                        }
+                        Button("Clear key", role: .destructive) {
+                            store.setAPIKey(""); apiKeyDraft = ""
+                        }
+                    }
+                    if let err = store.aiError {
+                        Label(err, systemImage: "exclamationmark.triangle")
+                            .font(.footnote).foregroundStyle(.orange)
+                    }
+                } header: {
+                    Text("Agenda intelligence")
+                } footer: {
+                    Text("Your calendar event text is sent to the AI provider to sort events into sleep-relevant categories. The key is stored in the device Keychain — fine for personal use; a shipping app should proxy through a backend.")
+                }
+
+                Section {
+                    Label("The Pod is social data with no on-device source, so it always shows sample content.",
+                          systemImage: "person.3.fill")
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
+            }
+            .navigationTitle("Settings")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        if !apiKeyDraft.trimmingCharacters(in: .whitespaces).isEmpty {
+                            store.setAPIKey(apiKeyDraft)
+                            apiKeyDraft = ""
+                        }
+                        store.persistSettings()
+                        Task { await store.refresh(health: health, calendar: calendar) }
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+
+    private func connectionRow(title: String, systemImage: String, tint: Color,
+                               connected: Bool, action: @escaping () async -> Void) -> some View {
+        HStack {
+            Label(title, systemImage: systemImage).foregroundStyle(tint)
+            Spacer()
+            if connected {
+                Image(systemName: "checkmark.circle.fill").foregroundStyle(Theme.mint)
+            } else {
+                Button("Connect") { Task { await action() } }
+                    .buttonStyle(.borderedProminent).tint(tint).controlSize(.small)
+            }
+        }
+    }
+}

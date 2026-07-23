@@ -57,6 +57,31 @@ struct NightBackground: View {
     var body: some View { Theme.nightGradient.ignoresSafeArea() }
 }
 
+/// A tappable row that opens the Rest Coach pre-loaded with a question about the
+/// current screen. Sets `store.pendingCoachQuestion` and pushes `CoachView`,
+/// which auto-sends it on appear.
+struct AskCoachLink: View {
+    let question: String
+    @EnvironmentObject var store: DataStore
+    @State private var go = false
+    var body: some View {
+        Button {
+            store.pendingCoachQuestion = question
+            go = true
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "bubble.left.and.text.bubble.right.fill").foregroundStyle(Theme.ember)
+                Text("Ask the coach").font(.subheadline.weight(.semibold))
+                Spacer()
+                Image(systemName: "chevron.right").font(.caption).foregroundStyle(.secondary)
+            }
+            .emberCard(12)
+        }
+        .buttonStyle(.plain)
+        .navigationDestination(isPresented: $go) { CoachView() }
+    }
+}
+
 func actionColor(_ action: String) -> Color {
     switch action {
     case "increase": return Theme.mint

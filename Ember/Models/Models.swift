@@ -97,6 +97,9 @@ struct Adaptation: Codable, Identifiable {
     let recommendation: String
     let scienceBasis: String
     let applied: Bool
+    /// The LLM's personalized, plain-language "why this affects your sleep".
+    /// Optional so bundled `seed.json` (which omits it) still decodes.
+    var whyItAffectsSleep: String? = nil
 }
 
 // Pods / social ----------------------------------------------------------
@@ -129,7 +132,7 @@ struct Pod: Codable {
 struct ChatMessage: Identifiable {
     let id = UUID()
     let role: Role
-    let content: String
+    var content: String   // mutable so coach replies can stream token-by-token
     enum Role { case user, coach }
 }
 
@@ -143,4 +146,17 @@ struct SeedBundle: Codable {
     let calendarEvents: [CalendarEvent]
     let adaptations: [Adaptation]
     let pod: Pod
+
+    /// Fallback used only if the bundled seed can't be loaded, so live mode
+    /// still has a valid (empty) shape to start from instead of crashing.
+    static var empty: SeedBundle {
+        SeedBundle(
+            user: UserProfile(id: "healthkit-user", name: "You",
+                              requiredRiseTime: "07:00", targetBedTime: "23:00", targetWakeTime: "07:00",
+                              baselineSolMin: 0, baselineAvgTstMin: 0, currentOffsetMin: 90,
+                              warmingMethod: "foot bath (40–42C, 12 min)", phase: "titration"),
+            sleepLogs: [], prescriptions: [], cbtiLogs: [], cbtiPrescriptions: [],
+            calendarEvents: [], adaptations: [],
+            pod: Pod(name: "The Well-Rested", weeklyGoalNights: 5, members: [], weeks: []))
+    }
 }

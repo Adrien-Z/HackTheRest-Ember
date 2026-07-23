@@ -3,6 +3,7 @@ import SwiftUI
 struct CoachView: View {
     @EnvironmentObject var store: DataStore
     @State private var draft: String = ""
+    @State private var thinking = false
 
     let suggestions = [
         "Why did my time-in-bed change?",
@@ -17,11 +18,28 @@ struct CoachView: View {
                 ScrollViewReader { proxy in
                     ScrollView {
                         VStack(spacing: 12) {
-                            ForEach(store.chat) { msg in ChatBubble(message: msg).id(msg.id) }
+                            ForEach(store.chat) { msg in
+                                if msg.role == .user {
+                                    ChatBubble(message: msg).id(msg.id)
+                                } else if !msg.content.isEmpty {
+                                    // Coach replies may contain inline generative-UI widgets.
+                                    CoachMessageView(message: msg).id(msg.id)
+                                }
+                            }
+                            if thinking && (store.chat.last?.content.isEmpty ?? true) {
+                                HStack {
+                                    ProgressView().tint(Theme.ember)
+                                    Text("Thinking…").font(.caption).foregroundStyle(.secondary)
+                                    Spacer()
+                                }.padding(.horizontal).id("thinking")
+                            }
                         }.padding()
                     }
                     .onChange(of: store.chat.count) { _ in
                         if let last = store.chat.last { withAnimation { proxy.scrollTo(last.id, anchor: .bottom) } }
+                    }
+                    .onChange(of: store.chat.last?.content) { _ in
+                        if let last = store.chat.last { proxy.scrollTo(last.id, anchor: .bottom) }
                     }
                 }
                 suggestionBar
@@ -30,18 +48,33 @@ struct CoachView: View {
         }
         .navigationTitle("Rest Coach")
         .navigationBarTitleDisplayMode(.inline)
+        .task {
+            // Auto-send a question routed from another screen ("Ask the coach").
+            if let q = store.pendingCoachQuestion {
+                store.pendingCoachQuestion = nil
+                await send(q)
+            }
+        }
     }
 
     private var suggestionBar: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(suggestions, id: \.self) { s in
-                    Button { Task { await send(s) } } label: {
-                        Text(s).font(.caption).padding(.horizontal, 12).padding(.vertical, 8)
-                            .background(Theme.card, in: Capsule())
-                    }.buttonStyle(.plain)
-                }
-            }.padding(.horizontal)
+        VStack(spacing: 6) {
+            if !store.aiConfigured {
+                Text("Using the built-in coach. Add an AI key in Settings for richer, conversational answers.")
+                    .font(.caption2).foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal)
+            }
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(suggestions, id: \.self) { s in
+                        Button { Task { await send(s) } } label: {
+                            Text(s).font(.caption).padding(.horizontal, 12).padding(.vertical, 8)
+                                .background(Theme.card, in: Capsule())
+                        }.buttonStyle(.plain).disabled(thinking)
+                    }
+                }.padding(.horizontal)
+            }
         }.padding(.bottom, 8)
     }
 
@@ -52,19 +85,18 @@ struct CoachView: View {
                 .background(Theme.card, in: RoundedRectangle(cornerRadius: 16))
             Button { Task { await send(draft) } } label: {
                 Image(systemName: "arrow.up.circle.fill").font(.title2).foregroundStyle(Theme.ember)
-            }.disabled(draft.trimmingCharacters(in: .whitespaces).isEmpty)
+            }.disabled(draft.trimmingCharacters(in: .whitespaces).isEmpty || thinking)
         }.padding()
     }
 
     private func send(_ text: String) async {
         let t = text.trimmingCharacters(in: .whitespaces)
-        guard !t.isEmpty else { return }
+        guard !t.isEmpty, !thinking else { return }
         store.chat.append(ChatMessage(role: .user, content: t))
         draft = ""
-        let reply = await RestCoach.answer(to: t, store: store, adaptations: store.adaptations)
-        // Optional delay for realism:
-        try? await Task.sleep(nanoseconds: 400_000_000) // 0.4s
-        store.chat.append(ChatMessage(role: .coach, content: reply))
+        thinking = true
+        await store.streamCoachReply(history: store.chat)
+        thinking = false
     }
 }
 

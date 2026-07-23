@@ -10,6 +10,7 @@ extension DataStore {
     RootTabView()
         .environmentObject(DataStore.preview)
         .environmentObject(HealthManager())
+        .environmentObject(CalendarService())
         .preferredColorScheme(.dark)
         .tint(Theme.ember)
 }

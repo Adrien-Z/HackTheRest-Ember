@@ -7,13 +7,17 @@ struct CalendarView: View {
         store.adaptations.first { $0.eventId == e.id }
     }
     func icon(for type: String) -> String {
-        switch type {
-        case "late_night": return "music.note"
-        case "travel": return "airplane"
-        case "early_meeting": return "briefcase.fill"
+        switch RestAlgorithms.normalizedCategory(type) {
+        case "social_jetlag": return "music.note"
+        case "timezone_travel": return "airplane"
+        case "early_obligation": return "briefcase.fill"
+        case "demanding_event": return "bolt.heart"
         default: return "calendar"
         }
     }
+
+    /// Live mode needs the AI configured to categorize; surface a prompt otherwise.
+    private var needsAIPrompt: Bool { !store.isSampleData && (!store.aiConfigured || store.aiError != nil) }
 
     var body: some View {
         ZStack {
@@ -21,6 +25,16 @@ struct CalendarView: View {
                 ScrollView {
                     VStack(spacing: 18) {
                         intro
+                        if needsAIPrompt {
+                            ScienceNote(text: store.aiError
+                                ?? "Connect an AI provider in Settings to auto-categorize your calendar into sleep-relevant events (travel, social jet lag, early starts).",
+                                icon: "sparkles")
+                        } else if store.calendarEvents.isEmpty {
+                            ScienceNote(text: store.isSampleData
+                                ? "No upcoming disruptions in the sample agenda."
+                                : "No sleep-relevant events found in your calendar for the last week or next two weeks.",
+                                icon: "calendar.badge.checkmark")
+                        }
                         ForEach(store.calendarEvents) { e in
                             EventCard(event: e, adaptation: adaptation(for: e), icon: icon(for: e.type))
                         }
@@ -59,6 +73,10 @@ struct EventCard: View {
             }
             if let a = adaptation {
                 Divider().overlay(Color.white.opacity(0.08))
+                if let why = a.whyItAffectsSleep, !why.isEmpty {
+                    Text(why).font(.footnote).foregroundStyle(.primary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 HStack(alignment: .top, spacing: 8) {
                     Image(systemName: "arrow.turn.down.right").foregroundStyle(Theme.ember).font(.caption)
                     Text(a.recommendation).font(.footnote).fixedSize(horizontal: false, vertical: true)

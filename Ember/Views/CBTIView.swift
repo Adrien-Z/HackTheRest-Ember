@@ -4,12 +4,24 @@ import Charts
 struct CBTIView: View {
     @EnvironmentObject var store: DataStore
 
+    var coachQuestion: String {
+        if let rx = store.currentCBTIRx {
+            return "Why is my time-in-bed \(fmtDur(rx.tibMin)) this week, and how does sleep restriction improve my sleep efficiency?"
+        }
+        return "How does CBT-I sleep restriction improve my sleep efficiency?"
+    }
+
     var body: some View {
         ZStack {
                 NightBackground()
                 ScrollView {
                     VStack(spacing: 18) {
                         headerCard
+                        AskCoachLink(question: coachQuestion)
+                        if store.cbtiLogs.isEmpty {
+                            ScienceNote(text: "No sleep data yet. Connect Apple Health in Settings (or switch to Sample data) to see your sleep efficiency and time-in-bed titration.",
+                                        icon: "heart.text.square")
+                        }
                         seChart
                         SectionHeader(title: "Weekly prescriptions",
                                       subtitle: "Time-in-bed titrates to your sleep efficiency.")

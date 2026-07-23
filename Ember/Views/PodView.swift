@@ -26,9 +26,15 @@ struct PodView: View {
 
     private var headerCard: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label("Accountability pod", systemImage: "person.3.fill").font(.headline)
+            HStack {
+                Label("Accountability pod", systemImage: "person.3.fill").font(.headline)
+                Spacer()
+                Tag(text: "sample", color: Theme.amber)
+            }
             Text("Rest better together. When everyone hits their goal, the whole pod unlocks a Blue Box reward.")
                 .font(.footnote).foregroundStyle(.secondary)
+            Text("Social data has no on-device source, so the Pod always shows sample content.")
+                .font(.caption2).foregroundStyle(.secondary)
         }.emberCard()
     }
 

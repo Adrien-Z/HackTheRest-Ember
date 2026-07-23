@@ -6,12 +6,24 @@ struct ThermalView: View {
 
     var titrationLogs: [SleepLog] { store.sleepLogs.filter { $0.solMin != nil } }
 
+    var coachQuestion: String {
+        if let rx = store.currentThermalRx {
+            return "Why is my warming offset \(rx.prescribedOffsetMin) minutes before bed, and how does warming help me fall asleep faster?"
+        }
+        return "How does my warming wind-down ritual help me fall asleep faster?"
+    }
+
     var body: some View {
         ZStack {
                 NightBackground()
                 ScrollView {
                     VStack(spacing: 18) {
                         headerCard
+                        AskCoachLink(question: coachQuestion)
+                        if store.sleepLogs.isEmpty {
+                            ScienceNote(text: "No sleep data yet. Connect Apple Health in Settings (or switch to Sample data) to see your sleep-onset latency and titration.",
+                                        icon: "heart.text.square")
+                        }
                         solChart
                         SectionHeader(title: "Titration history",
                                       subtitle: "Each block adapts the warming offset to your sleep-onset latency.")

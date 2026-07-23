@@ -93,35 +93,55 @@ enum RestAlgorithms {
     }
 
     static func adapt(for event: CalendarEvent, targetWake: String) -> AdaptationResult {
-        switch event.type {
-        case "late_night":
+        // Accept both the LLM's category vocabulary and the legacy seed strings.
+        switch normalizedCategory(event.type) {
+        case "social_jetlag":
             return AdaptationResult(
-                scenario: "late_night",
-                recommendation: "Keep your \(targetWake) wake time tomorrow — do not sleep in past +30 min. Take a 20–30 min nap between 13:00 and 15:00 if you feel drowsy.",
-                scienceBasis: "Sleep REGULARITY predicts health more than duration — irregular wake times raise mortality risk 20–48% (Windred 2024). A short nap recovers alertness better than sleeping in.")
-        case "travel":
+                scenario: "social_jetlag",
+                recommendation: "Keep your \(targetWake) wake time — don't sleep in past +30 min even after a late night. If you're drowsy, take a 20–30 min nap between 13:00 and 15:00 instead of extending sleep.",
+                scienceBasis: "A late social night shifts your sleep MIDPOINT later; catching up by sleeping in creates 'social jetlag' — a recurring misalignment of biological vs social time linked to metabolic and cardiovascular risk (Wittmann & Roenneberg 2006). Anchoring wake time protects regularity, the strongest sleep-health lever (Windred 2024).")
+
+        case "timezone_travel":
+            let h = abs(event.tzOffsetHours ?? 0)
             if event.direction == "east" {
-                let h = event.tzOffsetHours ?? 0
+                let days = max(1, h)   // ~1 time zone per day eastward
                 return AdaptationResult(
                     scenario: "travel_east",
-                    recommendation: "Eastward jet lag (\(h)h): shift bed & wake ~1h EARLIER starting 2–3 days before departure. At destination seek bright light in the MORNING and consider 0.5–5 mg melatonin near local bedtime.",
-                    scienceBasis: "Timed bright light + melatonin is the validated anti-jet-lag protocol; direction sets timing — eastward = morning light + phase advance (Eastman & Burgess; St Hilaire 2014; Herxheimer Cochrane 2002).")
+                    recommendation: "Eastward across \(h)h (phase ADVANCE — the harder direction, ~\(days) day(s) to adjust): shift bed & wake ~1h EARLIER each day for 2–3 days before departure. At the destination seek bright light in the MORNING and take 0.5–5 mg melatonin at local bedtime.",
+                    scienceBasis: "Eastward travel needs a phase advance, which re-entrains slower (~1 zone/day) than westward (~1.5). Light timed after your core-temp minimum (≈2–3 h before habitual wake) advances the clock; morning light + evening melatonin is the validated protocol (Eastman & Burgess; St Hilaire 2014; Herxheimer Cochrane 2002).")
             } else {
-                let h = event.tzOffsetHours ?? 0
                 return AdaptationResult(
                     scenario: "travel_west",
-                    recommendation: "Westward jet lag (\(h)h): shift bed & wake ~1h LATER for a few days before departure. At destination seek bright light in the EVENING to delay your clock.",
-                    scienceBasis: "Westward travel requires a phase DELAY — evening light delays the circadian clock (Eastman & Burgess; St Hilaire 2014).")
+                    recommendation: "Westward across \(h)h (phase DELAY — the easier direction, ~1.5 zones/day): shift bed & wake ~1h LATER for a few days before departure. At the destination seek bright light in the EVENING to delay your clock.",
+                    scienceBasis: "Westward travel needs a phase delay, which the body does more readily than an advance. Evening bright light (before your core-temp minimum) delays the circadian clock (Eastman & Burgess; St Hilaire 2014).")
             }
-        case "early_meeting":
+
+        case "early_obligation":
             return AdaptationResult(
-                scenario: "early_meeting",
-                recommendation: "Move tonight's whole routine — including the warming ritual — 90 minutes earlier so you still get a full sleep opportunity before the meeting.",
-                scienceBasis: "Anchoring a consistent wake time and a full sleep opportunity protects performance and circadian alignment (Chaput 2020).")
+                scenario: "early_obligation",
+                recommendation: "Move tonight's whole routine — including the warming ritual — about 90 minutes earlier so you still get a full sleep opportunity before this early start.",
+                scienceBasis: "Anchoring a consistent wake time and protecting a full sleep opportunity guards performance and circadian alignment; truncating the night ahead of an early start accrues sleep debt (Chaput 2020).")
+
+        case "demanding_event":
+            return AdaptationResult(
+                scenario: "demanding_event",
+                recommendation: "Protect a full sleep opportunity the night before, and keep your \(targetWake) wake time — don't trade sleep for extra prep the night before.",
+                scienceBasis: "Sleep before high-stakes performance supports memory consolidation and next-day cognition; regularity predicts better outcomes than a single long night (Windred 2024).")
+
         default:
             return AdaptationResult(scenario: "general",
                 recommendation: "Keep a consistent bed and wake time around this event.",
                 scienceBasis: "Regularity is the strongest modifiable sleep-health lever (Windred 2024).")
+        }
+    }
+
+    /// Map legacy seed categories onto the current vocabulary.
+    static func normalizedCategory(_ type: String) -> String {
+        switch type {
+        case "late_night": return "social_jetlag"
+        case "travel": return "timezone_travel"
+        case "early_meeting": return "early_obligation"
+        default: return type
         }
     }
 }

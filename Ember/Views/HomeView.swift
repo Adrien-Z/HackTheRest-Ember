@@ -3,6 +3,8 @@ import SwiftUI
 struct HomeView: View {
     @EnvironmentObject var store: DataStore
     @EnvironmentObject var health: HealthManager
+    @EnvironmentObject var calendar: CalendarService
+    @State private var showSettings = false
 
     var tonightWarmTime: String {
         // bed time minus current offset
@@ -29,6 +31,17 @@ struct HomeView: View {
             }
             .navigationTitle("EMBER")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { showSettings = true } label: { Image(systemName: "gearshape") }
+                }
+            }
+            .sheet(isPresented: $showSettings) {
+                SettingsView()
+                    .environmentObject(store)
+                    .environmentObject(health)
+                    .environmentObject(calendar)
+            }
     }
 
     private var greeting: some View {
@@ -38,6 +51,8 @@ struct HomeView: View {
                 Text("Let's set up tonight's rest.").font(.subheadline).foregroundStyle(.secondary)
             }
             Spacer()
+            Tag(text: store.isSampleData ? "sample" : "live",
+                color: store.isSampleData ? Theme.amber : Theme.mint)
         }
     }
 
@@ -66,28 +81,63 @@ struct HomeView: View {
         )
     }
 
-    private var healthCard: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "heart.fill").foregroundStyle(.pink).font(.title3)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Apple Health").font(.subheadline.weight(.semibold))
-                if let tst = health.lastNightTSTMin {
-                    Text("Last night: \(fmtDur(tst)) asleep").font(.footnote).foregroundStyle(.secondary)
-                } else if health.authorized {
-                    Text("Connected · no sleep recorded last night").font(.footnote).foregroundStyle(.secondary)
-                } else {
+    @ViewBuilder private var healthCard: some View {
+        if store.isSampleData {
+            HStack(spacing: 12) {
+                Image(systemName: "sparkles").foregroundStyle(Theme.amber).font(.title3)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Sample data").font(.subheadline.weight(.semibold))
+                    Text("Switch to Live in Settings to use your Apple Health data.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
+                Spacer()
+                Button("Settings") { showSettings = true }
+                    .buttonStyle(.bordered).controlSize(.small)
+            }
+            .emberCard(14)
+        } else if !health.authorized {
+            HStack(spacing: 12) {
+                Image(systemName: "heart.fill").foregroundStyle(.pink).font(.title3)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Apple Health").font(.subheadline.weight(.semibold))
                     Text("Connect to auto-import your sleep").font(.footnote).foregroundStyle(.secondary)
                 }
+                Spacer()
+                Button("Connect") {
+                    Task { await health.requestAuthorization(); await store.refresh(health: health, calendar: calendar) }
+                }
+                .buttonStyle(.borderedProminent).tint(Theme.ember).controlSize(.small)
             }
-            Spacer()
-            if !health.authorized {
-                Button("Connect") { Task { await health.requestAuthorization() } }
-                    .buttonStyle(.borderedProminent).tint(Theme.ember).controlSize(.small)
-            } else {
-                Image(systemName: "checkmark.circle.fill").foregroundStyle(Theme.mint)
+            .emberCard(14)
+        } else {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 12) {
+                    Image(systemName: "heart.fill").foregroundStyle(.pink).font(.title3)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Apple Health").font(.subheadline.weight(.semibold))
+                        if let tst = store.healthLastNightTST {
+                            Text("Last night: \(fmtDur(tst)) asleep").font(.footnote).foregroundStyle(.secondary)
+                        } else {
+                            Text("Connected · no sleep recorded last night").font(.footnote).foregroundStyle(.secondary)
+                        }
+                    }
+                    Spacer()
+                    Image(systemName: "checkmark.circle.fill").foregroundStyle(Theme.mint)
+                }
+                if store.lastNightHR != nil || store.lastNightHRV != nil {
+                    Divider().overlay(Color.white.opacity(0.08))
+                    HStack(spacing: 0) {
+                        if let hr = store.lastNightHR {
+                            MetricStat(value: "\(Int(hr))", label: "avg HR (bpm)", color: .pink)
+                        }
+                        if let hrv = store.lastNightHRV {
+                            MetricStat(value: "\(Int(hrv))", label: "HRV (ms)", color: Theme.cool)
+                        }
+                    }
+                }
             }
+            .emberCard(14)
         }
-        .emberCard(14)
     }
 
     private var engineCards: some View {

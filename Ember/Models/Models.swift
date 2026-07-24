@@ -102,6 +102,21 @@ struct Adaptation: Codable, Identifiable {
     var whyItAffectsSleep: String? = nil
 }
 
+/// A calendar event with real `Date`s, for the day-timeline Agenda. Unlike
+/// `CalendarEvent` (string timestamps, sleep-relevant only) this covers every
+/// event in the fetch window — neutral ones included — so the whole day renders.
+struct AgendaEvent: Identifiable, Equatable {
+    let id: String
+    let title: String
+    let start: Date
+    let end: Date
+    let isAllDay: Bool
+    let category: String     // normalized category, or "neutral"
+    var why: String? = nil
+
+    var isSleepRelevant: Bool { category != "neutral" }
+}
+
 // Pods / social ----------------------------------------------------------
 struct PodMember: Codable, Identifiable {
     var id: String { name }

@@ -27,6 +27,9 @@ enum CalendarCategorizer {
 
     struct Output {
         let result: Result
+        /// Every event in the fetch window with real dates + category (neutral
+        /// included), for the day-timeline view.
+        let agenda: [AgendaEvent]
         /// Updated cache to persist; contains only ids still in the fetch window.
         let cache: [String: Categorization]
         /// LLM failure while categorizing NEW events (cached ones still applied).
@@ -39,6 +42,8 @@ enum CalendarCategorizer {
                            targetWake: String,
                            client: LLMClient?,
                            cache: [String: Categorization],
+                           overrides: [String: String] = [:],
+                           healthContext: String? = nil,
                            now: Date = Date()) async -> Output {
         // EventKit can occasionally return the same logical event more than once
         // (for example, a subscribed Zoom calendar mirrored into another source).
@@ -59,14 +64,23 @@ enum CalendarCategorizer {
         var error: Error? = nil
         if !pending.isEmpty, let client {
             do {
-                let raw = try await client.complete(system: systemPrompt, user: userPrompt(for: pending))
+                let raw = try await client.complete(
+                    system: systemPrompt,
+                    user: userPrompt(for: pending, healthContext: healthContext))
                 for (id, c) in parse(jsonString: raw, rawEvents: pending) { merged[id] = c }
             } catch let e { error = e }
         }
 
         let result = buildResult(rawEvents: uniqueEvents, categorizations: merged,
-                                 targetWake: targetWake, now: now)
-        return Output(result: result, cache: merged, error: error)
+                                 targetWake: targetWake, overrides: overrides, now: now)
+        let agenda = uniqueEvents.map { raw -> AgendaEvent in
+            let c = merged[raw.id]
+            let category = overrides[raw.id].map { RestAlgorithms.normalizedCategory($0) } ?? c?.category ?? "neutral"
+            return AgendaEvent(id: raw.id, title: raw.title, start: raw.start, end: raw.end,
+                               isAllDay: raw.isAllDay, category: category,
+                               why: overrides[raw.id] == nil ? c?.why : nil)
+        }
+        return Output(result: result, agenda: agenda, cache: merged, error: error)
     }
 
     /// Preserves the first occurrence from EventKit's start-time-sorted result.
@@ -119,10 +133,16 @@ enum CalendarCategorizer {
     Include every input event exactly once.
     """
 
-    private static func userPrompt(for events: [RawCalendarEvent]) -> String {
+    private static func userPrompt(for events: [RawCalendarEvent], healthContext: String? = nil) -> String {
         let cal = Calendar.current
         let iso = ISO8601DateFormatter()
-        var lines: [String] = ["Today is \(iso.string(from: Date())). Classify these events:"]
+        var lines: [String] = []
+        if let ctx = healthContext, !ctx.isEmpty {
+            lines.append("The user's recent sleep (use to make each 'why' personal, but do not invent numbers):")
+            lines.append(ctx)
+            lines.append("")
+        }
+        lines.append("Today is \(iso.string(from: Date())). Classify these events:")
         for e in events {
             var fields = ["id=\(e.id)", "title=\(e.title)"]
             if e.isAllDay {
@@ -144,7 +164,9 @@ enum CalendarCategorizer {
                 ])
             }
             if let loc = e.location, !loc.isEmpty { fields.append("location=\(loc)") }
-            if let notes = e.notes, !notes.isEmpty { fields.append("notes=\(notes.prefix(200))") }
+            // Send full notes — richer context lets the model read the event's
+            // true intent (e.g. "red-eye to Tokyo, land 6am") more precisely.
+            if let notes = e.notes, !notes.isEmpty { fields.append("notes=\(notes)") }
             lines.append("- " + fields.joined(separator: " | "))
         }
         return lines.joined(separator: "\n")
@@ -187,25 +209,32 @@ enum CalendarCategorizer {
     static func buildResult(rawEvents: [RawCalendarEvent],
                             categorizations: [String: Categorization],
                             targetWake: String,
+                            overrides: [String: String] = [:],
                             now: Date = Date()) -> Result {
         var events: [CalendarEvent] = []
         var adaptations: [Adaptation] = []
         for raw in rawEvents.sorted(by: { $0.start < $1.start }) {
-            guard let c = categorizations[raw.id], c.category != "neutral",
-                  isStillRelevant(category: c.category, tzOffsetHours: c.tzOffsetHours,
+            guard let c = categorizations[raw.id] else { continue }
+            // A manual correction wins over the AI's classification.
+            let category = overrides[raw.id].map { RestAlgorithms.normalizedCategory($0) } ?? c.category
+            guard category != "neutral",
+                  isStillRelevant(category: category, tzOffsetHours: c.tzOffsetHours,
                                   end: raw.end, now: now) else { continue }
 
             let event = CalendarEvent(
                 id: raw.id, title: raw.title,
                 startTs: fmt(raw.start), endTs: fmt(raw.end),
-                type: c.category, tzOffsetHours: c.tzOffsetHours, direction: c.direction)
+                type: category, tzOffsetHours: c.tzOffsetHours, direction: c.direction)
             events.append(event)
 
             let r = RestAlgorithms.adapt(for: event, targetWake: targetWake)
+            // Suppress the AI "why" when the user overrode the category (it would
+            // no longer match); the deterministic recommendation still applies.
+            let why = overrides[raw.id] == nil ? c.why : nil
             adaptations.append(Adaptation(
                 eventId: raw.id, scenario: r.scenario,
                 recommendation: r.recommendation, scienceBasis: r.scienceBasis,
-                applied: false, whyItAffectsSleep: c.why))
+                applied: false, whyItAffectsSleep: why))
         }
         return Result(events: events, adaptations: adaptations)
     }

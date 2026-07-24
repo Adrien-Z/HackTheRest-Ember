@@ -2,9 +2,6 @@ import Foundation
 #if canImport(CoreLocation)
 import CoreLocation
 #endif
-#if canImport(WeatherKit)
-import WeatherKit
-#endif
 
 struct SleepClimateSnapshot: Equatable {
     enum Risk: String {
@@ -25,6 +22,7 @@ struct SleepClimateSnapshot: Equatable {
     let risk: Risk
     let summary: String
     let guidance: String
+    let source: String
 }
 
 @MainActor
@@ -33,7 +31,7 @@ final class SleepClimateService: NSObject, ObservableObject {
     @Published var lastError: String? = nil
 
     static var isSupported: Bool {
-        #if canImport(WeatherKit) && canImport(CoreLocation)
+        #if canImport(CoreLocation)
         return true
         #else
         return false
@@ -49,15 +47,15 @@ final class SleepClimateService: NSObject, ObservableObject {
     }
 
     func refresh(store: DataStore) async {
-        #if canImport(WeatherKit) && canImport(CoreLocation)
+        #if canImport(CoreLocation)
         isLoading = true
         lastError = nil
         defer { isLoading = false }
 
         do {
             let location = try await currentLocation()
-            let hourly = try await WeatherService().weather(for: location, including: .hourly)
-            let snapshot = Self.snapshot(from: Array(hourly.forecast), calendar: .current)
+            let response = try await fetchForecast(for: location)
+            let snapshot = Self.snapshot(from: response, calendar: .current)
             store.sleepClimate = snapshot
         } catch {
             store.sleepClimate = nil
@@ -69,23 +67,43 @@ final class SleepClimateService: NSObject, ObservableObject {
         #endif
     }
 
-    #if canImport(WeatherKit) && canImport(CoreLocation)
+    #if canImport(CoreLocation)
     private let locationProvider = OneShotLocationProvider()
 
     private func currentLocation() async throws -> CLLocation {
         try await locationProvider.location()
     }
 
-    private static func snapshot(from hourly: [HourWeather], calendar: Calendar) -> SleepClimateSnapshot? {
+    private func fetchForecast(for location: CLLocation) async throws -> OpenMeteoForecast {
+        var components = URLComponents(string: "https://api.open-meteo.com/v1/forecast")
+        components?.queryItems = [
+            URLQueryItem(name: "latitude", value: String(format: "%.4f", location.coordinate.latitude)),
+            URLQueryItem(name: "longitude", value: String(format: "%.4f", location.coordinate.longitude)),
+            URLQueryItem(name: "hourly", value: "temperature_2m,relative_humidity_2m"),
+            URLQueryItem(name: "forecast_days", value: "2"),
+            URLQueryItem(name: "timezone", value: "auto")
+        ]
+        guard let url = components?.url else { throw URLError(.badURL) }
+
+        let (data, response) = try await URLSession.shared.data(from: url)
+        guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
+            throw URLError(.badServerResponse)
+        }
+        return try JSONDecoder().decode(OpenMeteoForecast.self, from: data)
+    }
+
+    private static func snapshot(from forecast: OpenMeteoForecast, calendar: Calendar) -> SleepClimateSnapshot? {
         let start = calendar.date(bySettingHour: 20, minute: 0, second: 0, of: Date()) ?? Date()
         let end = calendar.date(byAdding: .hour, value: 12, to: start) ?? start.addingTimeInterval(12 * 3600)
-        let overnight = hourly.filter { $0.date >= start && $0.date <= end }
+        let points = forecast.hourly.points(timeZoneIdentifier: forecast.timezone)
+        let overnight = points.filter { $0.date >= start && $0.date <= end }
         guard !overnight.isEmpty else { return nil }
 
-        let temps = overnight.map { $0.temperature.converted(to: .celsius).value }
+        let temps = overnight.map(\.temperatureC)
         let low = temps.min() ?? 0
         let high = temps.max() ?? low
-        let humidity = overnight.map(\.humidity).max()
+        let humidityPct = overnight.compactMap(\.humidity).max()
+        let humidity = humidityPct.map { $0 / 100 }
         let humid = humidity ?? 0
 
         let risk: SleepClimateSnapshot.Risk
@@ -98,7 +116,7 @@ final class SleepClimateService: NSObject, ObservableObject {
         }
 
         let tempRange = "\(Int(low.rounded()))-\(Int(high.rounded()))C"
-        let humidityText = humidity.map { " · humidity up to \(Int(($0 * 100).rounded()))%" } ?? ""
+        let humidityText = humidityPct.map { " · humidity up to \(Int($0.rounded()))%" } ?? ""
         let summary: String
         let guidance: String
         switch risk {
@@ -119,10 +137,49 @@ final class SleepClimateService: NSObject, ObservableObject {
             maxHumidity: humidity,
             risk: risk,
             summary: summary,
-            guidance: guidance)
+            guidance: guidance,
+            source: "Open-Meteo")
     }
     #endif
 }
+
+#if canImport(CoreLocation)
+private struct OpenMeteoForecast: Decodable {
+    let timezone: String?
+    let hourly: OpenMeteoHourly
+}
+
+private struct OpenMeteoHourly: Decodable {
+    let time: [String]
+    let temperature2m: [Double]
+    let relativeHumidity2m: [Double]?
+
+    enum CodingKeys: String, CodingKey {
+        case time
+        case temperature2m = "temperature_2m"
+        case relativeHumidity2m = "relative_humidity_2m"
+    }
+
+    func points(timeZoneIdentifier: String?) -> [OpenMeteoHour] {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm"
+        formatter.timeZone = timeZoneIdentifier.flatMap(TimeZone.init(identifier:)) ?? .current
+
+        return time.enumerated().compactMap { index, rawTime in
+            guard index < temperature2m.count, let date = formatter.date(from: rawTime) else { return nil }
+            let humidity = relativeHumidity2m.flatMap { index < $0.count ? $0[index] : nil }
+            return OpenMeteoHour(date: date, temperatureC: temperature2m[index], humidity: humidity)
+        }
+    }
+}
+
+private struct OpenMeteoHour {
+    let date: Date
+    let temperatureC: Double
+    let humidity: Double?
+}
+#endif
 
 #if canImport(CoreLocation)
 @MainActor

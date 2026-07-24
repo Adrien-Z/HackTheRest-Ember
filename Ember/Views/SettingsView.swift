@@ -79,6 +79,11 @@ struct SettingsView: View {
                         TextField("Warming method", text: $store.warmingMethod)
                     }
                 }
+                Section {
+                    Label("Sleep Climate uses approximate location and forecast data from Open-Meteo. No Apple WeatherKit entitlement or API key is required for the demo build.", systemImage: "cloud.sun.fill")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
 
                 if WakeAlarmService.isSupported {
                     Section {

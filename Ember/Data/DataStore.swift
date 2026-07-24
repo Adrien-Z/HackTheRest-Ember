@@ -35,6 +35,8 @@ final class DataStore: ObservableObject {
     @Published var healthLastNightTST: Int? = nil
     @Published var lastNightHR: Double? = nil     // mean overnight heart rate (bpm)
     @Published var lastNightHRV: Double? = nil    // mean overnight HRV SDNN (ms)
+    /// Raw, locally-derived Apple Health nights used by Today health insights.
+    @Published private(set) var recentHealthNights: [NightSample] = []
     @Published var healthAuthorized: Bool = false
 
     // Data-source state
@@ -206,6 +208,7 @@ final class DataStore: ObservableObject {
         case .live:
             isLoading = true
             let nights = await health.fetchNights()
+            recentHealthNights = nights
             healthAuthorized = health.authorized
             liveHasData = !nights.isEmpty
             let latest = nights.last
@@ -369,6 +372,7 @@ final class DataStore: ObservableObject {
         healthLastNightTST = nil
         lastNightHR = nil
         lastNightHRV = nil
+        recentHealthNights = []
         aiError = nil
     }
 

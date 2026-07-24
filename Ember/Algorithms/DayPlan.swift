@@ -94,8 +94,15 @@ enum DayPlanner {
         else if sleepLoss >= 15 || demanding { level = .moderate }
         else { level = .low }
 
-        let warmingStart = calendar.date(byAdding: .minute, value: -warmingOffsetMin, to: bed)!
-        let warmingEnd = calendar.date(byAdding: .minute, value: warmingDurationMin, to: warmingStart)!
+        var warmingStart = calendar.date(byAdding: .minute, value: -warmingOffsetMin, to: bed)!
+        var warmingEnd = calendar.date(byAdding: .minute, value: warmingDurationMin, to: warmingStart)!
+        while let conflict = events
+            .filter({ !$0.isAllDay && $0.start < warmingEnd && $0.end > warmingStart })
+            .max(by: { $0.end < $1.end }) {
+            warmingStart = conflict.end
+            warmingEnd = calendar.date(byAdding: .minute, value: warmingDurationMin, to: warmingStart)!
+            if warmingStart >= bed { break }
+        }
 
         let (headline, detail) = copy(level: level, sleepLoss: sleepLoss,
                                       driver: driver, demanding: demanding,

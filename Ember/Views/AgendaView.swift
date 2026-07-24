@@ -67,7 +67,8 @@ private struct DayPage: View {
                         wakeMin: minuteOfDay(store.user.targetWakeTime),
                         bedMin: minuteOfDay(store.user.targetBedTime),
                         onSelectEvent: { selectedEvent = $0 },
-                        onSelectMarker: { selectedMarker = $0 })
+                        onSelectMarker: { selectedMarker = $0 },
+                        onPlanChange: { store.updateTonightPlan($0) })
                     .padding(.horizontal, 12).padding(.bottom, 24)
                 }
                 .onAppear {
@@ -100,10 +101,12 @@ private struct DayPage: View {
     private func rebuild() {
         let offset = store.currentThermalRx?.prescribedOffsetMin ?? store.user.currentOffsetMin
         withAnimation(.snappy) {
-            plan = DayPlanner.build(
+            let rebuilt = DayPlanner.build(
                 nightOf: day, user: store.user,
                 warmingOffsetMin: offset, prepBufferMin: wakeAlarm.prepBufferMin,
                 events: store.agendaEvents.filter { !$0.isAllDay })
+            plan = rebuilt
+            store.updateTonightPlan(rebuilt)
         }
     }
     private func minuteOfDay(_ s: String) -> Int {
@@ -169,21 +172,43 @@ private struct PlanBanner: View {
                 }
                 Text(plan.detail).font(.caption).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-                HStack(spacing: 14) {
-                    Label(clock(plan.bed), systemImage: "bed.double.fill").font(.caption2)
-                    Label(clock(plan.wake), systemImage: "sunrise.fill").font(.caption2)
-                    Label("\(fmtDur(plan.sleepDurationMin))", systemImage: "moon.zzz.fill").font(.caption2)
-                    Spacer()
+                HStack(spacing: 10) {
+                    PlanMetric(systemImage: "bed.double.fill", value: clock(plan.bed))
+                    PlanMetric(systemImage: "sunrise.fill", value: clock(plan.wake))
+                    PlanMetric(systemImage: "moon.zzz.fill", value: fmtDur(plan.sleepDurationMin))
+                    Spacer(minLength: 4)
                     Button(action: onReset) {
-                        Label("Reset", systemImage: "arrow.counterclockwise").font(.caption2)
-                    }.tint(.secondary)
+                        Image(systemName: "arrow.counterclockwise")
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 36, height: 32)
+                    .accessibilityLabel("Reset plan")
                 }
-                .foregroundStyle(.secondary)
             }
         }
         .emberCard(12)
     }
     private func clock(_ d: Date) -> String { d.formatted(.dateTime.hour().minute()) }
+}
+
+private struct PlanMetric: View {
+    let systemImage: String
+    let value: String
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Image(systemName: systemImage)
+                .frame(width: 15)
+            Text(value)
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+        }
+        .font(.caption2.weight(.semibold))
+        .foregroundStyle(.secondary)
+        .frame(width: 64, height: 28, alignment: .leading)
+    }
 }
 
 // MARK: - The timeline canvas
@@ -196,6 +221,7 @@ private struct DayCanvas: View {
     let bedMin: Int
     let onSelectEvent: (AgendaEvent) -> Void
     let onSelectMarker: (CircadianModel.Marker) -> Void
+    let onPlanChange: (DayPlan) -> Void
 
     @State private var sleepBase: DayPlan?
     @State private var warmBase: DayPlan?
@@ -393,7 +419,7 @@ private struct DayCanvas: View {
                  subtitle: "\(clock(plan.bed))–\(clock(plan.wake))",
                  width: laneW, height: h, lifted: sleepBase != nil)
                 .offset(x: laneX, y: top)
-                .gesture(bandDrag(base: $sleepBase))
+                .simultaneousGesture(bandDrag(base: $sleepBase))
         }
     }
 
@@ -404,7 +430,7 @@ private struct DayCanvas: View {
                  title: "Warm-up", subtitle: clock(plan.warmingStart),
                  width: laneW, height: h, lifted: warmBase != nil)
                 .offset(x: laneX, y: top)
-                .gesture(bandDrag(base: $warmBase))
+                .simultaneousGesture(bandDrag(base: $warmBase))
         }
     }
 
@@ -448,6 +474,7 @@ private struct DayCanvas: View {
                     p.bed = shift(b.bed, step); p.wake = shift(b.wake, step)
                     p.warmingStart = shift(b.warmingStart, step); p.warmingEnd = shift(b.warmingEnd, step)
                     plan = p
+                    onPlanChange(p)
                     if step != lastStep { Haptics.tick(); lastStep = step }
                 default:
                     break
@@ -464,23 +491,22 @@ private struct DayCanvas: View {
             let x = laneX + CGFloat(pos.col) * (colW + 4)
             let top = max(0, y(pos.event.start))
             let h = max(26, y(pos.event.end) - y(pos.event.start))
-            Button { Haptics.tick(); onSelectEvent(pos.event) } label: {
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(pos.event.title).font(.caption.weight(.semibold)).lineLimit(pos.cols > 2 ? 1 : 2)
-                    if h > 34 && pos.cols < 3 {
-                        Text("\(clock(pos.event.start))–\(clock(pos.event.end))").font(.caption2).foregroundStyle(.secondary)
-                    }
-                    Spacer(minLength: 0)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(pos.event.title).font(.caption.weight(.semibold)).lineLimit(pos.cols > 2 ? 1 : 2)
+                if h > 34 && pos.cols < 3 {
+                    Text("\(clock(pos.event.start))–\(clock(pos.event.end))").font(.caption2).foregroundStyle(.secondary)
                 }
-                .padding(.horizontal, 7).padding(.vertical, 4)
-                .frame(width: colW, height: h, alignment: .topLeading)
-                .background(eventColor(pos.event).opacity(0.18), in: RoundedRectangle(cornerRadius: 9))
-                .overlay(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 2).fill(eventColor(pos.event)).frame(width: 3).padding(.vertical, 3)
-                }
-                .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(eventColor(pos.event).opacity(0.4), lineWidth: 1))
+                Spacer(minLength: 0)
             }
-            .buttonStyle(.plain)
+            .padding(.horizontal, 7).padding(.vertical, 4)
+            .frame(width: colW, height: h, alignment: .topLeading)
+            .background(eventColor(pos.event).opacity(0.18), in: RoundedRectangle(cornerRadius: 9))
+            .overlay(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 2).fill(eventColor(pos.event)).frame(width: 3).padding(.vertical, 3)
+            }
+            .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(eventColor(pos.event).opacity(0.4), lineWidth: 1))
+            .contentShape(Rectangle())
+            .onTapGesture { Haptics.tick(); onSelectEvent(pos.event) }
             .offset(x: x, y: top)
         }
     }

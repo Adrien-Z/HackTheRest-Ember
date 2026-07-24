@@ -20,6 +20,8 @@ final class DataStore: ObservableObject {
     @Published var adaptations: [Adaptation] = []
     /// Every event in the fetch window (neutral included), for the day timeline.
     @Published var agendaEvents: [AgendaEvent] = []
+    /// The user's currently adjusted plan for tonight, shared between Agenda and Today.
+    @Published var tonightPlan: DayPlan? = nil
     /// When on, injects a set of illustrative events anchored to today so the
     /// Agenda can be demoed without a real calendar. Toggled in Settings.
     @Published var demoEventsEnabled: Bool {
@@ -293,10 +295,22 @@ final class DataStore: ObservableObject {
 
     func categoryOverride(for eventId: String) -> String? { loadCategoryOverrides()[eventId] }
 
-    /// Recompute the displayed agenda from the real events plus (optionally) the
-    /// demo set. Demo events are always re-anchored to the current date.
+    func updateTonightPlan(_ plan: DayPlan, calendar: Calendar = .current) {
+        if calendar.isDateInToday(plan.day) {
+            tonightPlan = plan
+        }
+    }
+
+    func clearTonightPlan(calendar: Calendar = .current) {
+        guard let tonightPlan, calendar.isDateInToday(tonightPlan.day) else { return }
+        self.tonightPlan = nil
+    }
+
+    /// Recompute the displayed agenda. Demo mode intentionally replaces the real
+    /// agenda so illustrative events never overlap a user's actual calendar.
     private func applyAgenda() {
-        agendaEvents = baseAgenda + (demoEventsEnabled ? Self.demoAgendaEvents() : [])
+        agendaEvents = demoEventsEnabled ? Self.demoAgendaEvents() : baseAgenda
+        tonightPlan = nil
     }
 
     /// Illustrative events anchored to today, spanning the categories, so the
@@ -308,22 +322,65 @@ final class DataStore: ObservableObject {
                 .flatMap { calendar.date(bySettingHour: h, minute: m, second: 0, of: $0) } ?? now
         }
         return [
+            AgendaEvent(id: "demo-morning-run", title: "Morning run", start: at(0, 6, 45), end: at(0, 7, 30),
+                        isAllDay: false, category: "neutral"),
+            AgendaEvent(id: "demo-breakfast", title: "Breakfast + commute", start: at(0, 7, 45), end: at(0, 8, 45),
+                        isAllDay: false, category: "neutral"),
+            AgendaEvent(id: "demo-focus", title: "Deep work block", start: at(0, 9, 0), end: at(0, 11, 0),
+                        isAllDay: false, category: "neutral"),
+            AgendaEvent(id: "demo-standup", title: "Team stand-up", start: at(0, 10, 0), end: at(0, 10, 30),
+                        isAllDay: false, category: "neutral"),
             AgendaEvent(id: "demo-lunch", title: "Lunch with Sam", start: at(0, 12, 30), end: at(0, 13, 30),
                         isAllDay: false, category: "neutral"),
-            AgendaEvent(id: "demo-concert", title: "Live show at The Warehouse", start: at(0, 21, 0), end: at(1, 0, 30),
-                        isAllDay: false, category: "social_jetlag",
-                        why: "This runs past midnight, pushing your sleep midpoint later — sleeping in to recover would create social jet lag."),
-            AgendaEvent(id: "demo-flight", title: "Flight SFO → London", start: at(2, 18, 0), end: at(3, 12, 0),
-                        isAllDay: false, category: "timezone_travel",
-                        why: "An overnight eastbound flight crosses time zones and needs a gradual phase advance beforehand."),
-            AgendaEvent(id: "demo-standup", title: "Team stand-up", start: at(1, 9, 0), end: at(1, 9, 30),
-                        isAllDay: false, category: "neutral"),
-            AgendaEvent(id: "demo-pitch", title: "Investor pitch", start: at(1, 7, 30), end: at(1, 8, 30),
-                        isAllDay: false, category: "early_obligation",
-                        why: "An early start truncates your sleep opportunity, so tonight's plan shifts earlier to protect a full night."),
-            AgendaEvent(id: "demo-exam", title: "Board presentation", start: at(4, 10, 0), end: at(4, 11, 30),
+            AgendaEvent(id: "demo-presentation-prep", title: "Presentation prep", start: at(0, 14, 0), end: at(0, 15, 30),
                         isAllDay: false, category: "demanding_event",
-                        why: "A high-stakes morning rewards solid sleep beforehand for memory and focus."),
+                        why: "A cognitively demanding block can raise evening arousal, so the plan protects a clean wind-down window."),
+            AgendaEvent(id: "demo-gym", title: "Strength training", start: at(0, 17, 45), end: at(0, 18, 45),
+                        isAllDay: false, category: "neutral"),
+            AgendaEvent(id: "demo-dinner", title: "Dinner reservation", start: at(0, 19, 30), end: at(0, 21, 0),
+                        isAllDay: false, category: "neutral"),
+            AgendaEvent(id: "demo-night-out", title: "Night out with friends", start: at(0, 21, 30), end: at(1, 1, 15),
+                        isAllDay: false, category: "social_jetlag",
+                        why: "This runs well past your usual bedtime, pushing your sleep midpoint later and making sleeping in tempting tomorrow."),
+            AgendaEvent(id: "demo-early-training", title: "7 AM training session", start: at(1, 7, 0), end: at(1, 8, 0),
+                        isAllDay: false, category: "early_obligation",
+                        why: "An early obligation after a late night compresses sleep opportunity, so EMBER shifts prep earlier and flags the risk."),
+            AgendaEvent(id: "demo-board", title: "Board presentation", start: at(1, 10, 0), end: at(1, 11, 30),
+                        isAllDay: false, category: "demanding_event",
+                        why: "A high-stakes morning rewards solid sleep beforehand for memory, attention, and emotional control."),
+            AgendaEvent(id: "demo-recovery-walk", title: "Recovery walk", start: at(1, 17, 30), end: at(1, 18, 15),
+                        isAllDay: false, category: "neutral"),
+            AgendaEvent(id: "demo-family-call", title: "Family video call", start: at(1, 20, 0), end: at(1, 20, 45),
+                        isAllDay: false, category: "neutral"),
+            AgendaEvent(id: "demo-flight", title: "Flight SFO to London", start: at(2, 18, 0), end: at(3, 12, 0),
+                        isAllDay: false, category: "timezone_travel",
+                        why: "An overnight eastbound flight crosses time zones and benefits from a gradual phase advance beforehand."),
+            AgendaEvent(id: "demo-hotel-checkin", title: "Hotel check-in", start: at(3, 13, 0), end: at(3, 14, 0),
+                        isAllDay: false, category: "neutral"),
+            AgendaEvent(id: "demo-light-walk", title: "Bright-light walk", start: at(3, 16, 0), end: at(3, 16, 45),
+                        isAllDay: false, category: "timezone_travel",
+                        why: "Outdoor light at the destination helps anchor the shifted circadian schedule after travel."),
+            AgendaEvent(id: "demo-client-dinner", title: "Client dinner", start: at(3, 20, 30), end: at(3, 22, 30),
+                        isAllDay: false, category: "social_jetlag",
+                        why: "A later dinner after travel can delay wind-down, so the plan keeps the next wake anchor visible."),
+            AgendaEvent(id: "demo-yoga", title: "Hotel gym yoga", start: at(4, 7, 30), end: at(4, 8, 15),
+                        isAllDay: false, category: "neutral"),
+            AgendaEvent(id: "demo-workshop", title: "All-day strategy workshop", start: at(4, 9, 0), end: at(4, 16, 30),
+                        isAllDay: false, category: "demanding_event",
+                        why: "A long cognitive day increases the value of a predictable bedtime and protected wind-down."),
+            AgendaEvent(id: "demo-friends-drinks", title: "Drinks with friends", start: at(4, 22, 0), end: at(5, 0, 30),
+                        isAllDay: false, category: "social_jetlag",
+                        why: "A late social plan shifts sleep timing later; EMBER highlights the tradeoff before it happens."),
+            AgendaEvent(id: "demo-early-train", title: "Early train to conference", start: at(5, 6, 40), end: at(5, 8, 0),
+                        isAllDay: false, category: "early_obligation",
+                        why: "An early departure pulls the practical wake time forward and reduces sleep opportunity."),
+            AgendaEvent(id: "demo-swim", title: "Evening swim", start: at(5, 18, 30), end: at(5, 19, 15),
+                        isAllDay: false, category: "neutral"),
+            AgendaEvent(id: "demo-brunch", title: "Weekend brunch", start: at(6, 11, 0), end: at(6, 12, 30),
+                        isAllDay: false, category: "neutral"),
+            AgendaEvent(id: "demo-movie", title: "Late movie", start: at(6, 21, 45), end: at(7, 0, 10),
+                        isAllDay: false, category: "social_jetlag",
+                        why: "Late entertainment can push the sleep midpoint later, so the app keeps the next morning's wake anchor explicit."),
         ]
     }
 

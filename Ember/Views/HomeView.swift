@@ -10,10 +10,32 @@ struct HomeView: View {
     @State private var showAccount = false
     @State private var insightPage = 0
 
+    private var effectiveTonightPlan: DayPlan? {
+        if let plan = store.tonightPlan, Calendar.current.isDateInToday(plan.day) {
+            return plan
+        }
+        let offset = store.currentThermalRx?.prescribedOffsetMin ?? store.user.currentOffsetMin
+        return DayPlanner.build(
+            nightOf: Calendar.current.startOfDay(for: Date()),
+            user: store.user,
+            warmingOffsetMin: offset,
+            prepBufferMin: wakeAlarm.prepBufferMin,
+            events: store.agendaEvents.filter { !$0.isAllDay })
+    }
+
     var tonightWarmTime: String {
-        // bed time minus current offset
-        guard let rx = store.currentThermalRx else { return "—" }
-        return offsetTime(from: store.user.targetBedTime, minusMinutes: rx.prescribedOffsetMin)
+        guard let plan = effectiveTonightPlan else { return "—" }
+        return clock(plan.warmingStart)
+    }
+
+    private var tonightBedTime: String {
+        guard let plan = effectiveTonightPlan else { return store.user.targetBedTime }
+        return clock(plan.bed)
+    }
+
+    private var tonightWakeTime: String {
+        guard let plan = effectiveTonightPlan else { return store.user.targetWakeTime }
+        return clock(plan.wake)
     }
 
     var body: some View {
@@ -85,12 +107,12 @@ struct HomeView: View {
             HStack(spacing: 0) {
                 MetricStat(value: tonightWarmTime, label: "start warming", color: Theme.ember)
                 Divider().frame(height: 40).overlay(Color.white.opacity(0.1))
-                MetricStat(value: store.user.targetBedTime, label: "lights out")
+                MetricStat(value: tonightBedTime, label: "lights out")
                 Divider().frame(height: 40).overlay(Color.white.opacity(0.1))
-                MetricStat(value: store.user.targetWakeTime, label: "wake")
+                MetricStat(value: tonightWakeTime, label: "wake")
             }
             if let rx = store.currentThermalRx {
-                Text("\(store.user.warmingMethod) · offset \(rx.prescribedOffsetMin) min before bed")
+                Text(warmingPlanSummary(rx: rx))
                     .font(.footnote).foregroundStyle(.secondary)
             }
             if WakeAlarmService.isSupported {
@@ -114,9 +136,9 @@ struct HomeView: View {
             if let t = wakeAlarm.scheduledTime {
                 Text("Wake alarm · \(t)").font(.footnote)
                 Spacer()
-                if t != store.user.targetWakeTime {
-                    Button("Move to \(store.user.targetWakeTime)") {
-                        Task { await wakeAlarm.setWakeAlarm(at: store.user.targetWakeTime) }
+                if t != tonightWakeTime {
+                    Button("Move to \(tonightWakeTime)") {
+                        Task { await wakeAlarm.setWakeAlarm(at: tonightWakeTime) }
                     }
                     .buttonStyle(.borderedProminent).tint(Theme.ember).controlSize(.small)
                 }
@@ -125,8 +147,8 @@ struct HomeView: View {
             } else {
                 Text("Wake alarm").font(.footnote).foregroundStyle(.secondary)
                 Spacer()
-                Button("Set for \(store.user.targetWakeTime)") {
-                    Task { await wakeAlarm.setWakeAlarm(at: store.user.targetWakeTime) }
+                Button("Set for \(tonightWakeTime)") {
+                    Task { await wakeAlarm.setWakeAlarm(at: tonightWakeTime) }
                 }
                 .buttonStyle(.borderedProminent).tint(Theme.ember).controlSize(.small)
             }
@@ -429,6 +451,22 @@ struct HomeView: View {
             }
             Spacer(); Image(systemName: "chevron.right").foregroundStyle(.secondary).font(.caption)
         }.emberCard(14)
+    }
+
+    private func warmingPlanSummary(rx: ThermalPrescription) -> String {
+        guard let plan = effectiveTonightPlan else {
+            return "\(store.user.warmingMethod) · offset \(rx.prescribedOffsetMin) min before bed"
+        }
+        let actualOffset = max(0, Int(plan.bed.timeIntervalSince(plan.warmingStart) / 60))
+        if actualOffset == rx.prescribedOffsetMin {
+            return "\(store.user.warmingMethod) · offset \(rx.prescribedOffsetMin) min before bed"
+        }
+        return "\(store.user.warmingMethod) · tonight adjusted to \(actualOffset) min before bed around calendar events"
+    }
+
+    private func clock(_ date: Date) -> String {
+        let c = Calendar.current.dateComponents([.hour, .minute], from: date)
+        return String(format: "%02d:%02d", c.hour ?? 0, c.minute ?? 0)
     }
 }
 

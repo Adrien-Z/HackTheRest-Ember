@@ -82,14 +82,15 @@ struct BoxSpaceView: View {
         HStack(spacing: 13) {
             ZStack(alignment: .bottomTrailing) {
                 BlueBoxMascot(isActive: true, isCurrentUser: false)
-                    .frame(width: 54, height: 50)
+                    .scaleEffect(0.8)
+                    .frame(width: 44, height: 40)
                 if let decoration = selectedDecoration {
                     Image(systemName: decoration.systemImage)
-                        .font(.system(size: 9, weight: .bold))
+                        .font(.system(size: 8, weight: .bold))
                         .foregroundStyle(Theme.amber)
-                        .padding(4)
+                        .padding(3)
                         .background(.regularMaterial, in: Circle())
-                        .offset(x: 3, y: 2)
+                        .offset(x: 2, y: 1)
                 }
             }
             VStack(alignment: .leading, spacing: 4) {
@@ -486,37 +487,97 @@ struct BlueBoxMascot: View {
     let isActive: Bool
     let isCurrentUser: Bool
 
-    private var fill: AnyShapeStyle {
-        isActive ? AnyShapeStyle(Theme.boxGradient)
-                 : AnyShapeStyle(Color(red: 0.32, green: 0.34, blue: 0.39))
+    private var frontFill: AnyShapeStyle {
+        isActive
+            ? AnyShapeStyle(LinearGradient(
+                colors: [Color(red: 0.47, green: 0.86, blue: 1.0), Color(red: 0.12, green: 0.51, blue: 0.92)],
+                startPoint: .topLeading, endPoint: .bottomTrailing))
+            : AnyShapeStyle(Color(red: 0.34, green: 0.36, blue: 0.41))
     }
 
-    private var faceColor: Color {
-        isActive ? Color(red: 0.04, green: 0.15, blue: 0.36)
-                 : Color.black.opacity(0.45)
+    private var sideFill: AnyShapeStyle {
+        isActive
+            ? AnyShapeStyle(LinearGradient(
+                colors: [Color(red: 0.12, green: 0.42, blue: 0.83), Theme.boxBlueDeep],
+                startPoint: .topLeading, endPoint: .bottomTrailing))
+            : AnyShapeStyle(Color(red: 0.23, green: 0.25, blue: 0.30))
+    }
+
+    private var lidFill: AnyShapeStyle {
+        isActive
+            ? AnyShapeStyle(LinearGradient(
+                colors: [Color(red: 0.79, green: 0.94, blue: 1.0), Color(red: 0.31, green: 0.72, blue: 0.98)],
+                startPoint: .topLeading, endPoint: .bottomTrailing))
+            : AnyShapeStyle(Color(red: 0.46, green: 0.48, blue: 0.54))
     }
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 17, style: .continuous)
-                .fill(fill).frame(width: 58, height: 47).offset(y: 8)
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(fill).frame(width: 37, height: 18)
-                .rotationEffect(.degrees(9)).offset(x: -17, y: -12)
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(fill).frame(width: 34, height: 18)
-                .rotationEffect(.degrees(-18)).offset(x: 17, y: -10)
+            Ellipse()
+                .fill(Color.black.opacity(isActive ? 0.18 : 0.12))
+                .frame(width: 50, height: 9)
+                .blur(radius: 4)
+                .offset(y: 31)
+
+            // The darker side panel gives the little box its soft 3D depth.
+            RoundedRectangle(cornerRadius: 15, style: .continuous)
+                .fill(sideFill)
+                .frame(width: 43, height: 45)
+                .offset(x: 10, y: 8)
+
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(frontFill)
+                .frame(width: 54, height: 45)
+                .offset(x: -4, y: 8)
+                .overlay(alignment: .topLeading) {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(Color.white.opacity(isActive ? 0.28 : 0.08), lineWidth: 0.8)
+                        .frame(width: 54, height: 45)
+                        .offset(x: -4, y: 8)
+                }
+
+            // Back and open flaps — the overlapping layers imitate a soft,
+            // rounded parcel that has just opened.
+            Capsule()
+                .fill(lidFill)
+                .frame(width: 48, height: 21)
+                .rotationEffect(.degrees(3))
+                .offset(x: 2, y: -18)
+            RoundedRectangle(cornerRadius: 11, style: .continuous)
+                .fill(lidFill)
+                .frame(width: 51, height: 20)
+                .rotationEffect(.degrees(5))
+                .offset(x: -9, y: -9)
+                .shadow(color: Color.black.opacity(0.10), radius: 3, y: 2)
+            RoundedRectangle(cornerRadius: 11, style: .continuous)
+                .fill(lidFill)
+                .frame(width: 31, height: 20)
+                .rotationEffect(.degrees(-28))
+                .offset(x: 22, y: -9)
+                .shadow(color: Color.black.opacity(0.10), radius: 3, y: 2)
+
             HStack(spacing: 14) {
-                Capsule().frame(width: 7, height: 3)
-                Capsule().frame(width: 7, height: 3)
+                BoxSmile()
+                    .stroke(faceColor, style: StrokeStyle(lineWidth: 2.8, lineCap: .round))
+                    .frame(width: 11, height: 5)
+                BoxSmile()
+                    .stroke(faceColor, style: StrokeStyle(lineWidth: 2.8, lineCap: .round))
+                    .frame(width: 11, height: 5)
             }
-            .foregroundStyle(faceColor)
-            .offset(y: 10)
+            .offset(x: -4, y: 7)
             BoxSmile()
-                .stroke(faceColor, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
-                .frame(width: 10, height: 6)
-                .offset(y: 17)
+                .stroke(faceColor, style: StrokeStyle(lineWidth: 2.4, lineCap: .round))
+                .frame(width: 10, height: 5)
+                .offset(x: -4, y: 16)
+            HStack(spacing: 25) {
+                Ellipse().fill(Color(red: 1.0, green: 0.67, blue: 0.67).opacity(isActive ? 0.9 : 0.25))
+                    .frame(width: 11, height: 6)
+                Ellipse().fill(Color(red: 1.0, green: 0.67, blue: 0.67).opacity(isActive ? 0.9 : 0.25))
+                    .frame(width: 11, height: 6)
+            }
+            .offset(x: -4, y: 15)
         }
+        .frame(width: 70, height: 70)
         .shadow(
             color: isCurrentUser ? Theme.boxBlue.opacity(0.55) : Color.black.opacity(0.25),
             radius: isCurrentUser ? 12 : 5,
@@ -531,6 +592,10 @@ struct BlueBoxMascot: View {
                     .offset(x: -2, y: -9)
             }
         }
+    }
+
+    private var faceColor: Color {
+        isActive ? Color(red: 0.04, green: 0.16, blue: 0.40) : Color.black.opacity(0.38)
     }
 }
 

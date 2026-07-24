@@ -92,42 +92,23 @@ struct BoxSpaceView: View {
     }
 
     private var scoreCard: some View {
-<<<<<<< HEAD
         Button {
             withAnimation(.easeInOut(duration: 0.2)) {
                 showRestJourney.toggle()
             }
         } label: {
-        
-        
             HStack(spacing: 13) {
                 ZStack(alignment: .bottomTrailing) {
                     BlueBoxMascot(isActive: true, isCurrentUser: false)
                         .scaleEffect(0.8)
                         .frame(width: 44, height: 40)
-
                     if let decoration = selectedDecoration {
                         Image(systemName: decoration.systemImage)
-                           .font(.system(size: 8, weight: .bold))
-                           .foregroundStyle(Theme.amber)
-                           .padding(3)
-                           .background(.regularMaterial, in: Circle())
-                           .offset(x: 2, y: 1)
-                    }
-
-               }
-        } label: {
-            HStack(spacing: 13) {
-                ZStack(alignment: .bottomTrailing) {
-                    BlueBoxMascot(isActive: true, isCurrentUser: false)
-                        .frame(width: 54, height: 50)
-                    if let decoration = selectedDecoration {
-                        Image(systemName: decoration.systemImage)
-                            .font(.system(size: 9, weight: .bold))
+                            .font(.system(size: 8, weight: .bold))
                             .foregroundStyle(Theme.amber)
-                            .padding(4)
+                            .padding(3)
                             .background(.regularMaterial, in: Circle())
-                            .offset(x: 3, y: 2)
+                            .offset(x: 2, y: 1)
                     }
                 }
                 VStack(alignment: .leading, spacing: 4) {

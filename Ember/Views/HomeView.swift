@@ -6,6 +6,7 @@ struct HomeView: View {
     @EnvironmentObject var health: HealthManager
     @EnvironmentObject var calendar: CalendarService
     @EnvironmentObject var wakeAlarm: WakeAlarmService
+    @EnvironmentObject var sleepClimate: SleepClimateService
     @State private var showSettings = false
     @State private var showAccount = false
     @State private var insightPage = 0
@@ -45,6 +46,7 @@ struct HomeView: View {
                     VStack(spacing: 18) {
                         greeting
                         tonightCard
+                        sleepClimateCard
                         healthInsightCarousel
                         quickToolEntrances
                     }
@@ -71,12 +73,14 @@ struct HomeView: View {
                     .environmentObject(health)
                     .environmentObject(calendar)
                     .environmentObject(wakeAlarm)
+                    .environmentObject(sleepClimate)
             }
             .sheet(isPresented: $showAccount) {
                 AccountView()
             }
             .task {
                 await store.refreshTodayEnergy(health: health)
+                await sleepClimate.refreshIfAuthorized(store: store)
                 while !Task.isCancelled {
                     try? await Task.sleep(nanoseconds: 15 * 60 * 1_000_000_000)
                     guard !Task.isCancelled else { return }
@@ -127,6 +131,67 @@ struct HomeView: View {
         .background(
             RoundedRectangle(cornerRadius: 20).fill(Theme.ember.opacity(0.06))
         )
+    }
+
+    @ViewBuilder private var sleepClimateCard: some View {
+        if SleepClimateService.isSupported {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: "thermometer.medium")
+                        .foregroundStyle(sleepClimateColor)
+                        .font(.title3)
+                        .frame(width: 28, height: 28)
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text("Sleep climate").font(.headline)
+                            Spacer()
+                            if let snapshot = store.sleepClimate {
+                                Tag(text: snapshot.risk.label, color: sleepClimateColor)
+                            }
+                        }
+                        if let snapshot = store.sleepClimate {
+                            Text(snapshot.summary).font(.footnote).foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Text(snapshot.guidance).font(.footnote)
+                                .fixedSize(horizontal: false, vertical: true)
+                            if let wrist = store.wristTempDeviationC, wrist >= 0.3, snapshot.risk != .low {
+                                Text("Your wrist temperature is also running +\(String(format: "%.1f", wrist))C vs baseline. That is a relative watch signal, not core temperature.")
+                                    .font(.caption2).foregroundStyle(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        } else {
+                            Text("Check tonight's heat and humidity before bed. Weather changes advice only; it does not move your body-clock curve.")
+                                .font(.footnote).foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        if let error = sleepClimate.lastError {
+                            Text(error).font(.caption2).foregroundStyle(.orange)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+                Button {
+                    Task { await sleepClimate.refresh(store: store) }
+                } label: {
+                    Label(store.sleepClimate == nil ? "Check tonight's forecast" : "Refresh forecast",
+                          systemImage: sleepClimate.isLoading ? "clock" : "location.fill")
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Theme.ember)
+                .controlSize(.small)
+                .disabled(sleepClimate.isLoading)
+            }
+            .emberCard(14)
+        }
+    }
+
+    private var sleepClimateColor: Color {
+        switch store.sleepClimate?.risk {
+        case .low: return Theme.mint
+        case .moderate: return Theme.amber
+        case .high: return Theme.ember
+        case nil: return Theme.cool
+        }
     }
 
     /// Set / move / remove the AlarmKit wake alarm from the plan's wake time.

@@ -8,6 +8,7 @@ struct SettingsView: View {
     @EnvironmentObject var health: HealthManager
     @EnvironmentObject var calendar: CalendarService
     @EnvironmentObject var wakeAlarm: WakeAlarmService
+    @EnvironmentObject var sleepClimate: SleepClimateService
     @Environment(\.dismiss) private var dismiss
     @State private var apiKeyDraft = ""
 
@@ -58,6 +59,14 @@ struct SettingsView: View {
                             tint: Theme.ember,
                             connected: calendar.isAuthorized,
                             action: { await calendar.requestAccess(); await store.refresh(health: health, calendar: calendar) })
+                        if SleepClimateService.isSupported {
+                            connectionRow(
+                                title: "Sleep Climate",
+                                systemImage: "thermometer.medium",
+                                tint: Theme.cool,
+                                connected: store.sleepClimate != nil,
+                                action: { await sleepClimate.refresh(store: store) })
+                        }
                         if store.healthAuthorized && !store.liveHasData {
                             Label("No sleep data found in Apple Health for the last 60 days.",
                                   systemImage: "exclamationmark.triangle")

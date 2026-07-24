@@ -16,6 +16,9 @@ struct CoachView: View {
         } else if let rx = store.currentThermalRx {
             items.append("Why start warming \(rx.prescribedOffsetMin) min before bed?")
         }
+        if let climate = store.sleepClimate, climate.risk != .low {
+            items.append("How should I adjust for tonight's heat?")
+        }
         for event in store.calendarEvents.prefix(2) {
             items.append("How should I sleep around \"\(event.title)\"?")
         }

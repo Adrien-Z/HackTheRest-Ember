@@ -54,6 +54,8 @@ final class DataStore: ObservableObject {
     /// Hourly Apple Health inputs used for the current-day energy estimate.
     @Published private(set) var todayEnergyDay: DailyEnergyDay? = nil
     @Published var healthAuthorized: Bool = false
+    /// Optional local forecast layer for heat/humidity sleep friction. Not diagnostic.
+    @Published var sleepClimate: SleepClimateSnapshot? = nil
 
     // Data-source state
     @Published private(set) var mode: DataSourceMode

@@ -63,6 +63,9 @@ enum RestCoach {
       time protects performance.
     - Carney 2012 — Consensus Sleep Diary: standard definitions of SOL, WASO, TST, TIB, and \
       sleep efficiency (TST/TIB).
+    - Minor 2022 (One Earth) and a 2024 systematic review of ambient heat and sleep — warmer \
+      nights are generally associated with shorter or poorer sleep, especially through delayed \
+      sleep onset. Treat weather as a sleep-friction factor, not a medical diagnosis.
     """
 
     // MARK: - Context snapshot fed to the LLM
@@ -112,6 +115,10 @@ enum RestCoach {
         if let hrv = store.lastNightHRV { lines.append("Overnight HRV (SDNN): \(Int(hrv)) ms.") }
         if let dev = store.wristTempDeviationC {
             lines.append("Sleeping wrist temperature: \(dev > 0 ? "+" : "")\(String(format: "%.1f", dev))°C vs the user's baseline. NOTE: this is Apple Watch wrist skin temperature, a RELATIVE night-to-night signal — not core body temperature and not to scale. Elevations often reflect illness, alcohol, a warm room, or menstrual phase. Never present it as a precise or clinical temperature.")
+        }
+        if let climate = store.sleepClimate {
+            let humidity = climate.maxHumidity.map { ", max humidity \(Int(($0 * 100).rounded()))%" } ?? ""
+            lines.append("SLEEP CLIMATE: \(climate.risk.label), overnight \(Int(climate.overnightLowC))-\(Int(climate.overnightHighC))°C\(humidity). Guidance: \(climate.guidance) Weather can affect sleep onset/quality but should not be described as shifting circadian phase by itself.")
         }
 
         if !store.adaptations.isEmpty {

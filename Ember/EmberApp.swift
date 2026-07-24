@@ -7,6 +7,7 @@ struct EmberApp: App {
     @StateObject private var health = HealthManager()
     @StateObject private var calendar = CalendarService()
     @StateObject private var wakeAlarm = WakeAlarmService()
+    @StateObject private var sleepClimate = SleepClimateService()
     @StateObject private var auth = AuthViewModel()
     @Environment(\.scenePhase) private var scenePhase
 
@@ -19,11 +20,13 @@ struct EmberApp: App {
                 .environmentObject(health)
                 .environmentObject(calendar)
                 .environmentObject(wakeAlarm)
+                .environmentObject(sleepClimate)
                 .environmentObject(auth)
             .task(id: auth.isAuthenticated) {
                 guard auth.isAuthenticated else { return }
                 await health.autoConnect()
                 await store.refresh(health: health, calendar: calendar)
+                await sleepClimate.refreshIfAuthorized(store: store)
                 await store.refreshBoxSpace()
             }
             .onChange(of: scenePhase) { phase in

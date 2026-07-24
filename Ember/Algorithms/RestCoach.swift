@@ -75,6 +75,9 @@ enum RestCoach {
 
         let u = store.user
         lines.append("PROFILE: name=\(u.name), target bed=\(u.targetBedTime), target wake=\(u.targetWakeTime), warming method=\(u.warmingMethod), phase=\(u.phase), current warming offset=\(u.currentOffsetMin) min, baseline SOL=\(String(format: "%.1f", u.baselineSolMin)) min, baseline avg TST=\(u.baselineAvgTstMin) min.")
+        if let plan = store.tonightPlan, Calendar.current.isDateInToday(plan.day) {
+            lines.append("TONIGHT'S ACTIVE PLAN: warm-up \(clock(plan.warmingStart)), lights-out \(clock(plan.bed)), wake \(clock(plan.wake)), sleep opportunity \(fmtDur(plan.sleepDurationMin)), risk=\(plan.level.label). This may differ from habitual targets because Agenda events or user drag edits changed tonight only.")
+        }
 
         if let rx = store.currentThermalRx {
             lines.append("THERMAL (warming) — current: offset \(rx.prescribedOffsetMin) min before bed via \(rx.warmingMethod), action=\(rx.action), converged=\(rx.converged). Rationale: \(rx.rationale)")
@@ -139,6 +142,9 @@ enum RestCoach {
         // Thermal / warming
         if q.contains("warm") || q.contains("offset") || q.contains("bath") || q.contains("onset") {
             if let rx = store.currentThermalRx {
+                if let plan = store.tonightPlan, Calendar.current.isDateInToday(plan.day) {
+                    return "Tonight, start your \(store.user.warmingMethod) at \(clock(plan.warmingStart)) for lights-out around \(clock(plan.bed)). Your usual personalized offset is \(rx.prescribedOffsetMin) min before bed. \(rx.rationale) Warming the periphery pulls heat away from your core; the core-temperature drop is a physiological trigger for sleep onset."
+                }
                 return "Start your \(store.user.warmingMethod) about \(rx.prescribedOffsetMin) min before bed. \(rx.rationale) Warming the periphery pulls heat away from your core; the core-temperature drop is a physiological trigger for sleep onset."
             }
         }
@@ -161,5 +167,10 @@ enum RestCoach {
         }
         // Default
         return "I can explain any part of your plan — your warming offset, your time-in-bed window, upcoming calendar adaptations, or your pod. Try one of the suggestions below."
+    }
+
+    private static func clock(_ date: Date) -> String {
+        let c = Calendar.current.dateComponents([.hour, .minute], from: date)
+        return String(format: "%02d:%02d", c.hour ?? 0, c.minute ?? 0)
     }
 }

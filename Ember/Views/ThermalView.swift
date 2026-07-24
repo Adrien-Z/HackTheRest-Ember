@@ -3,8 +3,22 @@ import Charts
 
 struct ThermalView: View {
     @EnvironmentObject var store: DataStore
+    @EnvironmentObject var wakeAlarm: WakeAlarmService
 
     var titrationLogs: [SleepLog] { store.sleepLogs.filter { $0.solMin != nil } }
+
+    private var effectiveTonightPlan: DayPlan? {
+        if let plan = store.tonightPlan, Calendar.current.isDateInToday(plan.day) {
+            return plan
+        }
+        let offset = store.currentThermalRx?.prescribedOffsetMin ?? store.user.currentOffsetMin
+        return DayPlanner.build(
+            nightOf: Calendar.current.startOfDay(for: Date()),
+            user: store.user,
+            warmingOffsetMin: offset,
+            prepBufferMin: wakeAlarm.prepBufferMin,
+            events: store.agendaEvents.filter { !$0.isAllDay })
+    }
 
     var coachQuestion: String {
         if let rx = store.currentThermalRx {
@@ -47,11 +61,14 @@ struct ThermalView: View {
             }
             if let rx = store.currentThermalRx {
                 HStack(spacing: 0) {
-                    MetricStat(value: "\(rx.prescribedOffsetMin)m", label: "offset before bed", color: Theme.ember)
+                    MetricStat(value: effectiveTonightPlan.map { clock($0.warmingStart) } ?? "\(rx.prescribedOffsetMin)m",
+                               label: effectiveTonightPlan == nil ? "offset before bed" : "tonight start",
+                               color: Theme.ember)
                     Divider().frame(height: 40).overlay(Color.white.opacity(0.1))
-                    MetricStat(value: "\(rx.durationMin)m", label: rx.warmingMethod)
+                    MetricStat(value: effectiveTonightPlan.map { clock($0.bed) } ?? "\(rx.durationMin)m",
+                               label: effectiveTonightPlan == nil ? rx.warmingMethod : "lights out")
                     Divider().frame(height: 40).overlay(Color.white.opacity(0.1))
-                    MetricStat(value: rx.tempBand, label: "temp band")
+                    MetricStat(value: "\(rx.prescribedOffsetMin)m", label: "usual offset")
                 }
             }
             if let sol = Array(titrationLogs.compactMap({ $0.solMin }).suffix(3)).average {
@@ -60,6 +77,11 @@ struct ThermalView: View {
             }
         }
         .emberCard()
+    }
+
+    private func clock(_ date: Date) -> String {
+        let c = Calendar.current.dateComponents([.hour, .minute], from: date)
+        return String(format: "%02d:%02d", c.hour ?? 0, c.minute ?? 0)
     }
 
     private var solChart: some View {

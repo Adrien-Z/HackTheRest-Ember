@@ -3,25 +3,36 @@ import SwiftUI
 
 struct WhiteNoiseView: View {
     @StateObject private var player = WhiteNoisePlayer()
+    @State private var selectedSound: AmbientSound = .stream
 
     var body: some View {
         ZStack {
             NightBackground()
             VStack(spacing: 26) {
                 Spacer()
-                ZStack {
-                    Circle().fill(Theme.cool.opacity(player.isPlaying ? 0.22 : 0.08)).frame(width: 176, height: 176)
-                    Circle().stroke(Theme.cool.opacity(0.55), lineWidth: 1).frame(width: 142, height: 142)
-                    Image(systemName: player.isPlaying ? "water.waves" : "water.waves.slash")
-                        .font(.system(size: 48, weight: .light)).foregroundStyle(Theme.cool)
+                TabView(selection: $selectedSound) {
+                    ForEach(AmbientSound.allCases) { sound in
+                        VStack(spacing: 16) {
+                            ZStack {
+                                Circle().fill(sound.tint.opacity(player.isPlaying ? 0.22 : 0.08)).frame(width: 176, height: 176)
+                                Circle().stroke(sound.tint.opacity(0.55), lineWidth: 1).frame(width: 142, height: 142)
+                                Image(systemName: sound.icon)
+                                    .font(.system(size: 48, weight: .light)).foregroundStyle(sound.tint)
+                            }
+                            .scaleEffect(player.isPlaying ? 1.04 : 1)
+                            .animation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true), value: player.isPlaying)
+                            VStack(spacing: 7) {
+                                Text(sound.title).font(.title2.weight(.bold))
+                                Text(sound.description).font(.subheadline).foregroundStyle(.secondary)
+                                    .multilineTextAlignment(.center)
+                            }
+                        }
+                        .tag(sound)
+                    }
                 }
-                .scaleEffect(player.isPlaying ? 1.04 : 1)
-                .animation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true), value: player.isPlaying)
-
-                VStack(spacing: 7) {
-                    Text("Flowing Stream").font(.title2.weight(.bold))
-                    Text("A gentle, low-flow water sound for winding down.").font(.subheadline).foregroundStyle(.secondary)
-                }
+                .tabViewStyle(.page)
+                .frame(height: 288)
+                .onChange(of: selectedSound) { sound in player.select(sound) }
 
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
@@ -29,12 +40,12 @@ struct WhiteNoiseView: View {
                         Spacer()
                         Text("\(Int(player.volume * 100))%").font(.caption).foregroundStyle(.secondary)
                     }
-                    Slider(value: $player.volume, in: 0.01...1.0).tint(Theme.cool)
+                    Slider(value: $player.volume, in: 0.01...1.0).tint(selectedSound.tint)
                 }
                 .padding(16).emberCard(0)
 
                 Button { player.toggle() } label: {
-                    Label(player.isPlaying ? "Stop Stream" : "Play Stream",
+                    Label(player.isPlaying ? "Stop \(selectedSound.title)" : "Play \(selectedSound.title)",
                           systemImage: player.isPlaying ? "stop.fill" : "play.fill")
                         .font(.headline).frame(maxWidth: .infinity).frame(height: 54)
                         .foregroundStyle(.white)
@@ -45,9 +56,43 @@ struct WhiteNoiseView: View {
             }
             .padding(24)
         }
-        .navigationTitle("Flowing Stream")
+        .navigationTitle("Ambient Sounds")
         .navigationBarTitleDisplayMode(.inline)
         .onDisappear { player.stop() }
+    }
+}
+
+private enum AmbientSound: String, CaseIterable, Identifiable {
+    case stream, rain, birds
+
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .stream: return "Flowing Stream"
+        case .rain: return "Soft Rain"
+        case .birds: return "Morning Birds"
+        }
+    }
+    var description: String {
+        switch self {
+        case .stream: return "A gentle, low-flow water sound for winding down."
+        case .rain: return "A calm, steady rainfall with a soft texture."
+        case .birds: return "Light, spacious birdsong for a peaceful reset."
+        }
+    }
+    var icon: String {
+        switch self {
+        case .stream: return "water.waves"
+        case .rain: return "cloud.rain.fill"
+        case .birds: return "bird.fill"
+        }
+    }
+    var tint: Color {
+        switch self {
+        case .stream: return Theme.cool
+        case .rain: return Theme.mint
+        case .birds: return Theme.amber
+        }
     }
 }
 
@@ -59,8 +104,17 @@ private final class WhiteNoisePlayer: ObservableObject {
 
     private let engine = AVAudioEngine()
     private var sourceNode: AVAudioSourceNode?
+    private var sound: AmbientSound = .stream
 
     func toggle() { isPlaying ? stop() : start() }
+
+    func select(_ sound: AmbientSound) {
+        guard self.sound != sound else { return }
+        let shouldResume = isPlaying
+        stop()
+        self.sound = sound
+        if shouldResume { start() }
+    }
 
     func start() {
         guard !isPlaying else { return }
@@ -70,10 +124,14 @@ private final class WhiteNoisePlayer: ObservableObject {
             try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
             try session.setActive(true)
             let format = engine.mainMixerNode.outputFormat(forBus: 0)
-            // Smooth the random signal heavily to remove the harsh high frequencies
-            // of white noise, yielding a low, continuous water-like wash instead.
             var seed: UInt64 = 0x9E3779B97F4A7C15
             var lowPass: Float = 0
+            var highPass: Float = 0
+            var phase: Float = 0
+            var chirpRemaining = 0
+            var chirpFrequency: Float = 0
+            let selectedSound = sound
+            let sampleRate = Float(format.sampleRate)
             let source = AVAudioSourceNode { _, _, frameCount, audioBufferList -> OSStatus in
                 let buffers = UnsafeMutableAudioBufferListPointer(audioBufferList)
                 for buffer in buffers {
@@ -81,8 +139,32 @@ private final class WhiteNoisePlayer: ObservableObject {
                     for frame in 0..<Int(frameCount) {
                         seed = seed &* 2862933555777941757 &+ 3037000493
                         let white = Float(seed >> 40) / Float(1 << 24) * 2 - 1
-                        lowPass = lowPass * 0.985 + white * 0.015
-                        samples[frame] = lowPass * 0.68
+                        switch selectedSound {
+                        case .stream:
+                            lowPass = lowPass * 0.985 + white * 0.015
+                            samples[frame] = lowPass * 0.68
+                        case .rain:
+                            lowPass = lowPass * 0.82 + white * 0.18
+                            highPass = highPass * 0.985 + lowPass * 0.015
+                            samples[frame] = (lowPass - highPass) * 0.32
+                        case .birds:
+                            // Short, infrequent sine chirps over a near-silent bed;
+                            // the sparse envelope keeps this restful rather than busy.
+                            if chirpRemaining == 0, seed % 18_000 < 7 {
+                                chirpRemaining = Int(sampleRate * 0.12)
+                                chirpFrequency = 1_850 + Float(seed % 950)
+                            }
+                            if chirpRemaining > 0 {
+                                let progress = 1 - Float(chirpRemaining) / (sampleRate * 0.12)
+                                let envelope = sin(Float.pi * progress)
+                                phase += 2 * Float.pi * (chirpFrequency * (1 + progress * 0.18)) / sampleRate
+                                samples[frame] = sin(phase) * envelope * 0.18
+                                chirpRemaining -= 1
+                            } else {
+                                lowPass = lowPass * 0.998 + white * 0.002
+                                samples[frame] = lowPass * 0.035
+                            }
+                        }
                     }
                 }
                 return noErr
@@ -94,7 +176,7 @@ private final class WhiteNoisePlayer: ObservableObject {
             try engine.start()
             isPlaying = true
         } catch {
-            errorMessage = "Stream sounds could not start. Please try again."
+            errorMessage = "Ambient sounds could not start. Please try again."
             stop()
         }
     }

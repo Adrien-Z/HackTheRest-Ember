@@ -22,11 +22,11 @@
 	<string>Ember reads your upcoming events so it can pre-adapt your rest plan around late nights, early meetings, and travel before they disrupt your sleep.</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>Ember reads your sleep analysis from Apple Health to personalize your wind-down and sleep-efficiency plans automatically, instead of asking you to log every night by hand.</string>
-		<key>NSHealthUpdateUsageDescription</key>
-		<string>Ember does not write to Apple Health.</string>
-		<key>NSLocationWhenInUseUsageDescription</key>
-		<string>Ember uses your approximate location to check tonight's heat and humidity risk for sleep. It does not track your location in the background.</string>
-		<key>UIBackgroundModes</key>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Ember does not write to Apple Health.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Ember uses your approximate location to check tonight's heat and humidity risk for sleep. It does not track your location in the background.</string>
+	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>
 	</array>

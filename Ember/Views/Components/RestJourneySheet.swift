@@ -1,16 +1,14 @@
 import SwiftUI
 
 struct RestJourneySheet: View {
-    let onClose: () -> Void
     let expandedHeight: CGFloat?
     @State private var fabricOpacity = 0.0
     @State private var fabricScaleY = 0.02
     @State private var bottomFoldOffset: CGFloat = 0
     @State private var contentVisible = false
 
-    init(expandedHeight: CGFloat? = nil, onClose: @escaping () -> Void = {}) {
+    init(expandedHeight: CGFloat? = nil) {
         self.expandedHeight = expandedHeight
-        self.onClose = onClose
     }
 
     private let todaysMoments = [
@@ -53,7 +51,6 @@ struct RestJourneySheet: View {
 
                     ScrollView(showsIndicators: false) {
                         VStack(alignment: .leading, spacing: 18) {
-                            closeRow
                             header
                             todaysMomentsSection
                             upcomingMomentsSection
@@ -104,21 +101,6 @@ struct RestJourneySheet: View {
             }
         }
         .frame(height: expandedHeight)
-    }
-
-    private var closeRow: some View {
-        HStack {
-            Spacer()
-            Button(action: onClose) {
-                Image(systemName: "xmark")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 30, height: 30)
-                    .background(.ultraThinMaterial, in: Circle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Close Rest Journey")
-        }
     }
 
     private var header: some View {

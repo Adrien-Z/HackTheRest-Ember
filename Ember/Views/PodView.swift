@@ -54,8 +54,10 @@ struct BoxSpaceView: View {
                         }
                     }
                 }
-               
-                socialActions
+                if !showRestJourney {
+                    socialActions
+                        .transition(.opacity)
+                }
 
                 Spacer()
 
@@ -149,13 +151,6 @@ struct BoxSpaceView: View {
 
     private var socialActions: some View {
         HStack(spacing: 8) {
-            NavigationLink {
-                FriendsListView(viewModel: friendsViewModel)
-            } label: {
-                Label("Friends", systemImage: "person.2.fill")
-            }
-            .buttonStyle(BoxSocialButtonStyle())
-
             NavigationLink {
                 FriendRequestsView(viewModel: friendsViewModel)
             } label: {

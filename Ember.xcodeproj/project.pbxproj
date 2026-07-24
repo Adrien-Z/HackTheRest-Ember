@@ -58,7 +58,6 @@
 		EC66758185B71D669BC6A9F5 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9C90DC46AFD2014FEED1D85 /* SettingsView.swift */; };
 		ED0470EBF60905DEBEDBBC42 /* Contents.json in Resources */ = {isa = PBXBuildFile; fileRef = 5628AF88C55C54510897DD08 /* Contents.json */; };
 		F2C8DFE191F5B76625901896 /* RhythmView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30435D38943412697142D3D5 /* RhythmView.swift */; };
-		F4DC21D2B52C8E8E47A8AD9B /* FriendsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBAB7792A17070708427DBF0 /* FriendsListView.swift */; };
 		FD5D75647ED8FB20D6A201CA /* DayPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 629ED679FA9CF35FD35E27E4 /* DayPlan.swift */; };
 /* End PBXBuildFile section */
 
@@ -114,7 +113,6 @@
 		E2F98006241E922BE2EAEEB0 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
 		E51DF68FD5E8A80D104D3C69 /* PodView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PodView.swift; sourceTree = "<group>"; };
 		E801F78BFA7B275040A04D92 /* LLMClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMClient.swift; sourceTree = "<group>"; };
-		EBAB7792A17070708427DBF0 /* FriendsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendsListView.swift; sourceTree = "<group>"; };
 		EE8AED8AA183C27E6CC11AF0 /* AuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
 		F90FB710346ED126797DBBC8 /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
 		FFAC02C2AC29DAA6CE71E814 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
@@ -294,7 +292,6 @@
 				530970A8DC90098FD80DAF33 /* CoachView.swift */,
 				CB68B45CBF076764D83BC86A /* CoachWidgets.swift */,
 				C4A9AFE62BAC146DAA949394 /* FriendRequestsView.swift */,
-				EBAB7792A17070708427DBF0 /* FriendsListView.swift */,
 				0CB62B15CFC41F6827DC58B6 /* HomeView.swift */,
 				A7E71F4A54D24B0DB64F0003 /* HealthInsightDetailViews.swift */,
 				A7E71F4A54D24B0DB64F0001 /* RestToolsViews.swift */,
@@ -436,7 +433,6 @@
 				A7E71F4A54D24B0DB64F0004 /* HealthInsightDetailViews.swift in Sources */,
 				A7E71F4A54D24B0DB64F0002 /* RestToolsViews.swift in Sources */,
 				A3F388777685CE58DB093918 /* FriendService.swift in Sources */,
-				F4DC21D2B52C8E8E47A8AD9B /* FriendsListView.swift in Sources */,
 				2F0A531DEB91A4D2AF199963 /* FriendsViewModel.swift in Sources */,
 				AA239A9F0FFF425B62F5BD53 /* Haptics.swift in Sources */,
 				5D8D8BE217040008AB989FA4 /* HealthManager.swift in Sources */,

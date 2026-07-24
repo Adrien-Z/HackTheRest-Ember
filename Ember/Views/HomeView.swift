@@ -10,6 +10,7 @@ struct HomeView: View {
     @State private var showSettings = false
     @State private var showAccount = false
     @State private var insightPage = 0
+    @State private var quickToolPage = 0
 
     private var effectiveTonightPlan: DayPlan? {
         if let plan = store.tonightPlan, Calendar.current.isDateInToday(plan.day) {
@@ -267,40 +268,77 @@ struct HomeView: View {
     }
 
     private var quickToolEntrances: some View {
-        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
-            NavigationLink {
-                WhiteNoiseView()
-            } label: {
-                QuickToolCard(
-                    title: "Flowing Stream",
-                    subtitle: "Gentle water sounds",
-                    icon: "water.waves",
-                    tint: Theme.cool)
-            }
-            .buttonStyle(.plain)
+        VStack(spacing: 10) {
+            GeometryReader { proxy in
+                let pageInset: CGFloat = 8
+                let cardSide = (proxy.size.width - 14 - pageInset * 2) / 2
+                TabView(selection: $quickToolPage) {
+                    HStack(spacing: 14) {
+                        NavigationLink {
+                            WhiteNoiseView()
+                        } label: {
+                            QuickToolCard(
+                                title: "Flowing Stream",
+                                subtitle: "Gentle water sounds",
+                                icon: "water.waves",
+                                tint: Theme.cool)
+                        }
+                        .buttonStyle(.plain)
+                        .frame(width: cardSide, height: cardSide)
+                        breathingToolCard(side: cardSide)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, pageInset)
+                    .tag(0)
 
-            NavigationLink {
-                BreathingTrainingView()
-            } label: {
-                QuickToolCard(
-                    title: "Breathing",
-                    subtitle: "4 · 4 · 6 reset",
-                    icon: "wind",
-                    tint: Theme.mint)
+                    HStack(spacing: 14) {
+                        NavigationLink {
+                            WindDownRitualsView()
+                        } label: {
+                            QuickToolCard(
+                                title: "Rituals",
+                                subtitle: "Warmth, tea, stretch",
+                                icon: "hands.sparkles.fill",
+                                tint: Theme.ember)
+                        }
+                        .buttonStyle(.plain)
+                        .frame(width: cardSide, height: cardSide)
+                        Color.clear.frame(width: cardSide, height: cardSide)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, pageInset)
+                    .tag(1)
+                }
+                .tabViewStyle(.page(indexDisplayMode: .never))
+                .frame(height: cardSide)
             }
-            .buttonStyle(.plain)
+            .aspectRatio(2.04, contentMode: .fit)
 
-            NavigationLink {
-                WindDownRitualsView()
-            } label: {
-                QuickToolCard(
-                    title: "Rituals",
-                    subtitle: "Warmth, tea, stretch",
-                    icon: "hands.sparkles.fill",
-                    tint: Theme.ember)
+            HStack(spacing: 7) {
+                ForEach(0..<2, id: \.self) { index in
+                    Capsule()
+                        .fill(index == quickToolPage ? Theme.ember : Color.white.opacity(0.22))
+                        .frame(width: index == quickToolPage ? 18 : 6, height: 6)
+                        .animation(.easeInOut(duration: 0.2), value: quickToolPage)
+                }
             }
-            .buttonStyle(.plain)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Quick tools page \(quickToolPage + 1) of 2")
         }
+    }
+
+    private func breathingToolCard(side: CGFloat) -> some View {
+        NavigationLink {
+            BreathingTrainingView()
+        } label: {
+            QuickToolCard(
+                title: "Breathing",
+                subtitle: "4 · 4 · 6 reset",
+                icon: "wind",
+                tint: Theme.mint)
+        }
+        .buttonStyle(.plain)
+        .frame(width: side, height: side)
     }
 
     private var sleepScoreCard: some View {

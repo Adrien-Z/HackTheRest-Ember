@@ -6,14 +6,14 @@
 	<array>
 		<string>com.bluebox.ember.planRefresh</string>
 	</array>
+	<key>BOX_SPACE_API_URL</key>
+	<string></string>
 	<key>CFBundleDisplayName</key>
 	<string>Ember</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
-	<key>BOX_SPACE_API_URL</key>
-	<string></string>
 	<key>NSAlarmKitUsageDescription</key>
 	<string>Ember schedules your wake alarm to match your rest plan, so your wake time stays anchored even after late nights or travel.</string>
 	<key>NSCalendarsFullAccessUsageDescription</key>

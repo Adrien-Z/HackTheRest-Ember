@@ -3,6 +3,24 @@ import Foundation
 import HealthKit
 #endif
 
+/// One hourly input bucket for EMBER's non-medical daily energy estimate.
+struct DailyEnergyInput: Identifiable {
+    let time: Date
+    let averageHeartRate: Double?
+    let averageHRV: Double?
+    let activeEnergyKcal: Double
+    let steps: Double
+    let asleepMinutes: Double
+
+    var id: Date { time }
+}
+
+struct DailyEnergyDay {
+    let buckets: [DailyEnergyInput]
+    let restingHeartRateBaseline: Double?
+    let hrvBaseline: Double?
+}
+
 /// Apple Health integration. Reads sleep analysis (plus overnight heart rate and
 /// HRV) and turns it into the `NightSample`s that drive EMBER's charts and
 /// prescriptions instead of hand-logged data. Guarded so the project still
@@ -24,6 +42,8 @@ final class HealthManager: ObservableObject {
         if let hr = HKObjectType.quantityType(forIdentifier: .heartRate) { types.insert(hr) }
         if let hrv = HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN) { types.insert(hrv) }
         if let rhr = HKObjectType.quantityType(forIdentifier: .restingHeartRate) { types.insert(rhr) }
+        if let activeEnergy = HKObjectType.quantityType(forIdentifier: .activeEnergyBurned) { types.insert(activeEnergy) }
+        if let steps = HKObjectType.quantityType(forIdentifier: .stepCount) { types.insert(steps) }
         return types
     }
 
@@ -95,6 +115,64 @@ final class HealthManager: ObservableObject {
         return nights
     }
 
+    /// Reads the signals needed for an hourly, today-only energy timeline. Apple
+    /// Watch writes these samples opportunistically, so absent readings remain
+    /// nil rather than being presented as continuously measured data.
+    func fetchTodayEnergy() async -> DailyEnergyDay? {
+        guard let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else { return nil }
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: Date())
+        let now = Date()
+        let todayPredicate = HKQuery.predicateForSamples(withStart: start, end: now, options: [])
+        let baselineStart = calendar.date(byAdding: .day, value: -21, to: now)!
+        let baselinePredicate = HKQuery.predicateForSamples(withStart: baselineStart, end: now, options: [])
+
+        let heartRate = await quantitySamples(.heartRate, todayPredicate)
+        let hrv = await quantitySamples(.heartRateVariabilitySDNN, todayPredicate)
+        let activeEnergy = await quantitySamples(.activeEnergyBurned, todayPredicate)
+        let steps = await quantitySamples(.stepCount, todayPredicate)
+        let sleep = await categorySamples(sleepType, todayPredicate)
+        let restingHR = await quantitySamples(.restingHeartRate, baselinePredicate)
+        let baselineHRV = await quantitySamples(.heartRateVariabilitySDNN, baselinePredicate)
+
+        let bpm = HKUnit.count().unitDivided(by: .minute())
+        let milliseconds = HKUnit.secondUnit(with: .milli)
+        let kilocalories = HKUnit.kilocalorie()
+        let count = HKUnit.count()
+        let hourCount = max(1, calendar.dateComponents([.hour], from: start, to: now).hour ?? 0) + 1
+
+        let buckets = (0..<hourCount).compactMap { offset -> DailyEnergyInput? in
+            guard let hourStart = calendar.date(byAdding: .hour, value: offset, to: start) else { return nil }
+            let hourEnd = min(calendar.date(byAdding: .hour, value: 1, to: hourStart)!, now)
+            guard hourEnd > hourStart else { return nil }
+            let range = hourStart...hourEnd
+            let hrValues = heartRate.filter { range.contains($0.startDate) }.map { $0.quantity.doubleValue(for: bpm) }
+            let hrvValues = hrv.filter { range.contains($0.startDate) }.map { $0.quantity.doubleValue(for: milliseconds) }
+            let energyValues = activeEnergy.filter { range.contains($0.startDate) }.map { $0.quantity.doubleValue(for: kilocalories) }
+            let stepValues = steps.filter { range.contains($0.startDate) }.map { $0.quantity.doubleValue(for: count) }
+            let asleepMinutes = sleep
+                .filter { asleepValues.contains($0.value) }
+                .reduce(0.0) { total, sample in
+                    let overlapStart = max(sample.startDate, hourStart)
+                    let overlapEnd = min(sample.endDate, hourEnd)
+                    return total + max(0, overlapEnd.timeIntervalSince(overlapStart) / 60)
+                }
+            return DailyEnergyInput(
+                time: hourStart,
+                averageHeartRate: hrValues.isEmpty ? nil : hrValues.reduce(0, +) / Double(hrValues.count),
+                averageHRV: hrvValues.isEmpty ? nil : hrvValues.reduce(0, +) / Double(hrvValues.count),
+                activeEnergyKcal: energyValues.reduce(0, +),
+                steps: stepValues.reduce(0, +),
+                asleepMinutes: asleepMinutes)
+        }
+        let rhrValues = restingHR.map { $0.quantity.doubleValue(for: bpm) }.filter { $0 > 0 }
+        let hrvValues = baselineHRV.map { $0.quantity.doubleValue(for: milliseconds) }.filter { $0 > 0 }
+        return DailyEnergyDay(
+            buckets: buckets,
+            restingHeartRateBaseline: median(rhrValues),
+            hrvBaseline: median(hrvValues))
+    }
+
     // MARK: - Helpers
 
     /// "Asleep" values differ by iOS version — accept core/deep/REM/unspecified asleep.
@@ -148,11 +226,19 @@ final class HealthManager: ObservableObject {
             store.execute(q)
         }
     }
+
+    private func median(_ values: [Double]) -> Double? {
+        guard !values.isEmpty else { return nil }
+        let sorted = values.sorted()
+        let middle = sorted.count / 2
+        return sorted.count.isMultiple(of: 2) ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle]
+    }
     #else
     var isAvailable: Bool { false }
     func requestAuthorization() async { lastError = "HealthKit not compiled in." }
     func autoConnect() async {}
     func fetchLastNight() async {}
     func fetchNights(daysBack: Int = 60) async -> [NightSample] { [] }
+    func fetchTodayEnergy() async -> DailyEnergyDay? { nil }
     #endif
 }

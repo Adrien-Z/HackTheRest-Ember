@@ -37,6 +37,8 @@ final class DataStore: ObservableObject {
     @Published var lastNightHRV: Double? = nil    // mean overnight HRV SDNN (ms)
     /// Raw, locally-derived Apple Health nights used by Today health insights.
     @Published private(set) var recentHealthNights: [NightSample] = []
+    /// Hourly Apple Health inputs used for the current-day energy estimate.
+    @Published private(set) var todayEnergyDay: DailyEnergyDay? = nil
     @Published var healthAuthorized: Bool = false
 
     // Data-source state
@@ -208,7 +210,9 @@ final class DataStore: ObservableObject {
         case .live:
             isLoading = true
             let nights = await health.fetchNights()
+            let energyDay = await health.fetchTodayEnergy()
             recentHealthNights = nights
+            todayEnergyDay = energyDay
             healthAuthorized = health.authorized
             liveHasData = !nights.isEmpty
             let latest = nights.last
@@ -227,6 +231,13 @@ final class DataStore: ObservableObject {
             await categorizeCalendar(calendar: calendar)
             isLoading = false
         }
+    }
+
+    /// A lightweight foreground refresh for the current-day energy timeline.
+    /// It intentionally avoids reloading the rest of the app's data.
+    func refreshTodayEnergy(health: HealthManager) async {
+        guard mode == .live else { return }
+        todayEnergyDay = await health.fetchTodayEnergy()
     }
 
     /// Live mode only: fetch raw calendar events and let the LLM categorize any
@@ -373,6 +384,7 @@ final class DataStore: ObservableObject {
         lastNightHR = nil
         lastNightHRV = nil
         recentHealthNights = []
+        todayEnergyDay = nil
         aiError = nil
     }
 

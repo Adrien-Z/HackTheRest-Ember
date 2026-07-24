@@ -53,6 +53,14 @@ struct HomeView: View {
             .sheet(isPresented: $showAccount) {
                 AccountView()
             }
+            .task {
+                await store.refreshTodayEnergy(health: health)
+                while !Task.isCancelled {
+                    try? await Task.sleep(nanoseconds: 15 * 60 * 1_000_000_000)
+                    guard !Task.isCancelled else { return }
+                    await store.refreshTodayEnergy(health: health)
+                }
+            }
     }
 
     private var greeting: some View {
@@ -130,14 +138,35 @@ struct HomeView: View {
     private var healthInsightCarousel: some View {
         VStack(spacing: 10) {
             TabView(selection: $insightPage) {
-                sleepScoreCard.tag(0)
-                bodyBatteryCard.tag(1)
+                NavigationLink {
+                    SleepScoreDetailView()
+                } label: {
+                    sleepScoreCard
+                }
+                .buttonStyle(.plain)
+                .tag(0)
+                .accessibilityHint("Opens your detailed Sleep Score")
+                NavigationLink {
+                    BodyBatteryDetailView()
+                } label: {
+                    bodyBatteryCard
+                }
+                .buttonStyle(.plain)
+                .tag(1)
+                .accessibilityHint("Opens your detailed Body Battery")
+                NavigationLink {
+                    RhythmView()
+                } label: {
+                    rhythmInsightCard
+                }
+                .buttonStyle(.plain)
+                .tag(2)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
             .frame(height: 292)
 
             HStack(spacing: 7) {
-                ForEach(0..<2, id: \.self) { index in
+                ForEach(0..<3, id: \.self) { index in
                     Capsule()
                         .fill(index == insightPage ? Theme.ember : Color.white.opacity(0.22))
                         .frame(width: index == insightPage ? 18 : 6, height: 6)
@@ -145,7 +174,7 @@ struct HomeView: View {
                 }
             }
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Health insight card \(insightPage + 1) of 2")
+            .accessibilityLabel("Health insight card \(insightPage + 1) of 3")
         }
         .padding(.top, 2)
     }
@@ -202,24 +231,72 @@ struct HomeView: View {
     private var bodyBatteryCard: some View {
         HealthInsightCard(
             title: "Body Battery",
-            subtitle: "Estimated morning readiness",
+            subtitle: "Estimated energy right now",
             accent: Theme.mint
         ) {
-            if let insights = healthInsights {
-                scoreHeader(value: insights.bodyBattery, label: "ready for today", tint: Theme.mint)
-                InsightTrendChart(points: insights.batteryHistory, tint: Theme.mint)
+            if let energy = currentEnergy {
+                scoreHeader(value: energy.current, label: "current energy", tint: Theme.mint)
+                DailyEnergyChart(points: energy.points, tint: Theme.mint)
                 HStack(spacing: 8) {
-                    InsightPill(icon: "waveform.path.ecg", text: insights.hrvLabel)
-                    InsightPill(icon: "heart.fill", text: insights.heartRateLabel)
-                    InsightPill(icon: "chart.line.uptrend.xyaxis", text: insights.recoveryLabel)
+                    InsightPill(icon: energy.trendIcon, text: energy.trendLabel)
+                    InsightPill(icon: "clock", text: "Today")
+                    Spacer()
+                    Text("Estimate")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
                 }
             } else {
                 HealthInsightEmptyState(
-                    title: "Waiting for recovery data",
-                    message: "Body Battery appears after Apple Health records a night of sleep and recovery data.",
+                    title: "Waiting for today’s data",
+                    message: "Wear your Apple Watch and connect Apple Health to build a current energy estimate.",
                     icon: "bolt.heart.fill")
             }
         }
+    }
+
+    private var rhythmInsightCard: some View {
+        let rhythm = store.regularity
+        return HealthInsightCard(
+            title: "My Rhythm",
+            subtitle: "Your sleep timing consistency",
+            accent: Theme.ember
+        ) {
+            if rhythm.nights < 2 {
+                HealthInsightEmptyState(
+                    title: "Learning your rhythm",
+                    message: "Log a few more nights to see how consistent your sleep timing is.",
+                    icon: "waveform.path.ecg")
+            } else {
+                scoreHeader(value: Int(rhythm.sri ?? 0), label: "regularity index", tint: Theme.ember)
+                Chart(Array(rhythm.midpoints.enumerated()), id: \.offset) { index, point in
+                    LineMark(
+                        x: .value("Night", index),
+                        y: .value("Midpoint", Double(point.minOfDay) / 60)
+                    )
+                    .foregroundStyle(Theme.ember)
+                    .lineStyle(StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
+                    .interpolationMethod(.catmullRom)
+                    PointMark(
+                        x: .value("Night", index),
+                        y: .value("Midpoint", Double(point.minOfDay) / 60)
+                    )
+                    .foregroundStyle(Theme.ember)
+                    .symbolSize(20)
+                }
+                .chartXAxis(.hidden)
+                .chartYAxis(.hidden)
+                .frame(height: 66)
+                HStack(spacing: 8) {
+                    InsightPill(icon: "moon.fill", text: rhythm.avgMidpoint ?? "—")
+                    InsightPill(icon: "arrow.left.arrow.right", text: rhythm.socialJetlagMin.map { "\(Int($0))m jet lag" } ?? "—")
+                    Spacer()
+                    Label("Open", systemImage: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Theme.ember)
+                }
+            }
+        }
+        .accessibilityHint("Opens your detailed sleep rhythm")
     }
 
     private func scoreHeader(value: Int, label: String, tint: Color) -> some View {
@@ -238,6 +315,11 @@ struct HomeView: View {
         let nights = store.recentHealthNights.sorted { $0.finalWake < $1.finalWake }
         guard let latest = nights.last else { return nil }
         return HealthInsightSnapshot(nights: nights, latest: latest)
+    }
+
+    private var currentEnergy: CurrentEnergySnapshot? {
+        guard let day = store.todayEnergyDay, !day.buckets.isEmpty else { return nil }
+        return CurrentEnergySnapshot(day: day)
     }
 
     @ViewBuilder private var healthCard: some View {
@@ -385,7 +467,7 @@ private struct HealthInsightCard<Content: View>: View {
                     Text(subtitle).font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
-                Image(systemName: title == "Sleep Score" ? "moon.stars.fill" : "bolt.heart.fill")
+                Image(systemName: icon)
                     .foregroundStyle(accent)
                     .font(.title3)
             }
@@ -402,6 +484,14 @@ private struct HealthInsightCard<Content: View>: View {
         // while swiping so the next card does not visually merge into this one.
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
+    }
+
+    private var icon: String {
+        switch title {
+        case "Sleep Score": return "moon.stars.fill"
+        case "My Rhythm": return "waveform.path.ecg"
+        default: return "bolt.heart.fill"
+        }
     }
 }
 
@@ -439,6 +529,51 @@ private struct InsightTrendChart: View {
     }
 }
 
+private struct DailyEnergyChart: View {
+    let points: [DailyEnergyPoint]
+    let tint: Color
+
+    var body: some View {
+        Chart(points) { point in
+            AreaMark(
+                x: .value("Time", point.time),
+                y: .value("Energy", point.value)
+            )
+            .foregroundStyle(
+                LinearGradient(colors: [tint.opacity(0.30), tint.opacity(0.01)], startPoint: .top, endPoint: .bottom)
+            )
+            LineMark(
+                x: .value("Time", point.time),
+                y: .value("Energy", point.value)
+            )
+            .foregroundStyle(tint)
+            .lineStyle(StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
+            .interpolationMethod(.catmullRom)
+            PointMark(
+                x: .value("Time", point.time),
+                y: .value("Energy", point.value)
+            )
+            .foregroundStyle(tint)
+            .symbolSize(16)
+        }
+        .chartXAxis {
+            AxisMarks(values: .automatic(desiredCount: 4)) { value in
+                AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5))
+                    .foregroundStyle(Color.white.opacity(0.12))
+                AxisValueLabel {
+                    if let date = value.as(Date.self) {
+                        Text(date, format: .dateTime.hour())
+                    }
+                }
+            }
+        }
+        .chartYAxis(.hidden)
+        .chartYScale(domain: 0...100)
+        .frame(height: 66)
+        .accessibilityLabel("Today’s energy timeline")
+    }
+}
+
 private struct InsightPill: View {
     let icon: String
     let text: String
@@ -470,15 +605,88 @@ private struct HealthInsightEmptyState: View {
     }
 }
 
-private struct HealthInsightPoint: Identifiable {
+struct HealthInsightPoint: Identifiable {
     let id: String
     let index: Int
     let value: Int
 }
 
+struct DailyEnergyPoint: Identifiable {
+    let time: Date
+    let value: Int
+    var id: Date { time }
+}
+
+/// A transparent, non-medical energy balance. It starts each day at a neutral
+/// level, charges during detected sleep/rest, and drains with exertion and
+/// elevated heart rate relative to the person's own recent baseline.
+struct CurrentEnergySnapshot {
+    let points: [DailyEnergyPoint]
+    let current: Int
+    let trendLabel: String
+    let trendIcon: String
+
+    init(day: DailyEnergyDay) {
+        var level = 42.0
+        var builtPoints: [DailyEnergyPoint] = []
+
+        for bucket in day.buckets {
+            let durationHours = bucket.asleepMinutes > 0 ? max(0.25, bucket.asleepMinutes / 60) : 1
+            let delta: Double
+            if bucket.asleepMinutes >= 20 {
+                var recharge = 8.0 * durationHours
+                if let hrv = bucket.averageHRV, let baseline = day.hrvBaseline, baseline > 0 {
+                    recharge += Self.clamp((hrv / baseline - 0.85) * 5, lower: -1.5, upper: 2.5)
+                }
+                if let hr = bucket.averageHeartRate, let baseline = day.restingHeartRateBaseline, baseline > 0 {
+                    recharge += Self.clamp((baseline / hr - 0.90) * 5, lower: -1.5, upper: 2.5)
+                }
+                delta = recharge
+            } else {
+                var drain = 1.25
+                drain += min(7, bucket.activeEnergyKcal / 18)
+                drain += min(4, bucket.steps / 450)
+                if let hr = bucket.averageHeartRate, let baseline = day.restingHeartRateBaseline, baseline > 0 {
+                    drain += Self.clamp((hr / baseline - 1) * 7, lower: 0, upper: 7)
+                }
+                if let hrv = bucket.averageHRV, let baseline = day.hrvBaseline, baseline > 0, hrv < baseline {
+                    drain += Self.clamp((1 - hrv / baseline) * 5, lower: 0, upper: 3)
+                }
+                // Quiet, low-heart-rate periods partially restore energy.
+                if bucket.activeEnergyKcal < 4, bucket.steps < 120,
+                   let hr = bucket.averageHeartRate, let baseline = day.restingHeartRateBaseline,
+                   hr <= baseline * 1.05 {
+                    drain -= 1.6
+                }
+                delta = -drain
+            }
+            level = Self.clamp(level + delta, lower: 5, upper: 100)
+            builtPoints.append(DailyEnergyPoint(time: bucket.time, value: Int(level.rounded())))
+        }
+
+        points = builtPoints
+        current = builtPoints.last?.value ?? Int(level)
+        let lastChange = (builtPoints.last?.value ?? current) - (builtPoints.dropLast().last?.value ?? current)
+        if lastChange > 1 {
+            trendLabel = "+\(lastChange) this hour"
+            trendIcon = "arrow.up.right"
+        } else if lastChange < -1 {
+            trendLabel = "\(lastChange) this hour"
+            trendIcon = "arrow.down.right"
+        } else {
+            trendLabel = "Steady this hour"
+            trendIcon = "arrow.right"
+        }
+    }
+
+    private static func clamp(_ value: Double, lower: Double, upper: Double) -> Double {
+        min(max(value, lower), upper)
+    }
+}
+
 /// A transparent, non-medical readiness estimate. Scores are normalized to the
 /// person's own recent HRV and heart-rate baseline rather than population data.
-private struct HealthInsightSnapshot {
+struct HealthInsightSnapshot {
     let latest: NightSample
     let sleepScore: Int
     let bodyBattery: Int

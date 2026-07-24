@@ -23,22 +23,22 @@ struct AuthView: View {
                             .frame(width: 88, height: 88)
                             .background(Theme.ember, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
 
-                        Text(isRegistering ? "加入 Ember" : "欢迎回来")
+                        Text(isRegistering ? "Join Ember" : "Welcome back")
                             .font(.system(size: 30, weight: .bold, design: .rounded))
                             .foregroundStyle(.white)
 
-                        Text(isRegistering ? "创建账户，开始照顾你的睡眠。" : "登录后继续你的睡眠旅程。")
+                        Text(isRegistering ? "Create an account and start caring for your sleep." : "Sign in to continue your sleep journey.")
                             .font(.subheadline)
                             .foregroundStyle(.white.opacity(0.64))
                     }
 
                     VStack(spacing: 13) {
                         if isRegistering {
-                            inputField("昵称", text: $displayName, contentType: .nickname)
+                            inputField("Display name", text: $displayName, contentType: .nickname)
                         }
-                        inputField("邮箱", text: $email, contentType: .emailAddress, keyboardType: .emailAddress)
+                        inputField("Email", text: $email, contentType: .emailAddress, keyboardType: .emailAddress)
 
-                        SecureField("密码", text: $password)
+                        SecureField("Password", text: $password)
                             .textContentType(isRegistering ? .newPassword : .password)
                             .padding(.horizontal, 16)
                             .frame(height: 54)
@@ -69,7 +69,7 @@ struct AuthView: View {
                             if auth.isLoading {
                                 ProgressView().tint(.white)
                             }
-                            Text(isRegistering ? "创建账户" : "登录")
+                            Text(isRegistering ? "Create Account" : "Sign In")
                         }
                         .font(.headline)
                         .foregroundStyle(.white)
@@ -85,7 +85,7 @@ struct AuthView: View {
                             auth.errorMessage = nil
                         }
                     } label: {
-                        Text(isRegistering ? "已有账户？去登录" : "还没有账户？创建一个")
+                        Text(isRegistering ? "Already have an account? Sign in" : "New to Ember? Create an account")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.white.opacity(0.78))
                     }

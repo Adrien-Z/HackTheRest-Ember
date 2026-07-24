@@ -131,7 +131,7 @@ struct OnboardingView: View {
     private var accountPage: some View {
         OnboardScaffold {
             OnboardGlyph("hand.wave.fill")
-            OnboardTitle("你好，\n\(auth.displayName)")
+            OnboardTitle("Hello,\n\(auth.displayName)")
             Text(auth.email)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
@@ -140,7 +140,7 @@ struct OnboardingView: View {
                 .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 14))
                 .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Theme.ember.opacity(0.4), lineWidth: 1))
                 .padding(.horizontal, 8)
-            OnboardBody("我们将使用你的账户用户名来个性化 Ember。")
+            OnboardBody("We'll use your account display name to personalize Ember.")
         }
     }
 

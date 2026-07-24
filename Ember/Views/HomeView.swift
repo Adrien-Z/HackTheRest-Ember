@@ -44,7 +44,7 @@ struct HomeView: View {
                     Button { showAccount = true } label: {
                         Image(systemName: "person.crop.circle.fill")
                     }
-                    .accessibilityLabel("账户设置")
+                    .accessibilityLabel("Account settings")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { showSettings = true } label: { Image(systemName: "gearshape") }

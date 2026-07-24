@@ -7,13 +7,13 @@ struct AccountView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("账户") {
-                    LabeledContent("用户名", value: auth.displayName)
-                    LabeledContent("邮箱", value: auth.email)
+                Section("Account") {
+                    LabeledContent("Display name", value: auth.displayName)
+                    LabeledContent("Email", value: auth.email)
                 }
 
                 Section {
-                    Button("退出登录", role: .destructive) {
+                    Button("Sign Out", role: .destructive) {
                         Task {
                             await auth.signOut()
                             dismiss()
@@ -21,14 +21,14 @@ struct AccountView: View {
                     }
                     .disabled(auth.isLoading)
                 } footer: {
-                    Text("退出后需要重新登录才能使用 Ember。")
+                    Text("Sign in again to continue using Ember.")
                 }
             }
-            .navigationTitle("账户设置")
+            .navigationTitle("Account Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("完成") { dismiss() }
+                    Button("Done") { dismiss() }
                 }
             }
         }

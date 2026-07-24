@@ -72,15 +72,15 @@ final class AuthViewModel: ObservableObject {
     private func validate(email: String, password: String, displayName: String? = nil) -> Bool {
         let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmedEmail.isEmpty || !trimmedEmail.contains("@") {
-            errorMessage = "请输入有效的邮箱地址。"
+            errorMessage = "Enter a valid email address."
             return false
         }
         if password.count < 6 {
-            errorMessage = "密码至少需要 6 个字符。"
+            errorMessage = "Password must be at least 6 characters."
             return false
         }
         if let displayName, displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            errorMessage = "请输入你的昵称。"
+            errorMessage = "Enter your display name."
             return false
         }
         return true
@@ -91,18 +91,18 @@ final class AuthViewModel: ObservableObject {
         let lowercased = description.lowercased()
 
         if lowercased.contains("invalid login credentials") {
-            return "邮箱或密码不正确。"
+            return "Your email or password is incorrect."
         }
         if lowercased.contains("user already registered") {
-            return "这个邮箱已经注册过了，请直接登录。"
+            return "An account already exists for this email. Please sign in."
         }
         if lowercased.contains("email not confirmed") {
-            return "请先到邮箱中完成验证，再登录。"
+            return "Verify your email before signing in."
         }
         if lowercased.contains("network") || lowercased.contains("internet") {
-            return "网络连接似乎有问题，请稍后重试。"
+            return "There appears to be a network problem. Please try again."
         }
-        return description.isEmpty ? "认证失败，请稍后重试。" : description
+        return description.isEmpty ? "Authentication failed. Please try again." : description
     }
 
     private static func displayName(from session: Session?) -> String {

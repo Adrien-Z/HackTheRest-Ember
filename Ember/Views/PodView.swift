@@ -10,7 +10,24 @@ struct BoxSpaceView: View {
 
     private var snapshot: BoxSpaceSnapshot { store.boxSpace }
     private var everyone: [BoxSpacePerson] {
-        [snapshot.currentUser] + snapshot.people
+        let friends = friendsViewModel.friends.map {
+            BoxSpacePerson(
+                id: $0.userId.uuidString,
+                name: $0.displayName,
+                monthlyScore: 0,
+                rank: 0,
+                isFriend: true,
+                isCurrentUser: false,
+                decorationID: nil
+            )
+        }
+        let friendIDs = Set(friends.map(\.id))
+        // Keep backend-provided box metadata (such as score and decoration)
+        // when available, while never showing bundled example friends.
+        let boxPeople = snapshot.people.filter { person in
+            !person.isFriend || !friendIDs.contains(person.id)
+        }
+        return [snapshot.currentUser] + friends + boxPeople
     }
 
     var body: some View {

@@ -36,6 +36,12 @@
 		A113A0017F4E4D1A9C2B0012 /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A113A0017F4E4D1A9C2B0004 /* AuthView.swift */; };
 		A113A0017F4E4D1A9C2B0013 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A113A0017F4E4D1A9C2B0005 /* RootView.swift */; };
 		A113A0017F4E4D1A9C2B0015 /* AccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A113A0017F4E4D1A9C2B0014 /* AccountView.swift */; };
+		A113A0017F4E4D1A9C2B0022 /* FriendModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A113A0017F4E4D1A9C2B0016 /* FriendModels.swift */; };
+		A113A0017F4E4D1A9C2B0023 /* FriendService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A113A0017F4E4D1A9C2B0017 /* FriendService.swift */; };
+		A113A0017F4E4D1A9C2B0024 /* FriendsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A113A0017F4E4D1A9C2B0018 /* FriendsViewModel.swift */; };
+		A113A0017F4E4D1A9C2B0025 /* AddFriendView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A113A0017F4E4D1A9C2B0019 /* AddFriendView.swift */; };
+		A113A0017F4E4D1A9C2B0026 /* FriendsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A113A0017F4E4D1A9C2B0020 /* FriendsListView.swift */; };
+		A113A0017F4E4D1A9C2B0027 /* FriendRequestsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A113A0017F4E4D1A9C2B0021 /* FriendRequestsView.swift */; };
 		B198644CB27512A38884A1B0 /* PodView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E51DF68FD5E8A80D104D3C69 /* PodView.swift */; };
 		BA64B89583B37AC63DDB410F /* SleepMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17D0E26E8D2ACFD357C17593 /* SleepMetrics.swift */; };
 		C39A5D88C283F394CCF9D728 /* RestCoach.swift in Sources */ = {isa = PBXBuildFile; fileRef = 522DEBE140F2811A20695FF9 /* RestCoach.swift */; };
@@ -72,6 +78,12 @@
 		A113A0017F4E4D1A9C2B0004 /* AuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
 		A113A0017F4E4D1A9C2B0005 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		A113A0017F4E4D1A9C2B0014 /* AccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountView.swift; sourceTree = "<group>"; };
+		A113A0017F4E4D1A9C2B0016 /* FriendModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendModels.swift; sourceTree = "<group>"; };
+		A113A0017F4E4D1A9C2B0017 /* FriendService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendService.swift; sourceTree = "<group>"; };
+		A113A0017F4E4D1A9C2B0018 /* FriendsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendsViewModel.swift; sourceTree = "<group>"; };
+		A113A0017F4E4D1A9C2B0019 /* AddFriendView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddFriendView.swift; sourceTree = "<group>"; };
+		A113A0017F4E4D1A9C2B0020 /* FriendsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendsListView.swift; sourceTree = "<group>"; };
+		A113A0017F4E4D1A9C2B0021 /* FriendRequestsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendRequestsView.swift; sourceTree = "<group>"; };
 		738C57AD4865B9D8A9B2012D /* Ember.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Ember.entitlements; sourceTree = "<group>"; };
 		7FB44B3689CD07DBC9882119 /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
 		8D4CFD1D722793AEE11EDC60 /* SleepScience.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepScience.swift; sourceTree = "<group>"; };
@@ -148,6 +160,8 @@
 				6BB11124961C72720F88A6F2 /* Resources */,
 				DE36EEA4CD6AA21561989676 /* Security */,
 				9F4A94C5AEE32B83C5F88EF7 /* Theme */,
+				A113A0017F4E4D1A9C2B0028 /* Services */,
+				A113A0017F4E4D1A9C2B0029 /* ViewModels */,
 				D19B0E36EC4E6A5B26CC7272 /* Views */,
 			);
 			path = Ember;
@@ -211,6 +225,7 @@
 			isa = PBXGroup;
 			children = (
 				4F2AED6F819BDEDDF07FD5CC /* Models.swift */,
+				A113A0017F4E4D1A9C2B0016 /* FriendModels.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -243,6 +258,9 @@
 				A113A0017F4E4D1A9C2B0004 /* AuthView.swift */,
 				E51DF68FD5E8A80D104D3C69 /* PodView.swift */,
 				A113A0017F4E4D1A9C2B0014 /* AccountView.swift */,
+				A113A0017F4E4D1A9C2B0019 /* AddFriendView.swift */,
+				A113A0017F4E4D1A9C2B0021 /* FriendRequestsView.swift */,
+				A113A0017F4E4D1A9C2B0020 /* FriendsListView.swift */,
 				B880D7180FBA450F7CD94056 /* Previews.swift */,
 				30435D38943412697142D3D5 /* RhythmView.swift */,
 				8E98492F0332B6F0910FD160 /* RootTabView.swift */,
@@ -253,6 +271,22 @@
 				216E155063217A1DBDE1DAB0 /* Components */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		A113A0017F4E4D1A9C2B0028 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				A113A0017F4E4D1A9C2B0017 /* FriendService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		A113A0017F4E4D1A9C2B0029 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				A113A0017F4E4D1A9C2B0018 /* FriendsViewModel.swift */,
+			);
+			path = ViewModels;
 			sourceTree = "<group>";
 		};
 		DE36EEA4CD6AA21561989676 /* Security */ = {
@@ -361,10 +395,16 @@
 				0138F8D037CE413B632B3DD7 /* Components.swift in Sources */,
 				A113A0017F4E4D1A9C2B0010 /* AuthViewModel.swift in Sources */,
 				A113A0017F4E4D1A9C2B0015 /* AccountView.swift in Sources */,
+				A113A0017F4E4D1A9C2B0025 /* AddFriendView.swift in Sources */,
 				A113A0017F4E4D1A9C2B0012 /* AuthView.swift in Sources */,
 				D6AEB02A011B1DA89B0D199F /* DataStore.swift in Sources */,
 				78B9CA4A2393CF8AB9B1E469 /* EmberApp.swift in Sources */,
 				4070F51276CA68CB1DBE7FE6 /* Formatters.swift in Sources */,
+				A113A0017F4E4D1A9C2B0022 /* FriendModels.swift in Sources */,
+				A113A0017F4E4D1A9C2B0027 /* FriendRequestsView.swift in Sources */,
+				A113A0017F4E4D1A9C2B0023 /* FriendService.swift in Sources */,
+				A113A0017F4E4D1A9C2B0026 /* FriendsListView.swift in Sources */,
+				A113A0017F4E4D1A9C2B0024 /* FriendsViewModel.swift in Sources */,
 				AA239A9F0FFF425B62F5BD53 /* Haptics.swift in Sources */,
 				5D8D8BE217040008AB989FA4 /* HealthManager.swift in Sources */,
 				46F66C1E45F43D472AE63031 /* HomeView.swift in Sources */,

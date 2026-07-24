@@ -7,6 +7,9 @@ final class AuthViewModel: ObservableObject {
     @Published private(set) var isLoading = true
     @Published private(set) var displayName = ""
     @Published private(set) var email = ""
+    /// Kept in the shared authentication state so keyboard/focus-driven view
+    /// updates cannot discard an in-progress registration name.
+    @Published var registrationDisplayName = ""
     @Published var errorMessage: String?
 
     private var authStateTask: Task<Void, Never>?

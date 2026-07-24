@@ -151,16 +151,6 @@ struct BoxSpaceSnapshot: Codable {
                 id: "me", name: "Alex", monthlyScore: 2_480, rank: 2,
                 isFriend: true, isCurrentUser: true, decorationID: "sleep-cap"),
             people: [
-                BoxSpacePerson(id: "maya", name: "Maya", monthlyScore: 2_760, rank: 1,
-                               isFriend: true, isCurrentUser: false, decorationID: "star"),
-                BoxSpacePerson(id: "jordan", name: "Jordan", monthlyScore: 2_210, rank: 3,
-                               isFriend: true, isCurrentUser: false, decorationID: "plant"),
-                BoxSpacePerson(id: "sam", name: "Sam", monthlyScore: 1_840, rank: 5,
-                               isFriend: true, isCurrentUser: false, decorationID: nil),
-                BoxSpacePerson(id: "river", name: "River", monthlyScore: 1_520, rank: 7,
-                               isFriend: false, isCurrentUser: false, decorationID: nil),
-                BoxSpacePerson(id: "noa", name: "Noa", monthlyScore: 1_190, rank: 9,
-                               isFriend: false, isCurrentUser: false, decorationID: nil),
                 BoxSpacePerson(id: "empty-box-3", name: "", monthlyScore: 0, rank: 0,
                                isFriend: false, isCurrentUser: false, decorationID: nil)
             ],

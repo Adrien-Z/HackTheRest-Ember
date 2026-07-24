@@ -4,7 +4,6 @@ struct AuthView: View {
     @EnvironmentObject private var auth: AuthViewModel
 
     @State private var isRegistering = false
-    @State private var displayName = ""
     @State private var email = ""
     @State private var password = ""
 
@@ -34,7 +33,7 @@ struct AuthView: View {
 
                     VStack(spacing: 13) {
                         if isRegistering {
-                            inputField("Display name", text: $displayName, contentType: .nickname)
+                            inputField("Display name", text: $auth.registrationDisplayName, contentType: .nickname)
                         }
                         inputField("Email", text: $email, contentType: .emailAddress, keyboardType: .emailAddress)
 
@@ -59,7 +58,7 @@ struct AuthView: View {
                     Button {
                         Task {
                             if isRegistering {
-                                await auth.signUp(email: email, password: password, displayName: displayName)
+                                await auth.signUp(email: email, password: password, displayName: auth.registrationDisplayName)
                             } else {
                                 await auth.signIn(email: email, password: password)
                             }

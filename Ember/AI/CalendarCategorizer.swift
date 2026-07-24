@@ -40,10 +40,15 @@ enum CalendarCategorizer {
                            client: LLMClient?,
                            cache: [String: Categorization],
                            now: Date = Date()) async -> Output {
+        // EventKit can occasionally return the same logical event more than once
+        // (for example, a subscribed Zoom calendar mirrored into another source).
+        // All downstream state is keyed by id, so collapse duplicates up front.
+        let uniqueEvents = deduplicated(rawEvents)
+
         // Reuse cached categorizations for unchanged events; collect the rest.
         var merged: [String: Categorization] = [:]
         var pending: [RawCalendarEvent] = []
-        for e in rawEvents {
+        for e in uniqueEvents {
             if let c = cache[e.id], c.fingerprint == fingerprint(of: e) {
                 merged[e.id] = c
             } else {
@@ -59,9 +64,17 @@ enum CalendarCategorizer {
             } catch let e { error = e }
         }
 
-        let result = buildResult(rawEvents: rawEvents, categorizations: merged,
+        let result = buildResult(rawEvents: uniqueEvents, categorizations: merged,
                                  targetWake: targetWake, now: now)
         return Output(result: result, cache: merged, error: error)
+    }
+
+    /// Preserves the first occurrence from EventKit's start-time-sorted result.
+    /// This is deterministic and prevents duplicate ids from reaching prompts,
+    /// dictionaries, the cache, or the displayed adaptation list.
+    static func deduplicated(_ events: [RawCalendarEvent]) -> [RawCalendarEvent] {
+        var seen = Set<String>()
+        return events.filter { seen.insert($0.id).inserted }
     }
 
     static func fingerprint(of e: RawCalendarEvent) -> String {
@@ -149,7 +162,9 @@ enum CalendarCategorizer {
     }
 
     static func parse(jsonString: String, rawEvents: [RawCalendarEvent]) -> [String: Categorization] {
-        let byId = Dictionary(uniqueKeysWithValues: rawEvents.map { ($0.id, $0) })
+        let byId = Dictionary(
+            rawEvents.map { ($0.id, $0) },
+            uniquingKeysWith: { first, _ in first })
         guard let data = extractJSON(jsonString),
               let decoded = try? JSONDecoder().decode(LLMResponse.self, from: data) else {
             return [:]

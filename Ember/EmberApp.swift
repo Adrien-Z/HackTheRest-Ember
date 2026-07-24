@@ -41,6 +41,7 @@ struct EmberApp: App {
             .task {
                 await health.autoConnect()
                 await store.refresh(health: health, calendar: calendar)
+                await store.refreshBoxSpace()
             }
             .onChange(of: scenePhase) { phase in
                 if phase == .background { EmberApp.scheduleBackgroundRefresh() }

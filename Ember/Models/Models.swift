@@ -128,6 +128,86 @@ struct Pod: Codable {
     let weeks: [PodWeek]
 }
 
+// Box Space / monthly social score ---------------------------------------
+struct BoxSpaceSnapshot: Codable {
+    let monthLabel: String
+    let resetsAt: String
+    var currentUser: BoxSpacePerson
+    let people: [BoxSpacePerson]
+    let decorations: [BoxDecoration]
+
+    enum CodingKeys: String, CodingKey {
+        case monthLabel = "month_label"
+        case resetsAt = "resets_at"
+        case currentUser = "current_user"
+        case people, decorations
+    }
+
+    static var sample: BoxSpaceSnapshot {
+        BoxSpaceSnapshot(
+            monthLabel: "July",
+            resetsAt: "2026-08-01T00:00:00+08:00",
+            currentUser: BoxSpacePerson(
+                id: "me", name: "Alex", monthlyScore: 2_480, rank: 2,
+                isFriend: true, isCurrentUser: true, decorationID: "sleep-cap"),
+            people: [
+                BoxSpacePerson(id: "maya", name: "Maya", monthlyScore: 2_760, rank: 1,
+                               isFriend: true, isCurrentUser: false, decorationID: "star"),
+                BoxSpacePerson(id: "jordan", name: "Jordan", monthlyScore: 2_210, rank: 3,
+                               isFriend: true, isCurrentUser: false, decorationID: "plant"),
+                BoxSpacePerson(id: "sam", name: "Sam", monthlyScore: 1_840, rank: 5,
+                               isFriend: true, isCurrentUser: false, decorationID: nil),
+                BoxSpacePerson(id: "river", name: "River", monthlyScore: 1_520, rank: 7,
+                               isFriend: false, isCurrentUser: false, decorationID: nil),
+                BoxSpacePerson(id: "noa", name: "Noa", monthlyScore: 1_190, rank: 9,
+                               isFriend: false, isCurrentUser: false, decorationID: nil),
+                BoxSpacePerson(id: "empty-box-3", name: "", monthlyScore: 0, rank: 0,
+                               isFriend: false, isCurrentUser: false, decorationID: nil)
+            ],
+            decorations: [
+                BoxDecoration(id: "sleep-cap", name: "Sleep cap",
+                              systemImage: "moon.stars.fill", requiredScore: 500),
+                BoxDecoration(id: "plant", name: "Little plant",
+                              systemImage: "leaf.fill", requiredScore: 1_500),
+                BoxDecoration(id: "star", name: "Dream star",
+                              systemImage: "sparkles", requiredScore: 2_500),
+                BoxDecoration(id: "crown", name: "Moon crown",
+                              systemImage: "crown.fill", requiredScore: 3_000)
+            ])
+    }
+}
+
+struct BoxSpacePerson: Codable, Identifiable, Equatable {
+    let id: String
+    let name: String
+    let monthlyScore: Int
+    let rank: Int
+    let isFriend: Bool
+    let isCurrentUser: Bool
+    var decorationID: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, rank
+        case monthlyScore = "monthly_score"
+        case isFriend = "is_friend"
+        case isCurrentUser = "is_current_user"
+        case decorationID = "decoration_id"
+    }
+}
+
+struct BoxDecoration: Codable, Identifiable, Equatable {
+    let id: String
+    let name: String
+    let systemImage: String
+    let requiredScore: Int
+
+    enum CodingKeys: String, CodingKey {
+        case id, name
+        case systemImage = "system_image"
+        case requiredScore = "required_score"
+    }
+}
+
 // Coach ------------------------------------------------------------------
 struct ChatMessage: Identifiable {
     let id = UUID()

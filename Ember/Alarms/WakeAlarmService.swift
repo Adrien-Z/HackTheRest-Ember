@@ -80,13 +80,23 @@ final class WakeAlarmService: ObservableObject {
             let schedule = Alarm.Schedule.relative(.init(
                 time: .init(hour: parts[0], minute: parts[1]),
                 repeats: .never))
+            let stopButton = AlarmButton(
+                text: "Stop",
+                textColor: .white,
+                systemImageName: "stop.fill")
             let presentation = AlarmPresentation(
-                alert: .init(title: "Wake up — EMBER"))
+                alert: .init(
+                    title: "Wake up — EMBER",
+                    stopButton: stopButton))
             let attributes = AlarmAttributes<EmberAlarmMetadata>(
                 presentation: presentation, tintColor: Theme.ember)
+            let configuration = AlarmManager.AlarmConfiguration<EmberAlarmMetadata>.alarm(
+                schedule: schedule,
+                attributes: attributes)
             let id = UUID()
             _ = try await AlarmManager.shared.schedule(
-                id: id, configuration: .alarm(schedule: schedule, attributes: attributes))
+                id: id,
+                configuration: configuration)
             UserDefaults.standard.set(id.uuidString, forKey: Keys.id)
             UserDefaults.standard.set(hhmm, forKey: Keys.time)
             UserDefaults.standard.set(hhmm, forKey: Keys.lastTime)

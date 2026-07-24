@@ -9,6 +9,8 @@ enum Theme {
     static let cool       = Color(red: 0.66, green: 0.75, blue: 0.88)      // periwinkle (CBT-I), from BB palette
     static let mint       = Color(red: 0.30, green: 0.78, blue: 0.60)   // "hit"/success
     static let amber      = Color(red: 0.98, green: 0.75, blue: 0.29)   // partial
+    static let boxBlue    = Color(red: 0.000, green: 0.278, blue: 0.729)
+    static let boxBlueDeep = Color(red: 0.086, green: 0.173, blue: 0.376)
     static let bg         = Color(red: 0.06, green: 0.07, blue: 0.11)   // near-black navy
     static let card       = Color(red: 0.11, green: 0.12, blue: 0.17)
 
@@ -19,6 +21,12 @@ enum Theme {
     static var nightGradient: LinearGradient {
         LinearGradient(colors: [Color(red:0.09,green:0.10,blue:0.18), bg],
                        startPoint: .top, endPoint: .bottom)
+    }
+    static var boxGradient: LinearGradient {
+        LinearGradient(
+            colors: [Color(red: 0.48, green: 0.83, blue: 1.0), boxBlue, boxBlueDeep],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing)
     }
 }
 

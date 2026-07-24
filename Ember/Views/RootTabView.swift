@@ -11,8 +11,8 @@ struct RootTabView: View {
                 .tabItem { Label("Efficiency", systemImage: "bed.double.fill") }
             NavigationStack { CalendarView() }
                 .tabItem { Label("Agenda", systemImage: "calendar") }
-            NavigationStack { PodView() }
-                .tabItem { Label("Pod", systemImage: "person.3.fill") }
+            NavigationStack { BoxSpaceView() }
+                .tabItem { Label("Box Space", systemImage: "shippingbox.fill") }
         }
     }
 }

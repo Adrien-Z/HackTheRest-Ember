@@ -8,8 +8,7 @@ enum DataSourceMode: String {
 
 /// Central observable store. Holds either the bundled sample data or live data
 /// derived from Apple Health / EventKit, chosen by an explicit mode toggle in
-/// Settings (no automatic fallback). The Pod is social data with no on-device
-/// source, so it always shows sample content.
+/// Settings (no automatic fallback). Box Space uses its own backend snapshot.
 @MainActor
 final class DataStore: ObservableObject {
     @Published var user: UserProfile
@@ -20,6 +19,9 @@ final class DataStore: ObservableObject {
     @Published var calendarEvents: [CalendarEvent] = []
     @Published var adaptations: [Adaptation] = []
     @Published var pod: Pod                    // always sample data
+    @Published var boxSpace: BoxSpaceSnapshot
+    @Published var boxSpaceLoading = false
+    @Published var boxSpaceError: String? = nil
     @Published var chat: [ChatMessage] = []
     /// Set by other screens ("Ask the coach") so CoachView can auto-send on appear.
     @Published var pendingCoachQuestion: String? = nil
@@ -70,6 +72,7 @@ final class DataStore: ObservableObject {
         aiConfigured = Keychain.load(Keys.apiKeyAccount)?.isEmpty == false
         user = bundleSeed.user
         pod = bundleSeed.pod
+        boxSpace = .sample
         chat = [ChatMessage(role: .coach,
             content: "Hi \(bundleSeed.user.name) — I'm your rest coach. Ask me why any prescription changed, or tap a suggested question below.")]
         if mode == .sample { applySample() }
@@ -119,6 +122,34 @@ final class DataStore: ObservableObject {
     }
 
     var hasAPIKey: Bool { Keychain.load(Keys.apiKeyAccount)?.isEmpty == false }
+
+    func refreshBoxSpace() async {
+        guard let rawURL = Bundle.main.object(forInfoDictionaryKey: "BOX_SPACE_API_URL") as? String,
+              let url = URL(string: rawURL), !rawURL.isEmpty else { return }
+        boxSpaceLoading = true
+        boxSpaceError = nil
+        defer { boxSpaceLoading = false }
+        do {
+            var request = URLRequest(url: url)
+            request.setValue("application/json", forHTTPHeaderField: "Accept")
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse,
+                  (200...299).contains(http.statusCode) else {
+                throw URLError(.badServerResponse)
+            }
+            boxSpace = try JSONDecoder().decode(BoxSpaceSnapshot.self, from: data)
+        } catch {
+            boxSpaceError = error.localizedDescription
+        }
+    }
+
+    func selectBoxDecoration(_ decorationID: String?) {
+        if let decorationID {
+            guard let decoration = boxSpace.decorations.first(where: { $0.id == decorationID }),
+                  boxSpace.currentUser.monthlyScore >= decoration.requiredScore else { return }
+        }
+        boxSpace.currentUser.decorationID = decorationID
+    }
 
     private var llmClient: LLMClient? {
         guard let key = Keychain.load(Keys.apiKeyAccount),

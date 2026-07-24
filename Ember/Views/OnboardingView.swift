@@ -152,11 +152,11 @@ struct OnboardingView: View {
         OnboardScaffold {
             OnboardGlyph("gauge.with.dots.needle.bottom.50percent")
             OnboardTitle("Two rest engines,\ntuned to you.")
-            OnboardBody("EMBER runs evidence-based protocols and adapts them from your own data every week:")
+            OnboardBody("EMBER runs evidence-based protocols and adapts them from your own data every week. Built from sleep science, shaped by warmth rituals.")
             VStack(spacing: 12) {
                 EngineBullet(icon: "thermometer.sun.fill", tint: Theme.ember,
                              title: "Thermal Wind-Down",
-                             text: "Times a warming ritual to drop your core temperature so you fall asleep faster.")
+                             text: "Times a foot bath, warm towel, or other warming ritual to support the core-temperature drop before sleep.")
                 EngineBullet(icon: "bed.double.fill", tint: Theme.cool,
                              title: "Sleep Efficiency (CBT-I)",
                              text: "The gold-standard therapy for insomnia — consolidates broken sleep, then widens it.")

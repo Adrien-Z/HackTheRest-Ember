@@ -264,6 +264,128 @@ private struct BreathPhase {
     }
 }
 
+struct WindDownRitualsView: View {
+    private let rituals: [WindDownRitual] = [
+        WindDownRitual(
+            title: "Foot Bath",
+            subtitle: "10-12 min comfortable warmth",
+            icon: "thermometer.sun.fill",
+            tint: Theme.ember,
+            steps: [
+                "Use warm water that feels comfortable, never scalding.",
+                "Finish 45-90 min before lights-out.",
+                "Dry fully and keep feet comfortably warm."
+            ],
+            note: "A foot bath fits EMBER's thermal wind-down: warm the periphery, then let the body cool into sleep."),
+        WindDownRitual(
+            title: "Warm Towel",
+            subtitle: "Low-effort warmth for busy nights",
+            icon: "towel.fill",
+            tint: Theme.amber,
+            steps: [
+                "Warm a towel and place it around shoulders, neck, or feet.",
+                "Keep lights low and avoid checking messages.",
+                "Stop before you feel sweaty or overheated."
+            ],
+            note: "Use this when a full bath is too much; the goal is comfort and a clean transition."),
+        WindDownRitual(
+            title: "Tea Cutoff",
+            subtitle: "Coffee and tea both count",
+            icon: "cup.and.saucer.fill",
+            tint: Theme.mint,
+            steps: [
+                "Treat strong tea, milk tea, coffee, and energy drinks as caffeine.",
+                "Move meaningful caffeine earlier in the afternoon.",
+                "Choose herbal or explicitly low-caffeine tea for the bedtime ritual."
+            ],
+            note: "Tea caffeine varies by leaves, serving size, and steep time, so the safer late-night rule is simple."),
+        WindDownRitual(
+            title: "Gentle Reset",
+            subtitle: "Baduanjin-inspired mobility",
+            icon: "figure.mind.and.body",
+            tint: Theme.cool,
+            steps: [
+                "Use slow shoulder rolls, side bends, or easy standing stretches.",
+                "Breathe through the nose and keep effort light.",
+                "Stop if it becomes workout-like or stimulating."
+            ],
+            note: "This borrows the calm pacing of traditional movement without treating it as medicine.")
+    ]
+
+    var body: some View {
+        ZStack {
+            NightBackground()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    SectionHeader(
+                        title: "Wind-down rituals",
+                        subtitle: "Science-first routines shaped by warmth, tea awareness, and low-arousal movement.")
+                    ForEach(rituals) { ritual in
+                        RitualCard(ritual: ritual)
+                    }
+                    ScienceNote(
+                        text: "These are comfort routines, not medical treatment. EMBER uses them to make the evening transition repeatable and easy to follow.",
+                        icon: "checkmark.seal")
+                }
+                .padding()
+                .lockHorizontal()
+            }
+        }
+        .navigationTitle("Rituals")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+private struct WindDownRitual: Identifiable {
+    let id = UUID()
+    let title: String
+    let subtitle: String
+    let icon: String
+    let tint: Color
+    let steps: [String]
+    let note: String
+}
+
+private struct RitualCard: View {
+    let ritual: WindDownRitual
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                Image(systemName: ritual.icon)
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(ritual.tint)
+                    .frame(width: 42, height: 42)
+                    .background(ritual.tint.opacity(0.14), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(ritual.title).font(.headline)
+                    Text(ritual.subtitle).font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(ritual.steps, id: \.self) { step in
+                    HStack(alignment: .top, spacing: 8) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(ritual.tint)
+                            .padding(.top, 2)
+                        Text(step)
+                            .font(.subheadline)
+                            .foregroundStyle(.primary.opacity(0.92))
+                    }
+                }
+            }
+            Text(ritual.note)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+        .padding(16)
+        .emberCard(0)
+        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(ritual.tint.opacity(0.16), lineWidth: 0.8))
+    }
+}
+
 struct QuickToolCard: View {
     let title: String
     let subtitle: String

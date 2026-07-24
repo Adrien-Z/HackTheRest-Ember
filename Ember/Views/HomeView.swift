@@ -267,7 +267,7 @@ struct HomeView: View {
     }
 
     private var quickToolEntrances: some View {
-        HStack(spacing: 14) {
+        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
             NavigationLink {
                 WhiteNoiseView()
             } label: {
@@ -287,6 +287,17 @@ struct HomeView: View {
                     subtitle: "4 · 4 · 6 reset",
                     icon: "wind",
                     tint: Theme.mint)
+            }
+            .buttonStyle(.plain)
+
+            NavigationLink {
+                WindDownRitualsView()
+            } label: {
+                QuickToolCard(
+                    title: "Rituals",
+                    subtitle: "Warmth, tea, stretch",
+                    icon: "hands.sparkles.fill",
+                    tint: Theme.ember)
             }
             .buttonStyle(.plain)
         }

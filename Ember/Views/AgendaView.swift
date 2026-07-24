@@ -692,7 +692,7 @@ private struct AgendaInfoSheet: View {
                     row("chart.line.uptrend.xyaxis", Theme.amber, "The energy ribbon",
                         "The wave on the right is your predicted circadian alertness through the day — anchored to your own sleep times. Wider (warmer) means higher energy.")
                     row("circle.grid.2x2.fill", Theme.cool, "Body-clock markers",
-                        "Tap a dot on the ribbon for the science behind each moment: morning peak, afternoon dip, evening wake-maintenance zone, wind-down, and your last-coffee cutoff.")
+                        "Tap a dot on the ribbon for the science behind each moment: morning peak, afternoon dip, evening wake-maintenance zone, wind-down, and your last caffeine cutoff for coffee, strong tea, milk tea, or energy drinks.")
                     row("moon.stars.fill", Theme.ember, "Your recommended night",
                         "The blue Sleep band and amber Warm-up band are EMBER's plan for the night. Drag either up or down to shift it — times snap to 5 minutes.")
                     row("calendar", .gray, "Your events",
@@ -716,5 +716,4 @@ private struct AgendaInfoSheet: View {
         }
     }
 }
-
 

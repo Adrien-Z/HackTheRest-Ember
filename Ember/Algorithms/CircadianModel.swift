@@ -85,8 +85,8 @@ enum CircadianModel {
                    symbol: "thermometer.low", kind: .deepSleep),
         ]
         // Caffeine cutoff ~8 h before bed (≈1.5 half-lives) — a concrete lever.
-        out.append(Marker(minuteOfDay: (bedMin - 480 + 1440) % 1440, label: "Last coffee",
-                          detail: "Caffeine has a ~5–6 h half-life. After this, a cup can still be measurably in your system at bedtime.",
+        out.append(Marker(minuteOfDay: (bedMin - 480 + 1440) % 1440, label: "Last caffeine",
+                          detail: "Coffee, strong tea, milk tea, and energy drinks can all matter. Tea caffeine varies with leaves and steep time; herbal or low-caffeine tea fits wind-down better.",
                           symbol: "cup.and.saucer.fill", kind: .caffeine))
         return out.sorted { $0.minuteOfDay < $1.minuteOfDay }
     }

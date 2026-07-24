@@ -63,6 +63,14 @@ enum RestCoach {
       time protects performance.
     - Carney 2012 — Consensus Sleep Diary: standard definitions of SOL, WASO, TST, TIB, and \
       sleep efficiency (TST/TIB).
+    - Drake 2013 (JCSM) — 400 mg caffeine taken at bedtime, 3 h, or 6 h before bed \
+      disrupted sleep; avoid meaningful caffeine at least 6 h before bed.
+    - A 2023 systematic review/meta-analysis on caffeine and sleep — caffeine generally \
+      reduces total sleep time and sleep efficiency while increasing sleep-onset latency; \
+      dose, sensitivity, and timing matter.
+    - Tea caffeine varies substantially by leaves, serving size, and steep time; strong tea \
+      and milk tea should be treated as caffeine, while herbal or explicitly low-caffeine tea \
+      is a better bedtime ritual choice.
     - Minor 2022 (One Earth) and a 2024 systematic review of ambient heat and sleep — warmer \
       nights are generally associated with shorter or poorer sleep, especially through delayed \
       sleep onset. Treat weather as a sleep-friction factor, not a medical diagnosis.
@@ -155,6 +163,19 @@ enum RestCoach {
                 return "Start your \(store.user.warmingMethod) about \(rx.prescribedOffsetMin) min before bed. \(rx.rationale) Warming the periphery pulls heat away from your core; the core-temperature drop is a physiological trigger for sleep onset."
             }
         }
+        // Caffeine / tea
+        if q.contains("caffeine") || q.contains("coffee") || q.contains("tea") || q.contains("milk tea") || q.contains("oolong") || q.contains("pu'er") || q.contains("puer") {
+            let bedText: String
+            let cutoffText: String
+            if let plan = store.tonightPlan, Calendar.current.isDateInToday(plan.day) {
+                bedText = clock(plan.bed)
+                cutoffText = clock(plan.bed.addingTimeInterval(-8 * 60 * 60))
+            } else {
+                bedText = store.user.targetBedTime
+                cutoffText = offsetTime(from: store.user.targetBedTime, minusMinutes: 480)
+            }
+            return "For \(bedText) lights-out, a practical caffeine cutoff is around \(cutoffText). Treat coffee, energy drinks, strong tea, oolong, pu'er, black tea, green tea, and milk tea as caffeine unless you know the serving is low-caffeine. Tea varies a lot by leaves and steep time, so switch the late ritual to herbal tea, warm water, or an explicitly low-caffeine tea if you want the comfort without the sleep friction."
+        }
         // Travel / jet lag
         if q.contains("flight") || q.contains("jet") || q.contains("travel") || q.contains("trip") {
             if let a = adaptations.first(where: { $0.scenario.contains("travel") }) {
@@ -173,7 +194,7 @@ enum RestCoach {
             return "\(hit) of \(store.pod.members.count) in \(store.pod.name) hit their goal this week. When everyone reaches \(store.pod.weeklyGoalNights) on-target nights, the pod unlocks a Blue Box reward. Your pod only sees a status ring — never your actual sleep times."
         }
         // Default
-        return "I can explain any part of your plan — your warming offset, your time-in-bed window, upcoming calendar adaptations, or your pod. Try one of the suggestions below."
+        return "I can explain any part of your plan — your warming offset, caffeine cutoff, time-in-bed window, upcoming calendar adaptations, or your pod. Try one of the suggestions below."
     }
 
     private static func clock(_ date: Date) -> String {

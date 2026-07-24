@@ -9,7 +9,7 @@ struct RootTabView: View {
                 .tabItem { Label("Warm-Up", systemImage: "thermometer.sun.fill") }
             NavigationStack { CBTIView() }
                 .tabItem { Label("Efficiency", systemImage: "bed.double.fill") }
-            NavigationStack { CalendarView() }
+            NavigationStack { AgendaView() }
                 .tabItem { Label("Agenda", systemImage: "calendar") }
             NavigationStack { BoxSpaceView() }
                 .tabItem { Label("Box Space", systemImage: "shippingbox.fill") }

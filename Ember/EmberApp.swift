@@ -7,48 +7,21 @@ struct EmberApp: App {
     @StateObject private var health = HealthManager()
     @StateObject private var calendar = CalendarService()
     @StateObject private var wakeAlarm = WakeAlarmService()
+    @StateObject private var auth = AuthViewModel()
     @Environment(\.scenePhase) private var scenePhase
 
     static let refreshTaskID = "com.bluebox.ember.planRefresh"
 
-    @State private var showSplash = true
-    @State private var appRevealed = false
-    @AppStorage("ember.onboarded") private var onboarded = false
-
     var body: some Scene {
         WindowGroup {
-            ZStack {
-                RootTabView()
-                    .environmentObject(store)
-                    .environmentObject(health)
-                    .environmentObject(calendar)
-                    .environmentObject(wakeAlarm)
-                    .scaleEffect(appRevealed ? 1 : 0.88)
-                if !onboarded && !showSplash {
-                    OnboardingView { withAnimation(.easeInOut(duration: 0.5)) { onboarded = true } }
-                        .environmentObject(store)
-                        .environmentObject(health)
-                        .environmentObject(calendar)
-                        .environmentObject(wakeAlarm)
-                        .zIndex(2)
-                        .transition(.opacity)
-                }
-                if showSplash {
-                    SplashView(onReveal: {
-                        // The flaps have started unfolding — zoom the app in.
-                        withAnimation(.spring(response: 0.8, dampingFraction: 0.85)) {
-                            appRevealed = true
-                        }
-                    }, onFinished: {
-                        withAnimation(.easeOut(duration: 0.25)) { showSplash = false }
-                    })
-                    .zIndex(1)
-                    .transition(.opacity)
-                }
-            }
-            .preferredColorScheme(.dark)
-            .tint(Theme.ember)
-            .task {
+            RootView()
+                .environmentObject(store)
+                .environmentObject(health)
+                .environmentObject(calendar)
+                .environmentObject(wakeAlarm)
+                .environmentObject(auth)
+            .task(id: auth.isAuthenticated) {
+                guard auth.isAuthenticated else { return }
                 await health.autoConnect()
                 await store.refresh(health: health, calendar: calendar)
                 await store.refreshBoxSpace()

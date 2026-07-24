@@ -18,6 +18,8 @@ final class DataStore: ObservableObject {
     @Published var cbtiPrescriptions: [CBTIPrescription] = []
     @Published var calendarEvents: [CalendarEvent] = []
     @Published var adaptations: [Adaptation] = []
+    /// Every event in the fetch window (neutral included), for the day timeline.
+    @Published var agendaEvents: [AgendaEvent] = []
     @Published var regularity: SleepScience.RegularityReport =
         SleepScience.RegularityReport(sri: nil, socialJetlagMin: nil, midpointStdevMin: nil,
                                       avgMidpoint: nil, nights: 0, midpoints: [])
@@ -61,6 +63,7 @@ final class DataStore: ObservableObject {
         static let llmBaseURL = "ember.llmBaseURL"
         static let apiKeyAccount = "openrouter.apiKey"   // Keychain account
         static let calendarCache = "ember.calendarCategorizations"
+        static let calendarOverrides = "ember.calendarOverrides"   // eventId → category
     }
 
     init() {
@@ -77,12 +80,23 @@ final class DataStore: ObservableObject {
         pod = bundleSeed.pod
         boxSpace = .sample
         chat = [ChatMessage(role: .coach,
-            content: "Hi \(bundleSeed.user.name) — I'm your rest coach. Ask me why any prescription changed, or tap a suggested question below.")]
+            content: "Hi \(displayName) — I'm your rest coach. Ask me why any prescription changed, or tap a suggested question below.")]
         if mode == .sample { applySample() }
     }
 
     /// Sample data may still be missing from the bundle in unusual build setups;
     /// return empty defaults rather than crashing so live mode remains usable.
+    /// Parse a seed timestamp like "2026-07-17 21:00:00+00" into a Date.
+    static func parseSeedTs(_ s: String) -> Date? {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        for fmt in ["yyyy-MM-dd HH:mm:ssZ", "yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd HH:mm"] {
+            f.dateFormat = fmt
+            if let d = f.date(from: s.replacingOccurrences(of: "+00", with: "+0000")) { return d }
+        }
+        return nil
+    }
+
     static func loadSeed() -> SeedBundle {
         guard let url = Bundle.main.url(forResource: "seed", withExtension: "json"),
               let data = try? Data(contentsOf: url),
@@ -108,6 +122,29 @@ final class DataStore: ObservableObject {
         UserDefaults.standard.set(warmingMethod, forKey: Keys.warming)
         UserDefaults.standard.set(llmModel, forKey: Keys.llmModel)
         UserDefaults.standard.set(llmBaseURL, forKey: Keys.llmBaseURL)
+    }
+
+    /// The Supabase account is the single source of truth for the user's name.
+    /// Mirror it into every local model that can render a personal greeting.
+    func applyAuthenticatedDisplayName(_ name: String) {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else { return }
+
+        displayName = trimmedName
+        user.name = trimmedName
+        UserDefaults.standard.set(trimmedName, forKey: Keys.name)
+        if let firstCoachMessage = chat.firstIndex(where: { $0.role == .coach }) {
+            chat[firstCoachMessage].content = "Hi \(trimmedName) — I'm your rest coach. Ask me why any prescription changed, or tap a suggested question below."
+        }
+        boxSpace.currentUser = BoxSpacePerson(
+            id: boxSpace.currentUser.id,
+            name: trimmedName,
+            monthlyScore: boxSpace.currentUser.monthlyScore,
+            rank: boxSpace.currentUser.rank,
+            isFriend: boxSpace.currentUser.isFriend,
+            isCurrentUser: boxSpace.currentUser.isCurrentUser,
+            decorationID: boxSpace.currentUser.decorationID
+        )
     }
 
     // MARK: - LLM key management
@@ -141,6 +178,7 @@ final class DataStore: ObservableObject {
                 throw URLError(.badServerResponse)
             }
             boxSpace = try JSONDecoder().decode(BoxSpaceSnapshot.self, from: data)
+            applyAuthenticatedDisplayName(displayName)
         } catch {
             boxSpaceError = error.localizedDescription
         }
@@ -199,15 +237,57 @@ final class DataStore: ObservableObject {
         let raw = await calendar.fetchRawEvents()
         let output = await CalendarCategorizer.categorize(
             rawEvents: raw, targetWake: user.targetWakeTime,
-            client: llmClient, cache: loadCalendarCache())
+            client: llmClient, cache: loadCalendarCache(),
+            overrides: loadCategoryOverrides(), healthContext: healthContextForAI())
         calendarEvents = output.result.events
         adaptations = output.result.adaptations
+        agendaEvents = output.agenda
         // Don't wipe the cache when the fetch itself came back empty (e.g. access
         // not yet granted) — those categorizations may still be valid next run.
         if !raw.isEmpty { saveCalendarCache(output.cache) }
         if let error = output.error {
             aiError = (error as? LLMError)?.errorDescription ?? error.localizedDescription
         }
+    }
+
+    /// Manually reclassify an event; persists and re-runs the (cache-hit) pass so
+    /// the agenda updates without another LLM call. Pass nil to clear the override.
+    func overrideEventCategory(eventId: String, category: String?, calendar: CalendarService) async {
+        var overrides = loadCategoryOverrides()
+        if let category { overrides[eventId] = category } else { overrides.removeValue(forKey: eventId) }
+        UserDefaults.standard.set(overrides, forKey: Keys.calendarOverrides)
+        await categorizeCalendar(calendar: calendar)
+    }
+
+    func categoryOverride(for eventId: String) -> String? { loadCategoryOverrides()[eventId] }
+
+    private func loadCategoryOverrides() -> [String: String] {
+        UserDefaults.standard.dictionary(forKey: Keys.calendarOverrides) as? [String: String] ?? [:]
+    }
+
+    /// A compact, number-free-safe summary of the user's recent sleep, given to
+    /// the categorizer so each event's "why" can be personal.
+    private func healthContextForAI() -> String {
+        var parts = ["habitual bedtime \(user.targetBedTime), wake \(user.targetWakeTime)"]
+        let tsts = sleepLogs.suffix(7).map { $0.tstMin }
+        if !tsts.isEmpty { parts.append("average sleep over the last \(tsts.count) nights is \(fmtDur(tsts.reduce(0,+) / tsts.count))") }
+        if let hrv = lastNightHRV { parts.append("last night's HRV was \(Int(hrv)) ms") }
+        if let debt = sleepDebtMin(), debt >= 30 { parts.append("carrying roughly \(fmtDur(debt)) of sleep debt this week") }
+        return parts.joined(separator: "; ") + "."
+    }
+
+    /// Rolling sleep debt: shortfall vs. the target nightly duration over recent nights.
+    private func sleepDebtMin() -> Int? {
+        let recent = sleepLogs.suffix(7)
+        guard !recent.isEmpty else { return nil }
+        let need = desiredNightlySleepMin()
+        return recent.reduce(0) { $0 + max(0, need - $1.tstMin) }
+    }
+
+    /// Target sleep duration implied by the user's bed/wake times (wraps midnight).
+    func desiredNightlySleepMin() -> Int {
+        func mins(_ s: String) -> Int { let p = s.split(separator: ":").compactMap { Int($0) }; return p.count >= 2 ? p[0]*60+p[1] : 0 }
+        return ((mins(user.targetWakeTime) - mins(user.targetBedTime)) % 1440 + 1440) % 1440
     }
 
     /// Invoked from the background app-refresh task: re-categorize the calendar
@@ -270,12 +350,19 @@ final class DataStore: ObservableObject {
 
     private func applySample() {
         user = seed.user
+        user.name = displayName
         sleepLogs = seed.sleepLogs
         prescriptions = seed.prescriptions
         cbtiLogs = seed.cbtiLogs
         cbtiPrescriptions = seed.cbtiPrescriptions
         calendarEvents = seed.calendarEvents
         adaptations = seed.adaptations
+        agendaEvents = seed.calendarEvents.compactMap { e in
+            guard let s = Self.parseSeedTs(e.startTs), let en = Self.parseSeedTs(e.endTs) else { return nil }
+            return AgendaEvent(id: e.id, title: e.title, start: s, end: en, isAllDay: false,
+                               category: RestAlgorithms.normalizedCategory(e.type),
+                               why: seed.adaptations.first { $0.eventId == e.id }?.whyItAffectsSleep)
+        }
         regularity = SleepScience.report(logs: seed.sleepLogs)
         pod = seed.pod
         liveHasData = false

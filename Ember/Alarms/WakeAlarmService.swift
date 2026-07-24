@@ -84,6 +84,27 @@ final class WakeAlarmService: ObservableObject {
             .requestAuthorization(options: [.alert, .sound])) ?? false
     }
 
+    /// Schedule a one-off local reminder (e.g. "start winding down") at a given
+    /// date. Requests notification permission if needed. Returns success.
+    @discardableResult
+    func addReminder(at date: Date, title: String, body: String, id: String = UUID().uuidString) async -> Bool {
+        guard date > Date() else { return false }
+        let center = UNUserNotificationCenter.current()
+        let settings = await center.notificationSettings()
+        if settings.authorizationStatus == .notDetermined { _ = await requestNotificationAccess() }
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = .default
+        let comps = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: date)
+        let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
+        do {
+            try await center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
+            Haptics.success()
+            return true
+        } catch { return false }
+    }
+
     /// Schedule (or move) the one-shot wake alarm to the next occurrence of `hhmm`.
     func setWakeAlarm(at hhmm: String) async {
         #if canImport(AlarmKit)

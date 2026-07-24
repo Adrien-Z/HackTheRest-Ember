@@ -102,6 +102,21 @@ struct Adaptation: Codable, Identifiable {
     var whyItAffectsSleep: String? = nil
 }
 
+/// A calendar event with real `Date`s, for the day-timeline Agenda. Unlike
+/// `CalendarEvent` (string timestamps, sleep-relevant only) this covers every
+/// event in the fetch window — neutral ones included — so the whole day renders.
+struct AgendaEvent: Identifiable, Equatable {
+    let id: String
+    let title: String
+    let start: Date
+    let end: Date
+    let isAllDay: Bool
+    let category: String     // normalized category, or "neutral"
+    var why: String? = nil
+
+    var isSleepRelevant: Bool { category != "neutral" }
+}
+
 // Pods / social ----------------------------------------------------------
 struct PodMember: Codable, Identifiable {
     var id: String { name }
@@ -151,16 +166,6 @@ struct BoxSpaceSnapshot: Codable {
                 id: "me", name: "Alex", monthlyScore: 2_480, rank: 2,
                 isFriend: true, isCurrentUser: true, decorationID: "sleep-cap"),
             people: [
-                BoxSpacePerson(id: "maya", name: "Maya", monthlyScore: 2_760, rank: 1,
-                               isFriend: true, isCurrentUser: false, decorationID: "star"),
-                BoxSpacePerson(id: "jordan", name: "Jordan", monthlyScore: 2_210, rank: 3,
-                               isFriend: true, isCurrentUser: false, decorationID: "plant"),
-                BoxSpacePerson(id: "sam", name: "Sam", monthlyScore: 1_840, rank: 5,
-                               isFriend: true, isCurrentUser: false, decorationID: nil),
-                BoxSpacePerson(id: "river", name: "River", monthlyScore: 1_520, rank: 7,
-                               isFriend: false, isCurrentUser: false, decorationID: nil),
-                BoxSpacePerson(id: "noa", name: "Noa", monthlyScore: 1_190, rank: 9,
-                               isFriend: false, isCurrentUser: false, decorationID: nil),
                 BoxSpacePerson(id: "empty-box-3", name: "", monthlyScore: 0, rank: 0,
                                isFriend: false, isCurrentUser: false, decorationID: nil)
             ],

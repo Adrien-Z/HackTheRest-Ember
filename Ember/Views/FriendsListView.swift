@@ -23,7 +23,8 @@ struct FriendsListView: View {
                                 .font(.caption.weight(.bold)).foregroundStyle(.secondary)
                                 .frame(width: 20)
                             FriendBoxAvatar(config: friend.avatarConfig)
-                                .frame(width: 48, height: 45)
+                                .scaleEffect(0.8)
+                                .frame(width: 40, height: 36)
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(friend.displayName).font(.headline)
                                 if let username = friend.username, !username.isEmpty {

@@ -33,6 +33,17 @@ struct SettingsView: View {
                          : "Showing bundled sample data so you can explore the app without granting any permissions.")
                 }
 
+                Section {
+                    Toggle(isOn: $store.demoEventsEnabled) {
+                        Label("Show sample agenda events", systemImage: "calendar.badge.plus")
+                    }
+                    .tint(Theme.ember)
+                } header: {
+                    Text("Demo")
+                } footer: {
+                    Text("Adds a few illustrative events (a late show, an early flight, a big presentation) anchored to today so you can see how the Agenda plans your sleep around them — no calendar access needed.")
+                }
+
                 if store.mode == .live {
                     Section("Connections") {
                         connectionRow(

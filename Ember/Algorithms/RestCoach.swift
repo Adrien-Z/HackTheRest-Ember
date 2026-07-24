@@ -107,6 +107,9 @@ enum RestCoach {
         if let tst = store.healthLastNightTST { lines.append("Last night: \(fmtDur(tst)) asleep.") }
         if let hr = store.lastNightHR { lines.append("Overnight avg heart rate: \(Int(hr)) bpm.") }
         if let hrv = store.lastNightHRV { lines.append("Overnight HRV (SDNN): \(Int(hrv)) ms.") }
+        if let dev = store.wristTempDeviationC {
+            lines.append("Sleeping wrist temperature: \(dev > 0 ? "+" : "")\(String(format: "%.1f", dev))°C vs the user's baseline. NOTE: this is Apple Watch wrist skin temperature, a RELATIVE night-to-night signal — not core body temperature and not to scale. Elevations often reflect illness, alcohol, a warm room, or menstrual phase. Never present it as a precise or clinical temperature.")
+        }
 
         if !store.adaptations.isEmpty {
             lines.append("UPCOMING CALENDAR ADAPTATIONS:")

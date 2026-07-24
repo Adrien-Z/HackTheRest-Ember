@@ -44,6 +44,7 @@ final class HealthManager: ObservableObject {
         if let rhr = HKObjectType.quantityType(forIdentifier: .restingHeartRate) { types.insert(rhr) }
         if let activeEnergy = HKObjectType.quantityType(forIdentifier: .activeEnergyBurned) { types.insert(activeEnergy) }
         if let steps = HKObjectType.quantityType(forIdentifier: .stepCount) { types.insert(steps) }
+        if let wt = HKObjectType.quantityType(forIdentifier: .appleSleepingWristTemperature) { types.insert(wt) }
         return types
     }
 
@@ -104,6 +105,9 @@ final class HealthManager: ObservableObject {
         let bpm = HKUnit.count().unitDivided(by: .minute())
         let hrv = await quantitySamples(.heartRateVariabilitySDNN, predicate)
         let ms = HKUnit.secondUnit(with: .milli)
+        // Sleeping wrist temperature: one aggregated sample per night (Series 8+).
+        let wrist = await quantitySamples(.appleSleepingWristTemperature, predicate)
+        let celsius = HKUnit.degreeCelsius()
 
         for i in nights.indices {
             let window = nights[i].lightsOut...nights[i].finalWake
@@ -111,6 +115,10 @@ final class HealthManager: ObservableObject {
             let hrvValues = hrv.filter { window.contains($0.startDate) }.map { $0.quantity.doubleValue(for: ms) }
             if !hrValues.isEmpty { nights[i].avgHRBpm = (hrValues.reduce(0,+) / Double(hrValues.count)).rounded() }
             if !hrvValues.isEmpty { nights[i].hrvMs = (hrvValues.reduce(0,+) / Double(hrvValues.count)).rounded() }
+            // Match the night's wrist-temp sample by overlap with the sleep window.
+            if let wt = wrist.first(where: { $0.startDate <= nights[i].finalWake && $0.endDate >= nights[i].lightsOut }) {
+                nights[i].wristTempC = (wt.quantity.doubleValue(for: celsius) * 10).rounded() / 10
+            }
         }
         return nights
     }

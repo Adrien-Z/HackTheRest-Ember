@@ -12,6 +12,7 @@ final class FriendsViewModel: ObservableObject {
     @Published var errorMessage: String?
 
     private let service = FriendService()
+    private var feedbackDismissTask: Task<Void, Never>?
 
     func loadFriends() async {
         guard !isLoadingFriends else { return }
@@ -48,7 +49,7 @@ final class FriendsViewModel: ObservableObject {
         defer { isSendingRequest = false }
         do {
             let response = try await service.sendFriendRequest(email: email)
-            successMessage = response.message
+            showSuccess(response.message)
             return true
         } catch {
             present(error)
@@ -72,16 +73,27 @@ final class FriendsViewModel: ObservableObject {
         do {
             let response = try await service.respondToRequest(requestID: request.id, accept: accept)
             incomingRequests.removeAll { $0.id == request.id }
-            successMessage = response.message
+            showSuccess(response.message)
             if accept { await loadFriends() }
         } catch {
             present(error)
         }
     }
 
-    private func clearMessages() {
+    func clearFeedback() {
+        feedbackDismissTask?.cancel()
         successMessage = nil
         errorMessage = nil
+    }
+
+    private func clearMessages() {
+        clearFeedback()
+    }
+
+    private func showSuccess(_ message: String) {
+        successMessage = message
+        errorMessage = nil
+        dismissFeedbackAfterDelay()
     }
 
     private func present(_ error: Error) {
@@ -99,6 +111,17 @@ final class FriendsViewModel: ObservableObject {
             errorMessage = "You do not have permission to perform this action."
         } else {
             errorMessage = error.localizedDescription.isEmpty ? "Something went wrong. Please try again." : error.localizedDescription
+        }
+        dismissFeedbackAfterDelay()
+    }
+
+    private func dismissFeedbackAfterDelay() {
+        feedbackDismissTask?.cancel()
+        feedbackDismissTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            guard !Task.isCancelled else { return }
+            self?.successMessage = nil
+            self?.errorMessage = nil
         }
     }
 }

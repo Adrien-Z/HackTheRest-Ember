@@ -418,8 +418,12 @@ private struct DayCanvas: View {
                  title: "Sleep · \(fmtDur(plan.sleepDurationMin))",
                  subtitle: "\(clock(plan.bed))–\(clock(plan.wake))",
                  width: laneW, height: h, lifted: sleepBase != nil)
+                .overlay(alignment: .trailing) {
+                    dragHandle(lifted: sleepBase != nil)
+                        .gesture(bandDrag(base: $sleepBase))
+                        .padding(.trailing, 8)
+                }
                 .offset(x: laneX, y: top)
-                .simultaneousGesture(bandDrag(base: $sleepBase))
         }
     }
 
@@ -429,8 +433,12 @@ private struct DayCanvas: View {
             band(color: Theme.amber, icon: "thermometer.sun.fill",
                  title: "Warm-up", subtitle: clock(plan.warmingStart),
                  width: laneW, height: h, lifted: warmBase != nil)
+                .overlay(alignment: .trailing) {
+                    dragHandle(lifted: warmBase != nil)
+                        .gesture(bandDrag(base: $warmBase))
+                        .padding(.trailing, 8)
+                }
                 .offset(x: laneX, y: top)
-                .simultaneousGesture(bandDrag(base: $warmBase))
         }
     }
 
@@ -442,8 +450,7 @@ private struct DayCanvas: View {
                 Text(title).font(.caption.weight(.bold))
                 if height > 42 { Text(subtitle).font(.caption2).opacity(0.85) }
             }
-            Spacer()
-            Image(systemName: lifted ? "hand.draw.fill" : "arrow.up.and.down").font(.caption2).opacity(0.7)
+            Spacer(minLength: 34)
         }
         .padding(.horizontal, 10)
         .frame(width: width, height: height, alignment: .topLeading).padding(.top, 4)
@@ -456,7 +463,17 @@ private struct DayCanvas: View {
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: lifted)
     }
 
-    /// Native-Calendar behavior: press-and-hold to pick up a block, then drag to
+    private func dragHandle(lifted: Bool) -> some View {
+        Image(systemName: lifted ? "hand.draw.fill" : "arrow.up.and.down")
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(.white.opacity(0.78))
+            .frame(width: 34, height: 34)
+            .background(Color.black.opacity(lifted ? 0.22 : 0.08), in: Circle())
+            .contentShape(Circle())
+            .accessibilityLabel("Move sleep plan")
+    }
+
+    /// Native-Calendar behavior: press-and-hold the handle to pick up a block, then drag to
     /// move the WHOLE night (sleep + warm-up stay linked). A plain scroll never
     /// engages, so scrolling the timeline never shifts times. Snapped to 5 min.
     private func bandDrag(base: Binding<DayPlan?>) -> some Gesture {

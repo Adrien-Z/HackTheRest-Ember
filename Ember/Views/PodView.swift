@@ -18,7 +18,9 @@ struct BoxSpaceView: View {
                 decorations: snapshot.decorations,
                 selectedPerson: $selectedPerson
             )
-            .ignoresSafeArea(edges: .top)
+            // Let the map continue underneath the system's glass tab bar, so
+            // it reads as a floating control instead of a hard canvas edge.
+            .ignoresSafeArea(edges: [.top, .bottom])
 
             VStack {
                 scoreCard

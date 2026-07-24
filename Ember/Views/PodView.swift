@@ -5,6 +5,8 @@ struct BoxSpaceView: View {
     @State private var selectedPerson: BoxSpacePerson?
     @State private var showDecorationStudio = false
     @State private var openStudioAfterSheetDismisses = false
+    @StateObject private var friendsViewModel = FriendsViewModel()
+    @State private var showAddFriend = false
 
     private var snapshot: BoxSpaceSnapshot { store.boxSpace }
     private var everyone: [BoxSpacePerson] {
@@ -22,13 +24,14 @@ struct BoxSpaceView: View {
             // it reads as a floating control instead of a hard canvas edge.
             .ignoresSafeArea(edges: [.top, .bottom])
 
-            VStack {
+            VStack(spacing: 10) {
                 scoreCard
+                    .allowsHitTesting(false)
+                socialActions
                 Spacer()
             }
             .padding(.horizontal, 16)
             .padding(.top, 10)
-            .allowsHitTesting(false)
         }
         .toolbar(.hidden, for: .navigationBar)
         .sheet(item: $selectedPerson, onDismiss: {
@@ -50,6 +53,12 @@ struct BoxSpaceView: View {
         .navigationDestination(isPresented: $showDecorationStudio) {
             BoxDecorationStudio()
         }
+        .sheet(isPresented: $showAddFriend) {
+            NavigationStack {
+                AddFriendView(viewModel: friendsViewModel)
+            }
+        }
+        .task { await friendsViewModel.refreshAll() }
     }
 
     private var scoreCard: some View {
@@ -97,6 +106,40 @@ struct BoxSpaceView: View {
                 .strokeBorder(Color.white.opacity(0.13), lineWidth: 0.75)
         )
         .shadow(color: Color.black.opacity(0.22), radius: 14, y: 7)
+    }
+
+    private var socialActions: some View {
+        HStack(spacing: 8) {
+            NavigationLink {
+                FriendsListView(viewModel: friendsViewModel)
+            } label: {
+                Label("Friends", systemImage: "person.2.fill")
+            }
+            .buttonStyle(BoxSocialButtonStyle())
+
+            NavigationLink {
+                FriendRequestsView(viewModel: friendsViewModel)
+            } label: {
+                HStack(spacing: 5) {
+                    Label("Requests", systemImage: "person.badge.clock")
+                    if !friendsViewModel.incomingRequests.isEmpty {
+                        Text("\(friendsViewModel.incomingRequests.count)")
+                            .font(.caption2.bold())
+                            .padding(.horizontal, 5).padding(.vertical, 2)
+                            .background(Theme.boxBlue, in: Capsule())
+                    }
+                }
+            }
+            .buttonStyle(BoxSocialButtonStyle())
+
+            Button { showAddFriend = true } label: {
+                Image(systemName: "person.badge.plus")
+                    .frame(width: 34, height: 34)
+            }
+            .buttonStyle(BoxSocialButtonStyle())
+            .accessibilityLabel("Add Friend")
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var selectedDecoration: BoxDecoration? {
@@ -427,7 +470,7 @@ private struct BoxResident: View {
     }
 }
 
-private struct BlueBoxMascot: View {
+struct BlueBoxMascot: View {
     let isActive: Bool
     let isCurrentUser: Bool
 
@@ -476,6 +519,19 @@ private struct BlueBoxMascot: View {
                     .offset(x: -2, y: -9)
             }
         }
+    }
+}
+
+private struct BoxSocialButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.caption.weight(.bold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 10)
+            .frame(height: 34)
+            .background(.ultraThinMaterial, in: Capsule())
+            .overlay(Capsule().strokeBorder(Color.white.opacity(0.14), lineWidth: 0.75))
+            .opacity(configuration.isPressed ? 0.68 : 1)
     }
 }
 

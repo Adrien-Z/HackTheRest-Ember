@@ -11,12 +11,19 @@ settings:
     DEVELOPMENT_TEAM: "Q6F6T9227F"
     CODE_SIGN_STYLE: Automatic
     GENERATE_INFOPLIST_FILE: NO
+packages:
+  Supabase:
+    url: https://github.com/supabase/supabase-swift
+    from: 2.0.0
 targets:
   Ember:
     type: application
     platform: iOS
     sources:
       - path: Ember
+    dependencies:
+      - package: Supabase
+        product: Supabase
     settings:
       base:
         INFOPLIST_FILE: Ember/Info.plist

@@ -30,6 +30,12 @@
 		9E554E9F764DC57D8D8DD505 /* CoachView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 530970A8DC90098FD80DAF33 /* CoachView.swift */; };
 		A5F97F870FB3C3127CD65AD5 /* WakeAlarmService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E92B54768D6C22CE5E6B33C /* WakeAlarmService.swift */; };
 		AA239A9F0FFF425B62F5BD53 /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = F90FB710346ED126797DBBC8 /* Haptics.swift */; };
+		A113A0017F4E4D1A9C2B0001 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = A113A0017F4E4D1A9C2B0007 /* Supabase */; };
+		A113A0017F4E4D1A9C2B0010 /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A113A0017F4E4D1A9C2B0002 /* AuthViewModel.swift */; };
+		A113A0017F4E4D1A9C2B0011 /* SupabaseManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A113A0017F4E4D1A9C2B0003 /* SupabaseManager.swift */; };
+		A113A0017F4E4D1A9C2B0012 /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A113A0017F4E4D1A9C2B0004 /* AuthView.swift */; };
+		A113A0017F4E4D1A9C2B0013 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A113A0017F4E4D1A9C2B0005 /* RootView.swift */; };
+		A113A0017F4E4D1A9C2B0015 /* AccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A113A0017F4E4D1A9C2B0014 /* AccountView.swift */; };
 		B198644CB27512A38884A1B0 /* PodView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E51DF68FD5E8A80D104D3C69 /* PodView.swift */; };
 		BA64B89583B37AC63DDB410F /* SleepMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17D0E26E8D2ACFD357C17593 /* SleepMetrics.swift */; };
 		C39A5D88C283F394CCF9D728 /* RestCoach.swift in Sources */ = {isa = PBXBuildFile; fileRef = 522DEBE140F2811A20695FF9 /* RestCoach.swift */; };
@@ -61,6 +67,11 @@
 		5628AF88C55C54510897DD08 /* Contents.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = Contents.json; sourceTree = "<group>"; };
 		6070CAFDEB1401398FA1B773 /* CalendarCategorizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarCategorizer.swift; sourceTree = "<group>"; };
 		69CD122E9F7624B5B3059A0D /* DataStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataStore.swift; sourceTree = "<group>"; };
+		A113A0017F4E4D1A9C2B0002 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
+		A113A0017F4E4D1A9C2B0003 /* SupabaseManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseManager.swift; sourceTree = "<group>"; };
+		A113A0017F4E4D1A9C2B0004 /* AuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
+		A113A0017F4E4D1A9C2B0005 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		A113A0017F4E4D1A9C2B0014 /* AccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountView.swift; sourceTree = "<group>"; };
 		738C57AD4865B9D8A9B2012D /* Ember.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Ember.entitlements; sourceTree = "<group>"; };
 		7FB44B3689CD07DBC9882119 /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
 		8D4CFD1D722793AEE11EDC60 /* SleepScience.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepScience.swift; sourceTree = "<group>"; };
@@ -154,8 +165,10 @@
 			isa = PBXGroup;
 			children = (
 				69CD122E9F7624B5B3059A0D /* DataStore.swift */,
+				A113A0017F4E4D1A9C2B0002 /* AuthViewModel.swift */,
 				0652369835F49D016501A8AD /* Formatters.swift */,
 				318C100DF234B4EEFA0F2DBF /* LiveDataBuilder.swift */,
+				A113A0017F4E4D1A9C2B0003 /* SupabaseManager.swift */,
 			);
 			path = Data;
 			sourceTree = "<group>";
@@ -227,10 +240,13 @@
 				CB68B45CBF076764D83BC86A /* CoachWidgets.swift */,
 				0CB62B15CFC41F6827DC58B6 /* HomeView.swift */,
 				4ABD1941045F173BFC908828 /* OnboardingView.swift */,
+				A113A0017F4E4D1A9C2B0004 /* AuthView.swift */,
 				E51DF68FD5E8A80D104D3C69 /* PodView.swift */,
+				A113A0017F4E4D1A9C2B0014 /* AccountView.swift */,
 				B880D7180FBA450F7CD94056 /* Previews.swift */,
 				30435D38943412697142D3D5 /* RhythmView.swift */,
 				8E98492F0332B6F0910FD160 /* RootTabView.swift */,
+				A113A0017F4E4D1A9C2B0005 /* RootView.swift */,
 				A9C90DC46AFD2014FEED1D85 /* SettingsView.swift */,
 				FFAC02C2AC29DAA6CE71E814 /* SplashView.swift */,
 				D040811E025425FE3D31FEBA /* ThermalView.swift */,
@@ -249,12 +265,24 @@
 		};
 /* End PBXGroup section */
 
+/* Begin PBXFrameworksBuildPhase section */
+		A113A0017F4E4D1A9C2B0006 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A113A0017F4E4D1A9C2B0001 /* Supabase in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
 /* Begin PBXNativeTarget section */
 		3E853DD93E303CC86CD1FA7F /* Ember */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = B3B776477B6BBC134545AE38 /* Build configuration list for PBXNativeTarget "Ember" */;
 			buildPhases = (
 				60A89B85028B91AE593FB976 /* Sources */,
+				A113A0017F4E4D1A9C2B0006 /* Frameworks */,
 				8B6B0FFA7E15F621C34D6356 /* Resources */,
 			);
 			buildRules = (
@@ -263,6 +291,7 @@
 			);
 			name = Ember;
 			packageProductDependencies = (
+				A113A0017F4E4D1A9C2B0007 /* Supabase */,
 			);
 			productName = Ember;
 			productReference = D1E129474145FB033E3BBB86 /* Ember.app */;
@@ -284,6 +313,9 @@
 				};
 			};
 			buildConfigurationList = 8E26098F6346F3E7D139037F /* Build configuration list for PBXProject "Ember" */;
+			packageReferences = (
+				A113A0017F4E4D1A9C2B0008 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -327,6 +359,9 @@
 				9E554E9F764DC57D8D8DD505 /* CoachView.swift in Sources */,
 				96C48726FEA71DF974E1876E /* CoachWidgets.swift in Sources */,
 				0138F8D037CE413B632B3DD7 /* Components.swift in Sources */,
+				A113A0017F4E4D1A9C2B0010 /* AuthViewModel.swift in Sources */,
+				A113A0017F4E4D1A9C2B0015 /* AccountView.swift in Sources */,
+				A113A0017F4E4D1A9C2B0012 /* AuthView.swift in Sources */,
 				D6AEB02A011B1DA89B0D199F /* DataStore.swift in Sources */,
 				78B9CA4A2393CF8AB9B1E469 /* EmberApp.swift in Sources */,
 				4070F51276CA68CB1DBE7FE6 /* Formatters.swift in Sources */,
@@ -343,11 +378,13 @@
 				7AF06D8BC56E638C308699E3 /* RestAlgorithms.swift in Sources */,
 				C39A5D88C283F394CCF9D728 /* RestCoach.swift in Sources */,
 				F2C8DFE191F5B76625901896 /* RhythmView.swift in Sources */,
+				A113A0017F4E4D1A9C2B0013 /* RootView.swift in Sources */,
 				05BFC5E1C8443802E3DDB8DB /* RootTabView.swift in Sources */,
 				EC66758185B71D669BC6A9F5 /* SettingsView.swift in Sources */,
 				BA64B89583B37AC63DDB410F /* SleepMetrics.swift in Sources */,
 				708896B1DCC0BFF175A362F2 /* SleepScience.swift in Sources */,
 				0EBF820742223F6E93108F98 /* SplashView.swift in Sources */,
+				A113A0017F4E4D1A9C2B0011 /* SupabaseManager.swift in Sources */,
 				77499C61D5A7A51062740001 /* Theme.swift in Sources */,
 				EB0CD7C9CED89A3C9822C4C4 /* ThermalView.swift in Sources */,
 				A5F97F870FB3C3127CD65AD5 /* WakeAlarmService.swift in Sources */,
@@ -355,6 +392,25 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		A113A0017F4E4D1A9C2B0008 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A113A0017F4E4D1A9C2B0007 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A113A0017F4E4D1A9C2B0008 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 
 /* Begin XCBuildConfiguration section */
 		9CC77524DDFFA3800C9DD95D /* Debug */ = {

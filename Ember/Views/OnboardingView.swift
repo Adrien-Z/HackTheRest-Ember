@@ -10,10 +10,9 @@ struct OnboardingView: View {
     @EnvironmentObject var health: HealthManager
     @EnvironmentObject var calendar: CalendarService
     @EnvironmentObject var wakeAlarm: WakeAlarmService
+    @EnvironmentObject var auth: AuthViewModel
 
     @State private var page = 0
-    @State private var name = ""
-    @FocusState private var nameFocused: Bool
 
     // Local mirrors of permission state so checkmarks animate immediately.
     @State private var healthGranted = false
@@ -33,7 +32,7 @@ struct OnboardingView: View {
                 ZStack {
                     switch page {
                     case 0: welcome
-                    case 1: namePage
+                    case 1: accountPage
                     case 2: philosophy
                     case 3: healthPage
                     case 4: calendarPage
@@ -51,7 +50,6 @@ struct OnboardingView: View {
             }
         }
         .preferredColorScheme(.dark)
-        .onAppear { name = store.displayName == "You" ? "" : store.displayName }
     }
 
     // MARK: - Chrome
@@ -77,8 +75,6 @@ struct OnboardingView: View {
                     .background(Theme.emberGradient, in: RoundedRectangle(cornerRadius: 16))
                     .foregroundStyle(.white)
             }
-            .disabled(page == 1 && name.trimmingCharacters(in: .whitespaces).isEmpty)
-            .opacity(page == 1 && name.trimmingCharacters(in: .whitespaces).isEmpty ? 0.5 : 1)
 
             if page > 0 && page < lastPage {
                 Button("Back") { withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) { page -= 1 } }
@@ -108,14 +104,11 @@ struct OnboardingView: View {
 
     private func advance() {
         Haptics.light()
-        if page == 1 { store.displayName = name.trimmingCharacters(in: .whitespaces); nameFocused = false }
         if page >= lastPage { finish(); return }
         withAnimation(.spring(response: 0.5, dampingFraction: 0.82)) { page += 1 }
     }
 
     private func finish() {
-        store.displayName = name.trimmingCharacters(in: .whitespaces).isEmpty ? store.displayName
-            : name.trimmingCharacters(in: .whitespaces)
         store.persistSettings()
         Haptics.success()
         Task {
@@ -135,26 +128,20 @@ struct OnboardingView: View {
         }
     }
 
-    private var namePage: some View {
+    private var accountPage: some View {
         OnboardScaffold {
             OnboardGlyph("hand.wave.fill")
-            OnboardTitle("First — what should we\ncall you?")
-            TextField("Your name", text: $name)
-                .focused($nameFocused)
-                .font(.title2.weight(.semibold))
-                .multilineTextAlignment(.center)
-                .textInputAutocapitalization(.words)
+            OnboardTitle("你好，\n\(auth.displayName)")
+            Text(auth.email)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
                 .padding(.vertical, 14)
+                .frame(maxWidth: .infinity)
                 .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 14))
                 .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Theme.ember.opacity(0.4), lineWidth: 1))
                 .padding(.horizontal, 8)
-                .onAppear { DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { nameFocused = true } }
-            if !name.trimmingCharacters(in: .whitespaces).isEmpty {
-                OnboardBody("Nice to meet you, \(name.trimmingCharacters(in: .whitespaces)).")
-                    .transition(.opacity)
-            }
+            OnboardBody("我们将使用你的账户用户名来个性化 Ember。")
         }
-        .animation(.easeInOut, value: name)
     }
 
     private var philosophy: some View {

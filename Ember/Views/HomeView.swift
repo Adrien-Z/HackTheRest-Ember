@@ -7,6 +7,7 @@ struct HomeView: View {
     @EnvironmentObject var calendar: CalendarService
     @EnvironmentObject var wakeAlarm: WakeAlarmService
     @State private var showSettings = false
+    @State private var showAccount = false
 
     var tonightWarmTime: String {
         // bed time minus current offset
@@ -39,6 +40,12 @@ struct HomeView: View {
             .navigationTitle("EMBER")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { showAccount = true } label: {
+                        Image(systemName: "person.crop.circle.fill")
+                    }
+                    .accessibilityLabel("账户设置")
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { showSettings = true } label: { Image(systemName: "gearshape") }
                 }
@@ -48,6 +55,9 @@ struct HomeView: View {
                     .environmentObject(store)
                     .environmentObject(health)
                     .environmentObject(calendar)
+            }
+            .sheet(isPresented: $showAccount) {
+                AccountView()
             }
     }
 

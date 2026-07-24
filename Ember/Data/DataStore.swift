@@ -77,7 +77,7 @@ final class DataStore: ObservableObject {
         pod = bundleSeed.pod
         boxSpace = .sample
         chat = [ChatMessage(role: .coach,
-            content: "Hi \(bundleSeed.user.name) — I'm your rest coach. Ask me why any prescription changed, or tap a suggested question below.")]
+            content: "Hi \(displayName) — I'm your rest coach. Ask me why any prescription changed, or tap a suggested question below.")]
         if mode == .sample { applySample() }
     }
 
@@ -108,6 +108,29 @@ final class DataStore: ObservableObject {
         UserDefaults.standard.set(warmingMethod, forKey: Keys.warming)
         UserDefaults.standard.set(llmModel, forKey: Keys.llmModel)
         UserDefaults.standard.set(llmBaseURL, forKey: Keys.llmBaseURL)
+    }
+
+    /// The Supabase account is the single source of truth for the user's name.
+    /// Mirror it into every local model that can render a personal greeting.
+    func applyAuthenticatedDisplayName(_ name: String) {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else { return }
+
+        displayName = trimmedName
+        user.name = trimmedName
+        UserDefaults.standard.set(trimmedName, forKey: Keys.name)
+        if let firstCoachMessage = chat.firstIndex(where: { $0.role == .coach }) {
+            chat[firstCoachMessage].content = "Hi \(trimmedName) — I'm your rest coach. Ask me why any prescription changed, or tap a suggested question below."
+        }
+        boxSpace.currentUser = BoxSpacePerson(
+            id: boxSpace.currentUser.id,
+            name: trimmedName,
+            monthlyScore: boxSpace.currentUser.monthlyScore,
+            rank: boxSpace.currentUser.rank,
+            isFriend: boxSpace.currentUser.isFriend,
+            isCurrentUser: boxSpace.currentUser.isCurrentUser,
+            decorationID: boxSpace.currentUser.decorationID
+        )
     }
 
     // MARK: - LLM key management
@@ -141,6 +164,7 @@ final class DataStore: ObservableObject {
                 throw URLError(.badServerResponse)
             }
             boxSpace = try JSONDecoder().decode(BoxSpaceSnapshot.self, from: data)
+            applyAuthenticatedDisplayName(displayName)
         } catch {
             boxSpaceError = error.localizedDescription
         }
@@ -270,6 +294,7 @@ final class DataStore: ObservableObject {
 
     private func applySample() {
         user = seed.user
+        user.name = displayName
         sleepLogs = seed.sleepLogs
         prescriptions = seed.prescriptions
         cbtiLogs = seed.cbtiLogs

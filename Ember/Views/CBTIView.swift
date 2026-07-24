@@ -29,6 +29,7 @@ struct CBTIView: View {
                         ScienceNote(text: "Sleep-restriction therapy consolidates fragmented sleep by matching time-in-bed to actual sleep, then widening once efficiency exceeds 90%. It is a core, guideline-recommended component of CBT-I (AASM).")
                     }
                     .padding()
+                    .lockHorizontal()
                 }
             }
             .navigationTitle("Sleep Efficiency")
@@ -82,6 +83,7 @@ struct CBTIView: View {
             .chartYScale(domain: 70...100)
             .chartYAxisLabel("% efficiency")
             .chartXAxis { AxisMarks(values: .automatic(desiredCount: 5)) }
+            .chartReveal()
         }
         .emberCard()
     }

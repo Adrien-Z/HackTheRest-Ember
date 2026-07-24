@@ -13,6 +13,7 @@ struct EmberApp: App {
 
     @State private var showSplash = true
     @State private var appRevealed = false
+    @AppStorage("ember.onboarded") private var onboarded = false
 
     var body: some Scene {
         WindowGroup {
@@ -23,6 +24,15 @@ struct EmberApp: App {
                     .environmentObject(calendar)
                     .environmentObject(wakeAlarm)
                     .scaleEffect(appRevealed ? 1 : 0.88)
+                if !onboarded && !showSplash {
+                    OnboardingView { withAnimation(.easeInOut(duration: 0.5)) { onboarded = true } }
+                        .environmentObject(store)
+                        .environmentObject(health)
+                        .environmentObject(calendar)
+                        .environmentObject(wakeAlarm)
+                        .zIndex(2)
+                        .transition(.opacity)
+                }
                 if showSplash {
                     SplashView(onReveal: {
                         // The flaps have started unfolding — zoom the app in.

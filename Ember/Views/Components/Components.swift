@@ -66,6 +66,7 @@ struct AskCoachLink: View {
     @State private var go = false
     var body: some View {
         Button {
+            Haptics.light()
             store.pendingCoachQuestion = question
             go = true
         } label: {
@@ -79,6 +80,35 @@ struct AskCoachLink: View {
         }
         .buttonStyle(.plain)
         .navigationDestination(isPresented: $go) { CoachView() }
+    }
+}
+
+/// A chart draw-in: fades and rises on first appearance, with a light haptic as
+/// it lands. Keeps chart reveals consistent across screens.
+struct ChartReveal: ViewModifier {
+    @State private var shown = false
+    func body(content: Content) -> some View {
+        content
+            .opacity(shown ? 1 : 0)
+            .scaleEffect(y: shown ? 1 : 0.9, anchor: .bottom)
+            .onAppear {
+                guard !shown else { return }
+                withAnimation(.easeOut(duration: 0.55)) { shown = true }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) { Haptics.light() }
+            }
+    }
+}
+
+extension View {
+    func chartReveal() -> some View { modifier(ChartReveal()) }
+
+    /// Clamp content to the container width and clip horizontal overflow, so a
+    /// stray oversized child (a wide chart, a tight button row) can't make a
+    /// vertical ScrollView rubber-band sideways. Apply to a scroll view's direct
+    /// content. Intentional horizontal scrollers use their own
+    /// `ScrollView(.horizontal)` and are unaffected.
+    func lockHorizontal() -> some View {
+        frame(maxWidth: .infinity).clipped()
     }
 }
 

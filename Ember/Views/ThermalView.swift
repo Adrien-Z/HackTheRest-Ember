@@ -31,6 +31,7 @@ struct ThermalView: View {
                         ScienceNote(text: "Passive body heating 1–2 h before bed shortens sleep-onset latency by ~9 min on average (Haghayegh 2019 meta-analysis, 17 studies). EMBER personalizes the exact offset for you.")
                     }
                     .padding()
+                    .lockHorizontal()
                 }
             }
             .navigationTitle("Thermal Wind-Down")
@@ -84,6 +85,7 @@ struct ThermalView: View {
             .frame(height: 200)
             .chartYAxisLabel("minutes")
             .chartXAxis { AxisMarks(values: .automatic(desiredCount: 5)) }
+            .chartReveal()
         }
         .emberCard()
     }

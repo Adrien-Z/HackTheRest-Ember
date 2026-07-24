@@ -10,6 +10,7 @@
 		0138F8D037CE413B632B3DD7 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2F98006241E922BE2EAEEB0 /* Components.swift */; };
 		05BFC5E1C8443802E3DDB8DB /* RootTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E98492F0332B6F0910FD160 /* RootTabView.swift */; };
 		0EBF820742223F6E93108F98 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFAC02C2AC29DAA6CE71E814 /* SplashView.swift */; };
+		2B48841D8A3DFB49FF15E6AF /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ABD1941045F173BFC908828 /* OnboardingView.swift */; };
 		3463E42F1DF86B41976AC521 /* Keychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AD81BA182820629BFB4360D /* Keychain.swift */; };
 		34E75480D54526F1A383ABC7 /* Previews.swift in Sources */ = {isa = PBXBuildFile; fileRef = B880D7180FBA450F7CD94056 /* Previews.swift */; };
 		3C01E19FFB0CCE47F99D7766 /* CalendarCategorizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6070CAFDEB1401398FA1B773 /* CalendarCategorizer.swift */; };
@@ -19,6 +20,7 @@
 		5F200F12A2036D8B216F50DD /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F2AED6F819BDEDDF07FD5CC /* Models.swift */; };
 		6E1AC91812D2A0E0F787E6D3 /* CBTIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C2DB73D1B1FCFFD61192306 /* CBTIView.swift */; };
 		6EFFF2FFD4B45CAB1A5CC0F6 /* LLMClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = E801F78BFA7B275040A04D92 /* LLMClient.swift */; };
+		708896B1DCC0BFF175A362F2 /* SleepScience.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D4CFD1D722793AEE11EDC60 /* SleepScience.swift */; };
 		77499C61D5A7A51062740001 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3E89E76FECB2B71061F10F9 /* Theme.swift */; };
 		78B9CA4A2393CF8AB9B1E469 /* EmberApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC635EBE2AC3C4079688D51C /* EmberApp.swift */; };
 		7AF06D8BC56E638C308699E3 /* RestAlgorithms.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CC808B43660BBB46A7C3565 /* RestAlgorithms.swift */; };
@@ -27,6 +29,7 @@
 		96C48726FEA71DF974E1876E /* CoachWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB68B45CBF076764D83BC86A /* CoachWidgets.swift */; };
 		9E554E9F764DC57D8D8DD505 /* CoachView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 530970A8DC90098FD80DAF33 /* CoachView.swift */; };
 		A5F97F870FB3C3127CD65AD5 /* WakeAlarmService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E92B54768D6C22CE5E6B33C /* WakeAlarmService.swift */; };
+		AA239A9F0FFF425B62F5BD53 /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = F90FB710346ED126797DBBC8 /* Haptics.swift */; };
 		B198644CB27512A38884A1B0 /* PodView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E51DF68FD5E8A80D104D3C69 /* PodView.swift */; };
 		BA64B89583B37AC63DDB410F /* SleepMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17D0E26E8D2ACFD357C17593 /* SleepMetrics.swift */; };
 		C39A5D88C283F394CCF9D728 /* RestCoach.swift in Sources */ = {isa = PBXBuildFile; fileRef = 522DEBE140F2811A20695FF9 /* RestCoach.swift */; };
@@ -37,6 +40,7 @@
 		EB0CD7C9CED89A3C9822C4C4 /* ThermalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D040811E025425FE3D31FEBA /* ThermalView.swift */; };
 		EC66758185B71D669BC6A9F5 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9C90DC46AFD2014FEED1D85 /* SettingsView.swift */; };
 		ED0470EBF60905DEBEDBBC42 /* Contents.json in Resources */ = {isa = PBXBuildFile; fileRef = 5628AF88C55C54510897DD08 /* Contents.json */; };
+		F2C8DFE191F5B76625901896 /* RhythmView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30435D38943412697142D3D5 /* RhythmView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -47,7 +51,9 @@
 		1985CE025CBEEA6696E50716 /* CalendarService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarService.swift; sourceTree = "<group>"; };
 		2AD81BA182820629BFB4360D /* Keychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keychain.swift; sourceTree = "<group>"; };
 		2E92B54768D6C22CE5E6B33C /* WakeAlarmService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WakeAlarmService.swift; sourceTree = "<group>"; };
+		30435D38943412697142D3D5 /* RhythmView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RhythmView.swift; sourceTree = "<group>"; };
 		318C100DF234B4EEFA0F2DBF /* LiveDataBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveDataBuilder.swift; sourceTree = "<group>"; };
+		4ABD1941045F173BFC908828 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		4CC808B43660BBB46A7C3565 /* RestAlgorithms.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestAlgorithms.swift; sourceTree = "<group>"; };
 		4F2AED6F819BDEDDF07FD5CC /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		522DEBE140F2811A20695FF9 /* RestCoach.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestCoach.swift; sourceTree = "<group>"; };
@@ -57,6 +63,7 @@
 		69CD122E9F7624B5B3059A0D /* DataStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataStore.swift; sourceTree = "<group>"; };
 		738C57AD4865B9D8A9B2012D /* Ember.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Ember.entitlements; sourceTree = "<group>"; };
 		7FB44B3689CD07DBC9882119 /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
+		8D4CFD1D722793AEE11EDC60 /* SleepScience.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepScience.swift; sourceTree = "<group>"; };
 		8E98492F0332B6F0910FD160 /* RootTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootTabView.swift; sourceTree = "<group>"; };
 		9B5E3461D20AC34B06E3EDF9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		9C2DB73D1B1FCFFD61192306 /* CBTIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CBTIView.swift; sourceTree = "<group>"; };
@@ -72,6 +79,7 @@
 		E2F98006241E922BE2EAEEB0 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
 		E51DF68FD5E8A80D104D3C69 /* PodView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PodView.swift; sourceTree = "<group>"; };
 		E801F78BFA7B275040A04D92 /* LLMClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMClient.swift; sourceTree = "<group>"; };
+		F90FB710346ED126797DBBC8 /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
 		FFAC02C2AC29DAA6CE71E814 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -81,6 +89,7 @@
 			children = (
 				9F1AC85AD449DCF2DA60BF5C /* HealthManager.swift */,
 				17D0E26E8D2ACFD357C17593 /* SleepMetrics.swift */,
+				8D4CFD1D722793AEE11EDC60 /* SleepScience.swift */,
 			);
 			path = Health;
 			sourceTree = "<group>";
@@ -154,6 +163,7 @@
 		9F4A94C5AEE32B83C5F88EF7 /* Theme */ = {
 			isa = PBXGroup;
 			children = (
+				F90FB710346ED126797DBBC8 /* Haptics.swift */,
 				D3E89E76FECB2B71061F10F9 /* Theme.swift */,
 			);
 			path = Theme;
@@ -216,8 +226,10 @@
 				530970A8DC90098FD80DAF33 /* CoachView.swift */,
 				CB68B45CBF076764D83BC86A /* CoachWidgets.swift */,
 				0CB62B15CFC41F6827DC58B6 /* HomeView.swift */,
+				4ABD1941045F173BFC908828 /* OnboardingView.swift */,
 				E51DF68FD5E8A80D104D3C69 /* PodView.swift */,
 				B880D7180FBA450F7CD94056 /* Previews.swift */,
+				30435D38943412697142D3D5 /* RhythmView.swift */,
 				8E98492F0332B6F0910FD160 /* RootTabView.swift */,
 				A9C90DC46AFD2014FEED1D85 /* SettingsView.swift */,
 				FFAC02C2AC29DAA6CE71E814 /* SplashView.swift */,
@@ -318,19 +330,23 @@
 				D6AEB02A011B1DA89B0D199F /* DataStore.swift in Sources */,
 				78B9CA4A2393CF8AB9B1E469 /* EmberApp.swift in Sources */,
 				4070F51276CA68CB1DBE7FE6 /* Formatters.swift in Sources */,
+				AA239A9F0FFF425B62F5BD53 /* Haptics.swift in Sources */,
 				5D8D8BE217040008AB989FA4 /* HealthManager.swift in Sources */,
 				46F66C1E45F43D472AE63031 /* HomeView.swift in Sources */,
 				3463E42F1DF86B41976AC521 /* Keychain.swift in Sources */,
 				6EFFF2FFD4B45CAB1A5CC0F6 /* LLMClient.swift in Sources */,
 				C4F21D76EC06C70091F87A36 /* LiveDataBuilder.swift in Sources */,
 				5F200F12A2036D8B216F50DD /* Models.swift in Sources */,
+				2B48841D8A3DFB49FF15E6AF /* OnboardingView.swift in Sources */,
 				B198644CB27512A38884A1B0 /* PodView.swift in Sources */,
 				34E75480D54526F1A383ABC7 /* Previews.swift in Sources */,
 				7AF06D8BC56E638C308699E3 /* RestAlgorithms.swift in Sources */,
 				C39A5D88C283F394CCF9D728 /* RestCoach.swift in Sources */,
+				F2C8DFE191F5B76625901896 /* RhythmView.swift in Sources */,
 				05BFC5E1C8443802E3DDB8DB /* RootTabView.swift in Sources */,
 				EC66758185B71D669BC6A9F5 /* SettingsView.swift in Sources */,
 				BA64B89583B37AC63DDB410F /* SleepMetrics.swift in Sources */,
+				708896B1DCC0BFF175A362F2 /* SleepScience.swift in Sources */,
 				0EBF820742223F6E93108F98 /* SplashView.swift in Sources */,
 				77499C61D5A7A51062740001 /* Theme.swift in Sources */,
 				EB0CD7C9CED89A3C9822C4C4 /* ThermalView.swift in Sources */,

@@ -4,6 +4,8 @@ struct CoachView: View {
     @EnvironmentObject var store: DataStore
     @State private var draft: String = ""
     @State private var thinking = false
+    /// Throttle streaming haptics so they feel like a gentle typing pulse, not a buzz.
+    @State private var lastStreamHaptic = Date.distantPast
 
     /// Suggestion chips built from the user's actual plan and calendar — never
     /// hardcoded event names.
@@ -40,13 +42,14 @@ struct CoachView: View {
                                     Spacer()
                                 }.padding(.horizontal).id("thinking")
                             }
-                        }.padding()
+                        }.padding().lockHorizontal()
                     }
                     .onChange(of: store.chat.count) { _ in
                         if let last = store.chat.last { withAnimation { proxy.scrollTo(last.id, anchor: .bottom) } }
                     }
                     .onChange(of: store.chat.last?.content) { _ in
                         if let last = store.chat.last { proxy.scrollTo(last.id, anchor: .bottom) }
+                        streamHaptic()
                     }
                 }
                 suggestionBar
@@ -99,11 +102,20 @@ struct CoachView: View {
     private func send(_ text: String) async {
         let t = text.trimmingCharacters(in: .whitespaces)
         guard !t.isEmpty, !thinking else { return }
+        Haptics.light()
         store.chat.append(ChatMessage(role: .user, content: t))
         draft = ""
         thinking = true
         await store.streamCoachReply(history: store.chat)
         thinking = false
+        Haptics.stream()
+    }
+
+    /// A soft pulse as the coach's reply streams in, at most ~12/sec.
+    private func streamHaptic() {
+        guard thinking, Date().timeIntervalSince(lastStreamHaptic) > 0.08 else { return }
+        lastStreamHaptic = Date()
+        Haptics.stream()
     }
 }
 

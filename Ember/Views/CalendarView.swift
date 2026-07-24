@@ -41,6 +41,7 @@ struct CalendarView: View {
                         ScienceNote(text: "The agent protects sleep REGULARITY — the strongest predictor of mortality in a 60,000-person UK Biobank study, ahead of duration (Windred 2024). It watches your calendar and pre-adjusts your plan around disruptions.")
                     }
                     .padding()
+                    .lockHorizontal()
                 }
             }
             .navigationTitle("Agenda")

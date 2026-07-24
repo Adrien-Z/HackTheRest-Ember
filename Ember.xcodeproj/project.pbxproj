@@ -35,6 +35,7 @@
 		C39A5D88C283F394CCF9D728 /* RestCoach.swift in Sources */ = {isa = PBXBuildFile; fileRef = 522DEBE140F2811A20695FF9 /* RestCoach.swift */; };
 		C4F21D76EC06C70091F87A36 /* LiveDataBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 318C100DF234B4EEFA0F2DBF /* LiveDataBuilder.swift */; };
 		C9D9AC4B4ACAB488956A0AED /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FB44B3689CD07DBC9882119 /* CalendarView.swift */; };
+		CA6324C330135A9900DE4A98 /* RestJourneySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA6324C230135A9900DE4A98 /* RestJourneySheet.swift */; };
 		CC61FB7EF004C844AB38D550 /* seed.json in Resources */ = {isa = PBXBuildFile; fileRef = 0E772F5F4704359879D51C50 /* seed.json */; };
 		D6AEB02A011B1DA89B0D199F /* DataStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69CD122E9F7624B5B3059A0D /* DataStore.swift */; };
 		EB0CD7C9CED89A3C9822C4C4 /* ThermalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D040811E025425FE3D31FEBA /* ThermalView.swift */; };
@@ -70,10 +71,11 @@
 		9F1AC85AD449DCF2DA60BF5C /* HealthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthManager.swift; sourceTree = "<group>"; };
 		A9C90DC46AFD2014FEED1D85 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		B880D7180FBA450F7CD94056 /* Previews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Previews.swift; sourceTree = "<group>"; };
+		CA6324C230135A9900DE4A98 /* RestJourneySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestJourneySheet.swift; sourceTree = "<group>"; };
 		CB68B45CBF076764D83BC86A /* CoachWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachWidgets.swift; sourceTree = "<group>"; };
 		CCAECECB01C03E7C4363DCA5 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		D040811E025425FE3D31FEBA /* ThermalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThermalView.swift; sourceTree = "<group>"; };
-		D1E129474145FB033E3BBB86 /* Ember.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Ember.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D1E129474145FB033E3BBB86 /* Ember.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ember.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D3E89E76FECB2B71061F10F9 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		DC635EBE2AC3C4079688D51C /* EmberApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmberApp.swift; sourceTree = "<group>"; };
 		E2F98006241E922BE2EAEEB0 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
@@ -97,6 +99,7 @@
 		216E155063217A1DBDE1DAB0 /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				CA6324C230135A9900DE4A98 /* RestJourneySheet.swift */,
 				E2F98006241E922BE2EAEEB0 /* Components.swift */,
 			);
 			path = Components;
@@ -278,7 +281,6 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					3E853DD93E303CC86CD1FA7F = {
-						DevelopmentTeam = Q6F6T9227F;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -340,6 +342,7 @@
 				2B48841D8A3DFB49FF15E6AF /* OnboardingView.swift in Sources */,
 				B198644CB27512A38884A1B0 /* PodView.swift in Sources */,
 				34E75480D54526F1A383ABC7 /* Previews.swift in Sources */,
+				CA6324C330135A9900DE4A98 /* RestJourneySheet.swift in Sources */,
 				7AF06D8BC56E638C308699E3 /* RestAlgorithms.swift in Sources */,
 				C39A5D88C283F394CCF9D728 /* RestCoach.swift in Sources */,
 				F2C8DFE191F5B76625901896 /* RhythmView.swift in Sources */,
@@ -364,12 +367,13 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Ember/Ember.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = WZKT7VLB8Y;
 				INFOPLIST_FILE = Ember/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.bluebox.ember;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bluebox.ember123;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
@@ -444,12 +448,13 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Ember/Ember.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = WZKT7VLB8Y;
 				INFOPLIST_FILE = Ember/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.bluebox.ember;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bluebox.ember123;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;

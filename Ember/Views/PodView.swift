@@ -5,6 +5,7 @@ struct BoxSpaceView: View {
     @State private var selectedPerson: BoxSpacePerson?
     @State private var showDecorationStudio = false
     @State private var openStudioAfterSheetDismisses = false
+    @State private var showRestJourney = false
 
     private var snapshot: BoxSpaceSnapshot { store.boxSpace }
     private var everyone: [BoxSpacePerson] {
@@ -20,13 +21,21 @@ struct BoxSpaceView: View {
             )
             .ignoresSafeArea(edges: .top)
 
-            VStack {
+            VStack(spacing: 0) {
                 scoreCard
-                Spacer()
+                if showRestJourney {
+                    GeometryReader { proxy in
+                        RestJourneySheet(expandedHeight: proxy.size.height) {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                showRestJourney = false
+                            }
+                        }
+                    }
+                }
+                Spacer(minLength: 0)
             }
             .padding(.horizontal, 16)
             .padding(.top, 10)
-            .allowsHitTesting(false)
         }
         .toolbar(.hidden, for: .navigationBar)
         .sheet(item: $selectedPerson, onDismiss: {
@@ -51,41 +60,48 @@ struct BoxSpaceView: View {
     }
 
     private var scoreCard: some View {
-        HStack(spacing: 13) {
-            ZStack(alignment: .bottomTrailing) {
-                BlueBoxMascot(isActive: true, isCurrentUser: false)
-                    .frame(width: 54, height: 50)
-                if let decoration = selectedDecoration {
-                    Image(systemName: decoration.systemImage)
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(Theme.amber)
-                        .padding(4)
-                        .background(.regularMaterial, in: Circle())
-                        .offset(x: 3, y: 2)
-                }
+        Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                showRestJourney.toggle()
             }
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
-                    Text(snapshot.currentUser.name).font(.subheadline.weight(.bold))
-                    Text(snapshot.monthLabel)
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(.secondary)
+        } label: {
+            HStack(spacing: 13) {
+                ZStack(alignment: .bottomTrailing) {
+                    BlueBoxMascot(isActive: true, isCurrentUser: false)
+                        .frame(width: 54, height: 50)
+                    if let decoration = selectedDecoration {
+                        Image(systemName: decoration.systemImage)
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(Theme.amber)
+                            .padding(4)
+                            .background(.regularMaterial, in: Circle())
+                            .offset(x: 3, y: 2)
+                    }
                 }
-                HStack(alignment: .firstTextBaseline, spacing: 4) {
-                    Text(snapshot.currentUser.monthlyScore.formatted())
-                        .font(.system(.title3, design: .rounded).weight(.bold))
-                    Text("sleep pts")
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Text(snapshot.currentUser.name).font(.subheadline.weight(.bold))
+                        Text(snapshot.monthLabel)
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                    }
+                    HStack(alignment: .firstTextBaseline, spacing: 4) {
+                        Text(snapshot.currentUser.monthlyScore.formatted())
+                            .font(.system(.title3, design: .rounded).weight(.bold))
+                        Text("sleep pts")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                    }
                 }
+                Spacer()
+                Divider().frame(height: 34)
+                VStack(alignment: .trailing, spacing: 3) {
+                    Text("Rank #\(snapshot.currentUser.rank)").font(.caption.weight(.bold))
+                    Text("Resets \(resetLabel)").font(.caption2).foregroundStyle(.secondary)
+                }
+                if store.boxSpaceLoading { ProgressView().tint(Theme.boxBlue) }
             }
-            Spacer()
-            Divider().frame(height: 34)
-            VStack(alignment: .trailing, spacing: 3) {
-                Text("Rank #\(snapshot.currentUser.rank)").font(.caption.weight(.bold))
-                Text("Resets \(resetLabel)").font(.caption2).foregroundStyle(.secondary)
-            }
-            if store.boxSpaceLoading { ProgressView().tint(Theme.boxBlue) }
+            .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 11)
@@ -95,6 +111,7 @@ struct BoxSpaceView: View {
                 .strokeBorder(Color.white.opacity(0.13), lineWidth: 0.75)
         )
         .shadow(color: Color.black.opacity(0.22), radius: 14, y: 7)
+        .buttonStyle(.plain)
     }
 
     private var selectedDecoration: BoxDecoration? {

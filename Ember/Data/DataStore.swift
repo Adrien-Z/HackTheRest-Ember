@@ -19,6 +19,9 @@ final class DataStore: ObservableObject {
     @Published var cbtiPrescriptions: [CBTIPrescription] = []
     @Published var calendarEvents: [CalendarEvent] = []
     @Published var adaptations: [Adaptation] = []
+    @Published var regularity: SleepScience.RegularityReport =
+        SleepScience.RegularityReport(sri: nil, socialJetlagMin: nil, midpointStdevMin: nil,
+                                      avgMidpoint: nil, nights: 0, midpoints: [])
     @Published var pod: Pod                    // always sample data
     @Published var chat: [ChatMessage] = []
     /// Set by other screens ("Ask the coach") so CoachView can auto-send on appear.
@@ -147,6 +150,7 @@ final class DataStore: ObservableObject {
             prescriptions = built.prescriptions
             cbtiLogs = built.cbtiLogs
             cbtiPrescriptions = built.cbtiPrescriptions
+            regularity = SleepScience.report(logs: built.sleepLogs)
             pod = seed.pod        // pod is always sample
             await categorizeCalendar(calendar: calendar)
             isLoading = false
@@ -241,6 +245,7 @@ final class DataStore: ObservableObject {
         cbtiPrescriptions = seed.cbtiPrescriptions
         calendarEvents = seed.calendarEvents
         adaptations = seed.adaptations
+        regularity = SleepScience.report(logs: seed.sleepLogs)
         pod = seed.pod
         liveHasData = false
         healthLastNightTST = nil

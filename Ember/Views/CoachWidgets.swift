@@ -116,6 +116,7 @@ struct CoachWidgetView: View {
             case "se_chart":     seChart
             case "tib_chart":    tibChart
             case "offset_chart": offsetChart
+            case "rhythm_chart": rhythmChart
             case "stats":        statsRow
             case "line", "bar":  genericChart(bar: spec.type == "bar")
             case "checklist":    checklist
@@ -193,6 +194,17 @@ struct CoachWidgetView: View {
                 .foregroundStyle(Theme.ember)
         }
         .frame(height: 180).chartYAxisLabel("warming offset (min)")
+    }
+
+    private var rhythmChart: some View {
+        Chart(store.regularity.midpoints) { p in
+            PointMark(x: .value("Night", shortDate(p.day)),
+                      y: .value("Midpoint", Double(p.minOfDay) / 60))
+                .foregroundStyle(p.isWeekend ? Theme.amber : Theme.ember)
+        }
+        .frame(height: 180)
+        .chartYAxisLabel("sleep midpoint (h)")
+        .chartXAxis { AxisMarks(values: .automatic(desiredCount: 4)) }
     }
 
     // MARK: model-supplied content

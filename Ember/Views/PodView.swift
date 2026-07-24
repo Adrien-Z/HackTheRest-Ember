@@ -18,6 +18,7 @@ struct PodView: View {
                         privacyNote
                     }
                     .padding()
+                    .lockHorizontal()
                 }
             }
             .navigationTitle(store.pod.name)

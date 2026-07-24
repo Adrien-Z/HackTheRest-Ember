@@ -1,4 +1,5 @@
 import SwiftUI
+import Charts
 
 struct HomeView: View {
     @EnvironmentObject var store: DataStore
@@ -21,6 +22,10 @@ struct HomeView: View {
                         greeting
                         tonightCard
                         healthCard
+                        if store.regularity.sri != nil {
+                            NavigationLink { RhythmView() } label: { rhythmCard }
+                                .buttonStyle(.plain)
+                        }
                         SectionHeader(title: "Your rest engines",
                                       subtitle: "Two evidence-based protocols, adapting to you.")
                         engineCards
@@ -28,6 +33,7 @@ struct HomeView: View {
                             .buttonStyle(.plain)
                     }
                     .padding()
+                    .lockHorizontal()
                 }
             }
             .navigationTitle("EMBER")
@@ -199,6 +205,26 @@ struct HomeView: View {
                            tint: Theme.cool)
             }.buttonStyle(.plain)
         }
+    }
+
+    /// Compact regularity teaser: SRI number + a mini midpoint sparkline.
+    private var rhythmCard: some View {
+        let r = store.regularity
+        return HStack(spacing: 14) {
+            VStack(alignment: .leading, spacing: 2) {
+                Label("Your rhythm", systemImage: "waveform.path.ecg").font(.subheadline.weight(.semibold))
+                Text("Regularity Index \(Int(r.sri ?? 0))/100").font(.caption).foregroundStyle(.secondary)
+            }
+            Spacer()
+            Chart(Array(r.midpoints.enumerated()), id: \.offset) { i, p in
+                LineMark(x: .value("n", i), y: .value("mid", Double(p.minOfDay) / 60))
+                    .foregroundStyle(Theme.cool).interpolationMethod(.catmullRom)
+            }
+            .chartXAxis(.hidden).chartYAxis(.hidden)
+            .frame(width: 90, height: 34)
+            Image(systemName: "chevron.right").foregroundStyle(.secondary).font(.caption)
+        }
+        .emberCard(14)
     }
 
     private var coachTeaser: some View {

@@ -35,8 +35,11 @@ final class WakeAlarmService: ObservableObject {
         }
     }
 
-    /// Minutes of prep time protected between waking and an early event.
-    static let prepBufferMin = 75
+    /// Minutes of prep time the user needs in the morning — protected between
+    /// waking and an early obligation. Set during onboarding, editable later.
+    @Published var prepBufferMin: Int {
+        didSet { UserDefaults.standard.set(prepBufferMin, forKey: Keys.prep) }
+    }
 
     /// Whether this build + OS can schedule AlarmKit alarms at all.
     static var isSupported: Bool {
@@ -51,11 +54,34 @@ final class WakeAlarmService: ObservableObject {
         static let time = "ember.wakeAlarmTime"
         static let lastTime = "ember.wakeAlarmLastTime"   // survives firing, for re-arm
         static let auto = "ember.wakeAlarmAutoAdapt"
+        static let prep = "ember.morningPrepMin"
     }
 
     init() {
         autoAdaptEnabled = UserDefaults.standard.bool(forKey: Keys.auto)
+        let savedPrep = UserDefaults.standard.integer(forKey: Keys.prep)
+        prepBufferMin = savedPrep > 0 ? savedPrep : 45
         Task { await syncFromSystem() }
+    }
+
+    // MARK: - Permission requests (used by onboarding)
+
+    /// Ask for AlarmKit permission up front. Returns false where unavailable.
+    func requestAlarmAccess() async -> Bool {
+        #if canImport(AlarmKit)
+        if #available(iOS 26.1, *) {
+            let state = try? await AlarmManager.shared.requestAuthorization()
+            return state == .authorized
+        }
+        #endif
+        return false
+    }
+
+    /// Ask for notification permission (the "why we moved your alarm" alerts).
+    @discardableResult
+    func requestNotificationAccess() async -> Bool {
+        (try? await UNUserNotificationCenter.current()
+            .requestAuthorization(options: [.alert, .sound])) ?? false
     }
 
     /// Schedule (or move) the one-shot wake alarm to the next occurrence of `hhmm`.
@@ -92,6 +118,7 @@ final class WakeAlarmService: ObservableObject {
             UserDefaults.standard.set(hhmm, forKey: Keys.lastTime)
             scheduledTime = hhmm
             lastError = nil
+            Haptics.success()
         } catch {
             lastError = error.localizedDescription
         }
@@ -159,7 +186,7 @@ final class WakeAlarmService: ObservableObject {
         var earliest: (event: CalendarEvent, wake: Date)? = nil
         for e in events where RestAlgorithms.normalizedCategory(e.type) == "early_obligation" {
             guard let start = df.date(from: e.startTs) else { continue }
-            let wake = start.addingTimeInterval(-Double(Self.prepBufferMin) * 60)
+            let wake = start.addingTimeInterval(-Double(prepBufferMin) * 60)
             guard wake > now, start <= now.addingTimeInterval(24 * 3600), wake < baseFire else { continue }
             if earliest == nil || wake < earliest!.wake { earliest = (e, wake) }
         }
@@ -173,7 +200,7 @@ final class WakeAlarmService: ObservableObject {
             await notify(
                 title: "Wake alarm moved to \(hhmm)",
                 body: "\(hit.event.title) starts at \(String(hit.event.startTs.suffix(5))). "
-                    + (why ?? "Waking \(Self.prepBufferMin) min ahead protects a full sleep opportunity."))
+                    + (why ?? "Waking \(prepBufferMin) min ahead protects a full sleep opportunity."))
         } else if scheduledTime == nil {
             await setWakeAlarm(at: baseTime)
             guard lastError == nil else { return }

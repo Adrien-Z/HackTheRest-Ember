@@ -34,6 +34,8 @@ enum RestCoach {
     - "se_chart" — the user's sleep-efficiency trend (real data).
     - "tib_chart" — the user's weekly time-in-bed prescriptions (real data).
     - "offset_chart" — the user's warming-offset titration by block (real data).
+    - "rhythm_chart" — the user's nightly sleep-midpoint timing (real data); \
+      shows how consistent their body-clock timing is night to night.
     - "stats" — key numbers: "items":[{"label","value","caption"?}] using ONLY numbers \
       from the data below.
     - "line" | "bar" — a custom chart: "title","yLabel","points":[{"x","y"}] using ONLY \
@@ -50,6 +52,9 @@ enum RestCoach {
       widen: sleep efficiency ≥90% → +15 min, 85–90% → hold, <85% → restrict toward actual sleep.
     - Windred 2024 — UK Biobank (~60,000 people): sleep REGULARITY predicts mortality more \
       strongly than duration; irregular timing raises risk 20–48%.
+    - Phillips 2017 (Scientific Reports) — the Sleep Regularity Index (SRI): the percent \
+      chance of being in the same state (asleep/awake) at any two times 24 h apart. Higher \
+      = more regular; a more regular timetable is linked to better circadian alignment.
     - Wittmann & Roenneberg 2006 — "social jetlag": the gap between biological and social \
       sleep timing (sleep-midpoint shift) is linked to metabolic and cardiovascular risk.
     - Eastman & Burgess; St Hilaire 2014; Herxheimer Cochrane 2002 — jet lag: timed bright \
@@ -87,6 +92,16 @@ enum RestCoach {
         let recentSE = store.cbtiLogs.compactMap { $0.sePct }.suffix(7)
         if !recentSE.isEmpty {
             lines.append("Recent sleep efficiency (last \(recentSE.count) nights, %): \(recentSE.map { String(format: "%.0f", $0) }.joined(separator: ", ")).")
+        }
+
+        let r = store.regularity
+        if r.nights >= 2 {
+            var parts: [String] = []
+            if let sri = r.sri { parts.append("Sleep Regularity Index \(Int(sri))/100 (Phillips 2017; higher=more regular)") }
+            if let sjl = r.socialJetlagMin { parts.append("social jetlag \(Int(sjl)) min (weekend vs weekday midpoint)") }
+            if let mid = r.avgMidpoint { parts.append("typical sleep midpoint \(mid)") }
+            if let sd = r.midpointStdevMin { parts.append("midpoint night-to-night spread ±\(Int(sd)) min") }
+            if !parts.isEmpty { lines.append("REGULARITY (last \(r.nights) nights): " + parts.joined(separator: ", ") + ".") }
         }
 
         if let tst = store.healthLastNightTST { lines.append("Last night: \(fmtDur(tst)) asleep.") }

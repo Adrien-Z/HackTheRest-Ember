@@ -5,11 +5,18 @@ struct CoachView: View {
     @State private var draft: String = ""
     @State private var thinking = false
 
-    let suggestions = [
-        "Why did my time-in-bed change?",
-        "Why start warming 60 min before bed?",
-        "What should I do about my London flight?"
-    ]
+    /// Suggestion chips built from the user's actual plan and calendar — never
+    /// hardcoded event names.
+    private var suggestions: [String] {
+        var items = ["Why did my time-in-bed change?"]
+        if let rx = store.currentThermalRx {
+            items.append("Why start warming \(rx.prescribedOffsetMin) min before bed?")
+        }
+        for event in store.calendarEvents.prefix(2) {
+            items.append("How should I sleep around \"\(event.title)\"?")
+        }
+        return items
+    }
 
     var body: some View {
         ZStack {

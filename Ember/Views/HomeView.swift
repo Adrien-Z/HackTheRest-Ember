@@ -4,6 +4,7 @@ struct HomeView: View {
     @EnvironmentObject var store: DataStore
     @EnvironmentObject var health: HealthManager
     @EnvironmentObject var calendar: CalendarService
+    @EnvironmentObject var wakeAlarm: WakeAlarmService
     @State private var showSettings = false
 
     var tonightWarmTime: String {
@@ -74,11 +75,52 @@ struct HomeView: View {
                 Text("\(store.user.warmingMethod) · offset \(rx.prescribedOffsetMin) min before bed")
                     .font(.footnote).foregroundStyle(.secondary)
             }
+            if WakeAlarmService.isSupported {
+                Divider().overlay(Color.white.opacity(0.08))
+                wakeAlarmRow
+                Toggle(isOn: $wakeAlarm.autoAdaptEnabled) {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("Auto-adjust for early events").font(.footnote)
+                        Text("Re-arms nightly and wakes you earlier before early obligations, with a notification explaining why.")
+                            .font(.caption2).foregroundStyle(.secondary)
+                    }
+                }
+                .tint(Theme.ember)
+                if let err = wakeAlarm.lastError {
+                    Text(err).font(.caption2).foregroundStyle(.red)
+                }
+            }
         }
         .emberCard()
         .background(
             RoundedRectangle(cornerRadius: 20).fill(Theme.ember.opacity(0.06))
         )
+    }
+
+    /// Set / move / remove the AlarmKit wake alarm from the plan's wake time.
+    @ViewBuilder private var wakeAlarmRow: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "alarm.fill").foregroundStyle(Theme.amber)
+            if let t = wakeAlarm.scheduledTime {
+                Text("Wake alarm · \(t)").font(.footnote)
+                Spacer()
+                if t != store.user.targetWakeTime {
+                    Button("Move to \(store.user.targetWakeTime)") {
+                        Task { await wakeAlarm.setWakeAlarm(at: store.user.targetWakeTime) }
+                    }
+                    .buttonStyle(.borderedProminent).tint(Theme.ember).controlSize(.small)
+                }
+                Button("Remove") { wakeAlarm.cancelWakeAlarm() }
+                    .buttonStyle(.bordered).controlSize(.small)
+            } else {
+                Text("Wake alarm").font(.footnote).foregroundStyle(.secondary)
+                Spacer()
+                Button("Set for \(store.user.targetWakeTime)") {
+                    Task { await wakeAlarm.setWakeAlarm(at: store.user.targetWakeTime) }
+                }
+                .buttonStyle(.borderedProminent).tint(Theme.ember).controlSize(.small)
+            }
+        }
     }
 
     @ViewBuilder private var healthCard: some View {

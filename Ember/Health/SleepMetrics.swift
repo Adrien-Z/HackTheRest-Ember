@@ -22,6 +22,9 @@ struct SleepInterval {
     let kind: Kind
     let start: Date
     let end: Date
+    /// Time zone the sample was recorded in (HKMetadataKeyTimeZone), so a night
+    /// slept in Zurich still reads as a Zurich night when viewed from Shanghai.
+    var timeZone: TimeZone? = nil
 
     var duration: TimeInterval { end.timeIntervalSince(start) }
 }
@@ -39,6 +42,8 @@ struct NightSample: Identifiable {
     let wasoMin: Int
     let tibMin: Int
     let sePct: Double
+    /// Recording time zone of the night's samples (nil → device time zone).
+    var timeZone: TimeZone? = nil
     var avgHRBpm: Double? = nil  // mean heart rate during the in-bed window
     var hrvMs: Double? = nil     // mean HRV (SDNN) during the in-bed window
 }
@@ -96,9 +101,13 @@ enum SleepMetrics {
         let tibMin = Int((tibSec / 60).rounded())
         let se = tibSec > 0 ? (tstSec / tibSec * 100).rounded(toPlaces: 1) : 0
 
+        // The night's clock times belong to the zone it was slept in, not the
+        // device's current one — otherwise a trip shifts the whole history.
+        let tz = cluster.compactMap { $0.timeZone }.first
+
         let df = DateFormatter()
         df.calendar = calendar
-        df.timeZone = calendar.timeZone
+        df.timeZone = tz ?? calendar.timeZone
         df.dateFormat = "yyyy-MM-dd"
 
         return NightSample(
@@ -110,7 +119,8 @@ enum SleepMetrics {
             tstMin: Int((tstSec / 60).rounded()),
             wasoMin: Int((wasoSec / 60).rounded()),
             tibMin: tibMin,
-            sePct: se
+            sePct: se,
+            timeZone: tz
         )
     }
 }

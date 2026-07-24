@@ -11,6 +11,7 @@ extension DataStore {
         .environmentObject(DataStore.preview)
         .environmentObject(HealthManager())
         .environmentObject(CalendarService())
+        .environmentObject(WakeAlarmService())
         .preferredColorScheme(.dark)
         .tint(Theme.ember)
 }

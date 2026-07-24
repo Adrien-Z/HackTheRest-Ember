@@ -9,6 +9,10 @@ enum LiveDataBuilder {
     /// Nights per thermal titration block.
     static let blockSize = 3
 
+    /// Sleep clusters shorter than this are treated as naps, not nights, so an
+    /// afternoon nap can't skew prescriptions or the derived target times.
+    static let mainSleepMinTstMin = 180
+
     struct Built {
         var user: UserProfile
         var sleepLogs: [SleepLog]
@@ -24,13 +28,15 @@ enum LiveDataBuilder {
                       warmingMethod: String,
                       calendar: Calendar = .current) -> Built {
         let nights = rawNights.sorted { $0.date < $1.date }
+            .filter { $0.tstMin >= mainSleepMinTstMin }
 
         let sleepLogs = nights.map { n in
-            SleepLog(date: n.date,
-                     lightsOut: hhmm(n.lightsOut, calendar),
-                     sleepOnset: hhmm(n.sleepOnset, calendar),
+            let cal = localCalendar(calendar, n.timeZone)
+            return SleepLog(date: n.date,
+                     lightsOut: hhmm(n.lightsOut, cal),
+                     sleepOnset: hhmm(n.sleepOnset, cal),
                      solMin: n.solMin,
-                     wakeTime: hhmm(n.finalWake, calendar),
+                     wakeTime: hhmm(n.finalWake, cal),
                      tstMin: n.tstMin,
                      ritualDone: false,          // not knowable from Health data
                      prescribedOffsetMin: nil,
@@ -40,11 +46,12 @@ enum LiveDataBuilder {
         let prescriptions = thermalPrescriptions(nights: nights, warmingMethod: warmingMethod)
 
         let cbtiLogs = nights.map { n in
-            CBTILog(date: n.date,
-                    timeToBed: hhmm(n.lightsOut, calendar),
+            let cal = localCalendar(calendar, n.timeZone)
+            return CBTILog(date: n.date,
+                    timeToBed: hhmm(n.lightsOut, cal),
                     sleepOnsetMin: Int(n.solMin.rounded()),
                     wasoMin: n.wasoMin,
-                    finalWakeTime: hhmm(n.finalWake, calendar),
+                    finalWakeTime: hhmm(n.finalWake, cal),
                     tstMin: n.tstMin,
                     tibMin: n.tibMin,
                     sePct: n.sePct)
@@ -115,9 +122,14 @@ enum LiveDataBuilder {
     // MARK: - CBT-I sleep restriction (Module B)
 
     private static func cbtiWeeklyPrescriptions(nights: [NightSample], calendar: Calendar) -> [CBTIPrescription] {
-        // Group nights by ISO week of their final-wake day.
-        let groups = Dictionary(grouping: nights) { n -> Date in
-            calendar.dateInterval(of: .weekOfYear, for: n.finalWake)?.start ?? n.finalWake
+        // Group nights by the week of their final-wake day, judged in each
+        // night's own recording zone and keyed by the LOCAL week-start date
+        // string — so the same nominal week in Zurich and Shanghai is one group,
+        // and a night near a week boundary lands where the sleeper lived it.
+        let groups = Dictionary(grouping: nights) { n -> String in
+            let cal = localCalendar(calendar, n.timeZone)
+            let start = cal.dateInterval(of: .weekOfYear, for: n.finalWake)?.start ?? n.finalWake
+            return ymd(cal).string(from: start)
         }
         let weeks = groups.keys.sorted().map { key in (start: key, nights: groups[key]!.sorted { $0.date < $1.date }) }
         guard let first = weeks.first else { return [] }
@@ -127,7 +139,6 @@ enum LiveDataBuilder {
         var priorSE: Double? = nil
         var pending: RestAlgorithms.CBTIDecision? = nil
 
-        let df = ymd(calendar)
         for (i, wk) in weeks.enumerated() {
             let avgSE = mean(wk.nights.map { $0.sePct }).rounded(toPlaces: 1)
             let avgTst = Int(mean(wk.nights.map { Double($0.tstMin) }).rounded())
@@ -144,9 +155,10 @@ enum LiveDataBuilder {
                 action = RestAlgorithms.CBTIAction.hold.rawValue
                 rationale = ""
             }
+            let midCal = localCalendar(calendar, mid.timeZone)
             result.append(CBTIPrescription(
-                week: i + 1, weekStart: df.string(from: wk.start), tibMin: currentTib,
-                wakeTime: hhmm(mid.finalWake, calendar), bedTime: hhmm(mid.lightsOut, calendar),
+                week: i + 1, weekStart: wk.start, tibMin: currentTib,
+                wakeTime: hhmm(mid.finalWake, midCal), bedTime: hhmm(mid.lightsOut, midCal),
                 avgSePrior: priorSE, action: action, rationale: rationale))
 
             let d = RestAlgorithms.nextTIB(currentTibMin: currentTib, avgSE: avgSE, avgTstMin: avgTst)
@@ -164,9 +176,14 @@ enum LiveDataBuilder {
         let baseline = Array(nights.prefix(7))
         let baselineSol = baseline.isEmpty ? 0 : median(baseline.map { $0.solMin })
         let baselineTst = baseline.isEmpty ? 0 : Int(mean(baseline.map { Double($0.tstMin) }).rounded())
-        let mid = nights.isEmpty ? nil : nights[nights.count / 2]
-        let bed = mid.map { hhmm($0.lightsOut, calendar) } ?? "23:00"
-        let wake = mid.map { hhmm($0.finalWake, calendar) } ?? "07:00"
+        // Target times come from the median clock time across recent nights, so
+        // one odd night (a 7am crash after a late one) can't hijack the plan.
+        // Each night's clock time is taken in its own recording time zone.
+        let recent = nights.suffix(14)
+        let bed = recent.isEmpty ? "23:00"
+            : hhmmString(medianClockMinutes(recent.map { ($0.lightsOut, $0.timeZone) }, calendar, wrapsMidnight: true))
+        let wake = recent.isEmpty ? "07:00"
+            : hhmmString(medianClockMinutes(recent.map { ($0.finalWake, $0.timeZone) }, calendar, wrapsMidnight: false))
 
         return UserProfile(
             id: "healthkit-user",
@@ -186,6 +203,27 @@ enum LiveDataBuilder {
     private static func hhmm(_ date: Date, _ calendar: Calendar) -> String {
         let c = calendar.dateComponents([.hour, .minute], from: date)
         return String(format: "%02d:%02d", c.hour ?? 0, c.minute ?? 0)
+    }
+    private static func hhmmString(_ minutes: Int) -> String {
+        String(format: "%02d:%02d", minutes / 60, minutes % 60)
+    }
+    /// Median clock time (minutes since midnight), each date read in its own
+    /// recording time zone. Bedtimes cluster around midnight, so they're shifted
+    /// by 12h before the median to keep the cluster contiguous (23:50 and 00:10
+    /// must not average to noon).
+    private static func medianClockMinutes(_ times: [(date: Date, tz: TimeZone?)],
+                                           _ calendar: Calendar, wrapsMidnight: Bool) -> Int {
+        let shift = wrapsMidnight ? 720 : 0
+        let mins = times.map { t -> Double in
+            let c = localCalendar(calendar, t.tz).dateComponents([.hour, .minute], from: t.date)
+            return Double(((c.hour ?? 0) * 60 + (c.minute ?? 0) + shift) % 1440)
+        }
+        return ((Int(median(mins).rounded()) % 1440) - shift + 1440) % 1440
+    }
+    /// The base calendar re-zoned to a night's recording time zone (if known).
+    private static func localCalendar(_ base: Calendar, _ tz: TimeZone?) -> Calendar {
+        guard let tz else { return base }
+        var c = base; c.timeZone = tz; return c
     }
     private static func ymd(_ calendar: Calendar) -> DateFormatter {
         let f = DateFormatter(); f.calendar = calendar; f.timeZone = calendar.timeZone; f.dateFormat = "yyyy-MM-dd"; return f

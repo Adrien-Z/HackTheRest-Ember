@@ -1,11 +1,12 @@
 import SwiftUI
 
-/// EMBER visual system — a calm, dark, "warm ember" palette suited to a rest app.
+/// EMBER visual system — Blue Box's brand blue on a calm, dark night palette.
 enum Theme {
-    // Warm ember accent gradient
-    static let ember      = Color(red: 0.94, green: 0.42, blue: 0.20)   // #F06B33
-    static let emberDeep  = Color(red: 0.76, green: 0.27, blue: 0.09)   // #C24417
-    static let cool       = Color(red: 0.36, green: 0.47, blue: 0.75)   // thermal "cool" band
+    // Blue Box brand accent. `ember` keeps its name (it's the app-wide accent
+    // referenced everywhere) but now carries the exact logo blue.
+    static let ember      = Color(red: 0.000, green: 0.278, blue: 0.729)   // #0047BA Blue Box logo blue
+    static let emberDeep  = Color(red: 0.086, green: 0.173, blue: 0.376)   // #162C60 Blue Box deep navy
+    static let cool       = Color(red: 0.66, green: 0.75, blue: 0.88)      // periwinkle (CBT-I), from BB palette
     static let mint       = Color(red: 0.30, green: 0.78, blue: 0.60)   // "hit"/success
     static let amber      = Color(red: 0.98, green: 0.75, blue: 0.29)   // partial
     static let bg         = Color(red: 0.06, green: 0.07, blue: 0.11)   // near-black navy

@@ -9,9 +9,10 @@ func fmtDur(_ minutes: Int) -> String {
 }
 
 /// "HH:mm" minus N minutes -> "HH:mm" (wraps across midnight).
+/// Tolerates a trailing seconds component ("23:00:00") by ignoring it.
 func offsetTime(from hhmm: String, minusMinutes: Int) -> String {
     let parts = hhmm.split(separator: ":").compactMap { Int($0) }
-    guard parts.count == 2 else { return hhmm }
+    guard parts.count >= 2 else { return hhmm }
     var total = parts[0] * 60 + parts[1] - minusMinutes
     total = ((total % 1440) + 1440) % 1440
     return String(format: "%02d:%02d", total / 60, total % 60)

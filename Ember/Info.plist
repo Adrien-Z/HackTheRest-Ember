@@ -9,7 +9,10 @@
     <key>CFBundleDisplayName</key>
     <string>Ember</string>
     <key>UILaunchScreen</key>
-    <dict/>
+    <dict>
+        <key>UIColorName</key>
+        <string>LaunchBackground</string>
+    </dict>
     <key>NSHealthShareUsageDescription</key>
     <string>Ember reads your sleep analysis from Apple Health to personalize your wind-down and sleep-efficiency plans automatically, instead of asking you to log every night by hand.</string>
     <key>NSHealthUpdateUsageDescription</key>
@@ -18,6 +21,16 @@
     <string>Ember reads your upcoming events so it can pre-adapt your rest plan around late nights, early meetings, and travel before they disrupt your sleep.</string>
     <key>NSCalendarsUsageDescription</key>
     <string>Ember reads your upcoming events so it can pre-adapt your rest plan around late nights, early meetings, and travel before they disrupt your sleep.</string>
+    <key>NSAlarmKitUsageDescription</key>
+    <string>Ember schedules your wake alarm to match your rest plan, so your wake time stays anchored even after late nights or travel.</string>
+    <key>BGTaskSchedulerPermittedIdentifiers</key>
+    <array>
+        <string>com.bluebox.ember.planRefresh</string>
+    </array>
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>fetch</string>
+    </array>
     <key>UISupportedInterfaceOrientations</key>
     <array>
         <string>UIInterfaceOrientationPortrait</string>

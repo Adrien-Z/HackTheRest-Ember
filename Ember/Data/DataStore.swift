@@ -55,6 +55,7 @@ final class DataStore: ObservableObject {
         static let llmModel = "ember.llmModel"
         static let llmBaseURL = "ember.llmBaseURL"
         static let apiKeyAccount = "openrouter.apiKey"   // Keychain account
+        static let calendarCache = "ember.calendarCategorizations"
     }
 
     init() {
@@ -152,27 +153,47 @@ final class DataStore: ObservableObject {
         }
     }
 
-    /// Live mode only: fetch raw calendar events and let the LLM categorize them.
-    /// No key or a failed call → no adaptations + a prompt (no keyword fallback).
+    /// Live mode only: fetch raw calendar events and let the LLM categorize any
+    /// that aren't already in the persistent cache (new or edited ones). Cached
+    /// categorizations keep working with no key or a failed call — only the
+    /// uncached events go missing until the next successful run.
     func categorizeCalendar(calendar: CalendarService) async {
         guard mode == .live else { return }
         aiError = nil
         aiConfigured = hasAPIKey
         let raw = await calendar.fetchRawEvents()
-        guard let client = llmClient else {
-            calendarEvents = []
-            adaptations = []
-            return
-        }
-        do {
-            let result = try await CalendarCategorizer.categorize(
-                rawEvents: raw, targetWake: user.targetWakeTime, client: client)
-            calendarEvents = result.events
-            adaptations = result.adaptations
-        } catch {
+        let output = await CalendarCategorizer.categorize(
+            rawEvents: raw, targetWake: user.targetWakeTime,
+            client: llmClient, cache: loadCalendarCache())
+        calendarEvents = output.result.events
+        adaptations = output.result.adaptations
+        // Don't wipe the cache when the fetch itself came back empty (e.g. access
+        // not yet granted) — those categorizations may still be valid next run.
+        if !raw.isEmpty { saveCalendarCache(output.cache) }
+        if let error = output.error {
             aiError = (error as? LLMError)?.errorDescription ?? error.localizedDescription
-            calendarEvents = []
-            adaptations = []
+        }
+    }
+
+    /// Invoked from the background app-refresh task: re-categorize the calendar
+    /// (cache-aware, so a run without new events makes no LLM call) and let the
+    /// wake alarm adapt to any newly discovered early obligation.
+    func backgroundPlanRefresh(calendar: CalendarService, wakeAlarm: WakeAlarmService) async {
+        guard mode == .live else { return }
+        await categorizeCalendar(calendar: calendar)
+        await wakeAlarm.autoAdapt(events: calendarEvents, adaptations: adaptations)
+    }
+
+    private func loadCalendarCache() -> [String: CalendarCategorizer.Categorization] {
+        guard let data = UserDefaults.standard.data(forKey: Keys.calendarCache),
+              let cache = try? JSONDecoder().decode([String: CalendarCategorizer.Categorization].self, from: data)
+        else { return [:] }
+        return cache
+    }
+
+    private func saveCalendarCache(_ cache: [String: CalendarCategorizer.Categorization]) {
+        if let data = try? JSONEncoder().encode(cache) {
+            UserDefaults.standard.set(data, forKey: Keys.calendarCache)
         }
     }
 

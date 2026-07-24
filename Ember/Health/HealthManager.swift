@@ -27,15 +27,29 @@ final class HealthManager: ObservableObject {
         return types
     }
 
+    /// Set once the user has connected, so later launches reconnect silently.
+    /// (HealthKit never reveals read-permission status, so this is the only signal.)
+    private static let connectedOnceKey = "ember.healthConnectedOnce"
+
     func requestAuthorization() async {
         guard isAvailable else { lastError = "Health data not available on this device."; return }
         do {
             try await store.requestAuthorization(toShare: [], read: readTypes)
             authorized = true
+            UserDefaults.standard.set(true, forKey: Self.connectedOnceKey)
             await fetchLastNight()
         } catch {
             lastError = error.localizedDescription
         }
+    }
+
+    /// Restore the connection on launch if the user connected before.
+    /// `requestAuthorization` shows no sheet once all types have been determined,
+    /// so this never prompts — first-time users still tap Connect explicitly.
+    func autoConnect() async {
+        guard !authorized, isAvailable,
+              UserDefaults.standard.bool(forKey: Self.connectedOnceKey) else { return }
+        await requestAuthorization()
     }
 
     /// Sum "asleep" category samples from the last 24h into total sleep minutes.
@@ -107,7 +121,11 @@ final class HealthManager: ObservableObject {
         } else {
             return nil
         }
-        return SleepInterval(kind: kind, start: sample.startDate, end: sample.endDate)
+        // Sleep samples carry the zone they were recorded in (Apple Watch sets it);
+        // without it, clock times fall back to the device's current zone.
+        let tz = (sample.metadata?[HKMetadataKeyTimeZone] as? String)
+            .flatMap(TimeZone.init(identifier:))
+        return SleepInterval(kind: kind, start: sample.startDate, end: sample.endDate, timeZone: tz)
     }
 
     private func categorySamples(_ type: HKCategoryType, _ predicate: NSPredicate) async -> [HKCategorySample] {
@@ -133,6 +151,7 @@ final class HealthManager: ObservableObject {
     #else
     var isAvailable: Bool { false }
     func requestAuthorization() async { lastError = "HealthKit not compiled in." }
+    func autoConnect() async {}
     func fetchLastNight() async {}
     func fetchNights(daysBack: Int = 60) async -> [NightSample] { [] }
     #endif

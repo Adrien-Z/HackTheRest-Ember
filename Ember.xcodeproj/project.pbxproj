@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		0138F8D037CE413B632B3DD7 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2F98006241E922BE2EAEEB0 /* Components.swift */; };
 		05BFC5E1C8443802E3DDB8DB /* RootTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E98492F0332B6F0910FD160 /* RootTabView.swift */; };
+		0EBF820742223F6E93108F98 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFAC02C2AC29DAA6CE71E814 /* SplashView.swift */; };
 		3463E42F1DF86B41976AC521 /* Keychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AD81BA182820629BFB4360D /* Keychain.swift */; };
 		34E75480D54526F1A383ABC7 /* Previews.swift in Sources */ = {isa = PBXBuildFile; fileRef = B880D7180FBA450F7CD94056 /* Previews.swift */; };
 		3C01E19FFB0CCE47F99D7766 /* CalendarCategorizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6070CAFDEB1401398FA1B773 /* CalendarCategorizer.swift */; };
@@ -25,6 +26,7 @@
 		8F95790C1EFABD19ED1EB2D2 /* CalendarService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1985CE025CBEEA6696E50716 /* CalendarService.swift */; };
 		96C48726FEA71DF974E1876E /* CoachWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB68B45CBF076764D83BC86A /* CoachWidgets.swift */; };
 		9E554E9F764DC57D8D8DD505 /* CoachView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 530970A8DC90098FD80DAF33 /* CoachView.swift */; };
+		A5F97F870FB3C3127CD65AD5 /* WakeAlarmService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E92B54768D6C22CE5E6B33C /* WakeAlarmService.swift */; };
 		B198644CB27512A38884A1B0 /* PodView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E51DF68FD5E8A80D104D3C69 /* PodView.swift */; };
 		BA64B89583B37AC63DDB410F /* SleepMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17D0E26E8D2ACFD357C17593 /* SleepMetrics.swift */; };
 		C39A5D88C283F394CCF9D728 /* RestCoach.swift in Sources */ = {isa = PBXBuildFile; fileRef = 522DEBE140F2811A20695FF9 /* RestCoach.swift */; };
@@ -44,6 +46,7 @@
 		17D0E26E8D2ACFD357C17593 /* SleepMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepMetrics.swift; sourceTree = "<group>"; };
 		1985CE025CBEEA6696E50716 /* CalendarService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarService.swift; sourceTree = "<group>"; };
 		2AD81BA182820629BFB4360D /* Keychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keychain.swift; sourceTree = "<group>"; };
+		2E92B54768D6C22CE5E6B33C /* WakeAlarmService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WakeAlarmService.swift; sourceTree = "<group>"; };
 		318C100DF234B4EEFA0F2DBF /* LiveDataBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveDataBuilder.swift; sourceTree = "<group>"; };
 		4CC808B43660BBB46A7C3565 /* RestAlgorithms.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestAlgorithms.swift; sourceTree = "<group>"; };
 		4F2AED6F819BDEDDF07FD5CC /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
@@ -63,12 +66,13 @@
 		CB68B45CBF076764D83BC86A /* CoachWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachWidgets.swift; sourceTree = "<group>"; };
 		CCAECECB01C03E7C4363DCA5 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		D040811E025425FE3D31FEBA /* ThermalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThermalView.swift; sourceTree = "<group>"; };
-		D1E129474145FB033E3BBB86 /* Ember.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ember.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D1E129474145FB033E3BBB86 /* Ember.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Ember.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D3E89E76FECB2B71061F10F9 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		DC635EBE2AC3C4079688D51C /* EmberApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmberApp.swift; sourceTree = "<group>"; };
 		E2F98006241E922BE2EAEEB0 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
 		E51DF68FD5E8A80D104D3C69 /* PodView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PodView.swift; sourceTree = "<group>"; };
 		E801F78BFA7B275040A04D92 /* LLMClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMClient.swift; sourceTree = "<group>"; };
+		FFAC02C2AC29DAA6CE71E814 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -114,6 +118,7 @@
 				DC635EBE2AC3C4079688D51C /* EmberApp.swift */,
 				9B5E3461D20AC34B06E3EDF9 /* Info.plist */,
 				A2B90D29ABB0D69D6270916B /* AI */,
+				CAB34F7776245C2B04EEA9F1 /* Alarms */,
 				35EFE3F694AD63CE184CEF4A /* Algorithms */,
 				B6091BA36EAE542F3866FE5E /* Calendar */,
 				89F2CD6832BE436BE4DCFB1C /* Data */,
@@ -195,6 +200,14 @@
 			path = "Preview Content";
 			sourceTree = "<group>";
 		};
+		CAB34F7776245C2B04EEA9F1 /* Alarms */ = {
+			isa = PBXGroup;
+			children = (
+				2E92B54768D6C22CE5E6B33C /* WakeAlarmService.swift */,
+			);
+			path = Alarms;
+			sourceTree = "<group>";
+		};
 		D19B0E36EC4E6A5B26CC7272 /* Views */ = {
 			isa = PBXGroup;
 			children = (
@@ -207,6 +220,7 @@
 				B880D7180FBA450F7CD94056 /* Previews.swift */,
 				8E98492F0332B6F0910FD160 /* RootTabView.swift */,
 				A9C90DC46AFD2014FEED1D85 /* SettingsView.swift */,
+				FFAC02C2AC29DAA6CE71E814 /* SplashView.swift */,
 				D040811E025425FE3D31FEBA /* ThermalView.swift */,
 				216E155063217A1DBDE1DAB0 /* Components */,
 			);
@@ -252,6 +266,7 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					3E853DD93E303CC86CD1FA7F = {
+						DevelopmentTeam = Q6F6T9227F;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -316,8 +331,10 @@
 				05BFC5E1C8443802E3DDB8DB /* RootTabView.swift in Sources */,
 				EC66758185B71D669BC6A9F5 /* SettingsView.swift in Sources */,
 				BA64B89583B37AC63DDB410F /* SleepMetrics.swift in Sources */,
+				0EBF820742223F6E93108F98 /* SplashView.swift in Sources */,
 				77499C61D5A7A51062740001 /* Theme.swift in Sources */,
 				EB0CD7C9CED89A3C9822C4C4 /* ThermalView.swift in Sources */,
+				A5F97F870FB3C3127CD65AD5 /* WakeAlarmService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -331,7 +348,6 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Ember/Ember.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = Q6F6T9227F;
 				INFOPLIST_FILE = Ember/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -381,7 +397,7 @@
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = Q6F6T9227F;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
@@ -412,7 +428,6 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Ember/Ember.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = Q6F6T9227F;
 				INFOPLIST_FILE = Ember/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -462,7 +477,7 @@
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = Q6F6T9227F;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;

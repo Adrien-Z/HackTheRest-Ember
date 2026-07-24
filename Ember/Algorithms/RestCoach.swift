@@ -125,7 +125,7 @@ enum RestCoach {
             }
         }
         // Travel / jet lag
-        if q.contains("flight") || q.contains("jet") || q.contains("london") || q.contains("travel") {
+        if q.contains("flight") || q.contains("jet") || q.contains("travel") || q.contains("trip") {
             if let a = adaptations.first(where: { $0.scenario.contains("travel") }) {
                 return "\(a.recommendation)\n\nWhy: \(a.scienceBasis)"
             }

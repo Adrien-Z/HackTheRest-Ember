@@ -27,8 +27,10 @@ struct FriendRequestsView: View {
     private func requestRow(_ request: IncomingFriendRequest) -> some View {
         let isResponding = viewModel.respondingRequestIDs.contains(request.id)
         return VStack(alignment: .leading, spacing: 11) {
-            HStack(spacing: 13) {
-                FriendBoxAvatar(config: request.avatarConfig).frame(width: 48, height: 45)
+            HStack(spacing: 10) {
+                FriendBoxAvatar(config: request.avatarConfig)
+                    .scaleEffect(0.78)
+                    .frame(width: 42, height: 38)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(request.displayName).font(.headline)
                     if let username = request.username, !username.isEmpty {

@@ -137,12 +137,16 @@ struct BoxSpaceView: View {
             NavigationLink {
                 FriendRequestsView(viewModel: friendsViewModel)
             } label: {
-                HStack(spacing: 5) {
-                    Label("Requests", systemImage: "person.badge.clock")
+                HStack(spacing: 6) {
+                    Image(systemName: "person.badge.clock")
+                        .font(.system(size: 12, weight: .semibold))
+                        .frame(width: 14, height: 14)
+                    Text("Requests")
+                        .lineLimit(1)
                     if !friendsViewModel.incomingRequests.isEmpty {
                         Text("\(friendsViewModel.incomingRequests.count)")
-                            .font(.caption2.bold())
-                            .padding(.horizontal, 5).padding(.vertical, 2)
+                            .font(.system(size: 10, weight: .bold, design: .rounded))
+                            .frame(minWidth: 16, minHeight: 16)
                             .background(Theme.boxBlue, in: Capsule())
                     }
                 }
@@ -208,15 +212,6 @@ private struct BoxWorldCanvas: View {
                 .offset(x: origin.x, y: origin.y)
             }
             .clipped()
-            .overlay(alignment: .bottomTrailing) {
-                Label("\(people.count) boxes", systemImage: "move.3d")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 9)
-                    .padding(.vertical, 6)
-                    .background(.ultraThinMaterial, in: Capsule())
-                    .padding(14)
-            }
             .contentShape(Rectangle())
             .simultaneousGesture(
                 DragGesture(minimumDistance: 1)
@@ -551,6 +546,7 @@ private struct BoxSocialButtonStyle: ButtonStyle {
             .opacity(configuration.isPressed ? 0.68 : 1)
     }
 }
+
 
 private struct BoxSmile: Shape {
     func path(in rect: CGRect) -> Path {

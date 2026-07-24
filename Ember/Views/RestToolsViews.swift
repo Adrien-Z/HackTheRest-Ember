@@ -30,9 +30,20 @@ struct WhiteNoiseView: View {
                         .tag(sound)
                     }
                 }
-                .tabViewStyle(.page)
-                .frame(height: 288)
+                .tabViewStyle(.page(indexDisplayMode: .never))
+                .frame(height: 272)
                 .onChange(of: selectedSound) { sound in player.select(sound) }
+
+                HStack(spacing: 7) {
+                    ForEach(AmbientSound.allCases) { sound in
+                        Capsule()
+                            .fill(sound == selectedSound ? Theme.ember : Color.white.opacity(0.22))
+                            .frame(width: sound == selectedSound ? 18 : 6, height: 6)
+                            .animation(.easeInOut(duration: 0.2), value: selectedSound)
+                    }
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Ambient sound \(AmbientSound.allCases.firstIndex(of: selectedSound)! + 1) of \(AmbientSound.allCases.count)")
 
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {

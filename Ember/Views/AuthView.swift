@@ -6,6 +6,11 @@ struct AuthView: View {
     @State private var isRegistering = false
     @State private var email = ""
     @State private var password = ""
+    @FocusState private var focusedField: Field?
+
+    private enum Field: Hashable {
+        case displayName, email, password
+    }
 
     var body: some View {
         ZStack {
@@ -13,8 +18,6 @@ struct AuthView: View {
 
             ScrollView {
                 VStack(spacing: 20) {
-                    Spacer(minLength: 72)
-
                     VStack(spacing: 10) {
                         Image(systemName: "shippingbox.fill")
                             .font(.system(size: 42, weight: .semibold))
@@ -33,12 +36,30 @@ struct AuthView: View {
 
                     VStack(spacing: 13) {
                         if isRegistering {
-                            inputField("Display name", text: $auth.registrationDisplayName, contentType: .nickname)
+                            inputField(
+                                "Display name",
+                                text: $auth.registrationDisplayName,
+                                contentType: .nickname,
+                                field: .displayName,
+                                submitLabel: .next
+                            )
                         }
-                        inputField("Email", text: $email, contentType: .emailAddress, keyboardType: .emailAddress)
+                        inputField(
+                            "Email",
+                            text: $email,
+                            contentType: .emailAddress,
+                            keyboardType: .emailAddress,
+                            field: .email,
+                            submitLabel: .next
+                        )
 
                         SecureField("Password", text: $password)
                             .textContentType(isRegistering ? .newPassword : .password)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .focused($focusedField, equals: .password)
+                            .submitLabel(.go)
+                            .onSubmit { submit() }
                             .padding(.horizontal, 16)
                             .frame(height: 54)
                             .background(.white.opacity(0.09), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -90,10 +111,13 @@ struct AuthView: View {
                     }
                     .disabled(auth.isLoading)
 
-                    Spacer(minLength: 36)
                 }
                 .padding(.horizontal, 24)
+                .padding(.vertical, 36)
+                .padding(.top, 36)
             }
+            .scrollIndicators(.hidden)
+            .scrollDismissesKeyboard(.interactively)
         }
         .preferredColorScheme(.dark)
     }
@@ -102,16 +126,43 @@ struct AuthView: View {
         _ title: String,
         text: Binding<String>,
         contentType: UITextContentType,
-        keyboardType: UIKeyboardType = .default
+        keyboardType: UIKeyboardType = .default,
+        field: Field,
+        submitLabel: SubmitLabel
     ) -> some View {
         TextField(title, text: text)
             .textContentType(contentType)
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled()
             .keyboardType(keyboardType)
+            .focused($focusedField, equals: field)
+            .submitLabel(submitLabel)
+            .onSubmit { advance(from: field) }
             .padding(.horizontal, 16)
             .frame(height: 54)
             .background(.white.opacity(0.09), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             .foregroundStyle(.white)
+    }
+
+    private func advance(from field: Field) {
+        switch field {
+        case .displayName:
+            focusedField = .email
+        case .email:
+            focusedField = .password
+        case .password:
+            submit()
+        }
+    }
+
+    private func submit() {
+        focusedField = nil
+        Task {
+            if isRegistering {
+                await auth.signUp(email: email, password: password, displayName: auth.registrationDisplayName)
+            } else {
+                await auth.signIn(email: email, password: password)
+            }
+        }
     }
 }

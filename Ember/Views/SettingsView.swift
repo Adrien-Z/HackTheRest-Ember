@@ -7,6 +7,7 @@ struct SettingsView: View {
     @EnvironmentObject var store: DataStore
     @EnvironmentObject var health: HealthManager
     @EnvironmentObject var calendar: CalendarService
+    @EnvironmentObject var wakeAlarm: WakeAlarmService
     @Environment(\.dismiss) private var dismiss
     @State private var apiKeyDraft = ""
 
@@ -56,6 +57,17 @@ struct SettingsView: View {
                     Section("Personalization") {
                         TextField("Your name", text: $store.displayName)
                         TextField("Warming method", text: $store.warmingMethod)
+                    }
+                }
+
+                if WakeAlarmService.isSupported {
+                    Section {
+                        Toggle("Auto-adjust for early events", isOn: $wakeAlarm.autoAdaptEnabled)
+                            .tint(Theme.ember)
+                    } header: {
+                        Text("Wake Alarm")
+                    } footer: {
+                        Text("Re-arms nightly and wakes you earlier before early obligations, with a notification explaining why.")
                     }
                 }
 

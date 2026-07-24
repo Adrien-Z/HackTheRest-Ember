@@ -34,6 +34,7 @@
 		96C48726FEA71DF974E1876E /* CoachWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB68B45CBF076764D83BC86A /* CoachWidgets.swift */; };
 		9E554E9F764DC57D8D8DD505 /* CoachView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 530970A8DC90098FD80DAF33 /* CoachView.swift */; };
 		A13B78469D99F6AAB848D8C2 /* FriendRequestsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4A9AFE62BAC146DAA949394 /* FriendRequestsView.swift */; };
+		A7E71F4A54D24B0DB64F0002 /* RestToolsViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7E71F4A54D24B0DB64F0001 /* RestToolsViews.swift */; };
 		A3F388777685CE58DB093918 /* FriendService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29AAF313D28B06BACEA7BACC /* FriendService.swift */; };
 		A5F97F870FB3C3127CD65AD5 /* WakeAlarmService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E92B54768D6C22CE5E6B33C /* WakeAlarmService.swift */; };
 		A62002BE008387E1C931D050 /* AgendaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 345362E9B8B67CA3967468EE /* AgendaView.swift */; };
@@ -62,6 +63,7 @@
 /* Begin PBXFileReference section */
 		0652369835F49D016501A8AD /* Formatters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Formatters.swift; sourceTree = "<group>"; };
 		0CB62B15CFC41F6827DC58B6 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		A7E71F4A54D24B0DB64F0001 /* RestToolsViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestToolsViews.swift; sourceTree = "<group>"; };
 		0E772F5F4704359879D51C50 /* seed.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = seed.json; sourceTree = "<group>"; };
 		17D0E26E8D2ACFD357C17593 /* SleepMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepMetrics.swift; sourceTree = "<group>"; };
 		1985CE025CBEEA6696E50716 /* CalendarService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarService.swift; sourceTree = "<group>"; };
@@ -282,6 +284,7 @@
 				C4A9AFE62BAC146DAA949394 /* FriendRequestsView.swift */,
 				EBAB7792A17070708427DBF0 /* FriendsListView.swift */,
 				0CB62B15CFC41F6827DC58B6 /* HomeView.swift */,
+				A7E71F4A54D24B0DB64F0001 /* RestToolsViews.swift */,
 				4ABD1941045F173BFC908828 /* OnboardingView.swift */,
 				E51DF68FD5E8A80D104D3C69 /* PodView.swift */,
 				B880D7180FBA450F7CD94056 /* Previews.swift */,
@@ -416,6 +419,7 @@
 				4070F51276CA68CB1DBE7FE6 /* Formatters.swift in Sources */,
 				AF50EF8EC0B514E38659EE81 /* FriendModels.swift in Sources */,
 				A13B78469D99F6AAB848D8C2 /* FriendRequestsView.swift in Sources */,
+				A7E71F4A54D24B0DB64F0002 /* RestToolsViews.swift in Sources */,
 				A3F388777685CE58DB093918 /* FriendService.swift in Sources */,
 				F4DC21D2B52C8E8E47A8AD9B /* FriendsListView.swift in Sources */,
 				2F0A531DEB91A4D2AF199963 /* FriendsViewModel.swift in Sources */,

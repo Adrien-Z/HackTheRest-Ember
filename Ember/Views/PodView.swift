@@ -26,7 +26,9 @@ struct BoxSpaceView: View {
                 decorationID: $0.skinId
             )
         }
-        return [snapshot.currentUser] + snapshot.people + friendsMissingFromRanking
+        return [snapshot.currentUser]
+            + snapshot.people.filter(\.isFriend)
+            + friendsMissingFromRanking
     }
 
     var body: some View {
@@ -112,8 +114,6 @@ struct BoxSpaceView: View {
                     decoration: selectedDecoration,
                     size: CGSize(width: 54, height: 50)
                 )
-                .scaleEffect(0.82)
-                .frame(width: 44, height: 40)
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 6) {
                         Text(snapshot.currentUser.name).font(.subheadline.weight(.bold))
@@ -425,7 +425,7 @@ private struct BoxMapFloor: View {
 }
 
 private struct BoxWorldLayout {
-    static let ringSpacing: CGFloat = 132
+    static let ringSpacing: CGFloat = 160
     private static let horizontalEdgeInset: CGFloat = 66
     private static let verticalEdgeInset: CGFloat = 82
 
@@ -499,8 +499,8 @@ private struct BoxResident: View {
             BoxSkinImageView(
                 decoration: person.isFriend ? decoration : nil,
                 size: CGSize(
-                    width: person.isCurrentUser ? 82 : 70,
-                    height: person.isCurrentUser ? 76 : 65)
+                    width: person.isCurrentUser ? 100 : 90,
+                    height: person.isCurrentUser ? 100 : 90)
             )
             .opacity(person.isFriend ? 1 : 0.42)
             .shadow(
@@ -517,9 +517,13 @@ private struct BoxResident: View {
         }
         .frame(width: 94)
         .padding(.vertical, 6)
-        .background(
-            person.isCurrentUser ? Theme.boxBlue.opacity(0.08) : Color.clear,
-            in: RoundedRectangle(cornerRadius: 16))
+        .background {
+            if person.isCurrentUser {
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Theme.boxBlue.opacity(0.08))
+                    .padding(.top, 6)
+            }
+        }
     }
 }
 

@@ -23,6 +23,7 @@ struct SleepClimateSnapshot: Equatable {
     let summary: String
     let guidance: String
     let source: String
+    let locationName: String?
 }
 
 @MainActor
@@ -55,7 +56,8 @@ final class SleepClimateService: NSObject, ObservableObject {
         do {
             let location = try await currentLocation()
             let response = try await fetchForecast(for: location)
-            let snapshot = Self.snapshot(from: response, calendar: .current)
+            let locationName = await placeName(for: location)
+            let snapshot = Self.snapshot(from: response, calendar: .current, locationName: locationName)
             store.sleepClimate = snapshot
         } catch {
             store.sleepClimate = nil
@@ -92,7 +94,28 @@ final class SleepClimateService: NSObject, ObservableObject {
         return try JSONDecoder().decode(OpenMeteoForecast.self, from: data)
     }
 
-    private static func snapshot(from forecast: OpenMeteoForecast, calendar: Calendar) -> SleepClimateSnapshot? {
+    private func placeName(for location: CLLocation) async -> String? {
+        await withCheckedContinuation { continuation in
+            CLGeocoder().reverseGeocodeLocation(location) { placemarks, _ in
+                let place = placemarks?.first
+                let locality = place?.locality ?? place?.subLocality
+                let region = place?.administrativeArea
+                let country = place?.country
+
+                if let locality, let region, locality != region {
+                    continuation.resume(returning: "\(locality), \(region)")
+                } else if let locality {
+                    continuation.resume(returning: locality)
+                } else if let region, let country, region != country {
+                    continuation.resume(returning: "\(region), \(country)")
+                } else {
+                    continuation.resume(returning: country)
+                }
+            }
+        }
+    }
+
+    private static func snapshot(from forecast: OpenMeteoForecast, calendar: Calendar, locationName: String?) -> SleepClimateSnapshot? {
         let start = calendar.date(bySettingHour: 20, minute: 0, second: 0, of: Date()) ?? Date()
         let end = calendar.date(byAdding: .hour, value: 12, to: start) ?? start.addingTimeInterval(12 * 3600)
         let points = forecast.hourly.points(timeZoneIdentifier: forecast.timezone)
@@ -138,7 +161,8 @@ final class SleepClimateService: NSObject, ObservableObject {
             risk: risk,
             summary: summary,
             guidance: guidance,
-            source: "Open-Meteo")
+            source: "Open-Meteo",
+            locationName: locationName)
     }
     #endif
 }

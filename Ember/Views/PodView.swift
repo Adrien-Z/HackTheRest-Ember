@@ -122,8 +122,10 @@ struct BoxSpaceView: View {
                             .foregroundStyle(Theme.secondaryText)
                     }
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
-                        Text(snapshot.currentUser.monthlyScore.formatted())
-                            .font(.system(.title3, design: .rounded).weight(.bold))
+                        CountUpPointsText(
+                            value: snapshot.currentUser.monthlyScore,
+                            font: .system(.title3, design: .rounded).weight(.bold)
+                        )
                         Text("sleep pts")
                             .font(.caption2.weight(.semibold))
                             .foregroundStyle(Theme.secondaryText)
@@ -214,6 +216,30 @@ struct BoxSpaceView: View {
         return formatter
     }()
 
+}
+
+private struct CountUpPointsText: View {
+    let value: Int
+    let font: Font
+    @State private var animatedValue = 0.0
+
+    var body: some View {
+        Text(Int(animatedValue.rounded()).formatted())
+            .font(font)
+            .monospacedDigit()
+            .contentTransition(.numericText())
+            .onAppear {
+                guard animatedValue == 0 else { return }
+                withAnimation(.easeOut(duration: 0.85)) {
+                    animatedValue = Double(value)
+                }
+            }
+            .onChange(of: value) { newValue in
+                withAnimation(.easeOut(duration: 0.65)) {
+                    animatedValue = Double(newValue)
+                }
+            }
+    }
 }
 
 // MARK: - Draggable map

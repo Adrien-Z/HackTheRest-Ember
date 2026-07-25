@@ -208,43 +208,236 @@ private final class WhiteNoisePlayer: ObservableObject {
 }
 
 struct BreathingTrainingView: View {
-    @State private var cycleStartedAt = Date()
+    @EnvironmentObject private var store: DataStore
+    @State private var startedAt = Date()
+    @State private var pausedAt: Date? = nil
+    @State private var accumulatedPause: TimeInterval = 0
+    @State private var lastPhase: CyclicSighPhase.ID? = nil
+    @State private var completedCycles = 0
+
+    private let targetSeconds: TimeInterval = 5 * 60
+
+    private var selectedDecoration: BoxDecoration? {
+        store.boxSpace.decorations.first {
+            $0.id == store.boxSpace.currentUser.decorationID
+        }
+    }
 
     var body: some View {
         ZStack {
             NightBackground()
             TimelineView(.periodic(from: .now, by: 0.05)) { timeline in
-                let phase = BreathPhase(elapsed: timeline.date.timeIntervalSince(cycleStartedAt))
-                VStack(spacing: 26) {
-                    Spacer()
+                let elapsed = effectiveElapsed(at: timeline.date)
+                let phase = CyclicSighPhase(elapsed: elapsed)
+                let progress = min(1, elapsed / targetSeconds)
+
+                VStack(spacing: 18) {
+                    header(progress: progress, elapsed: elapsed)
+                    Spacer(minLength: 8)
                     ZStack {
-                        Circle().fill(Theme.mint.opacity(0.12)).frame(width: 250, height: 250)
-                        Circle().fill(Theme.mint.opacity(0.28)).frame(width: 176, height: 176).scaleEffect(phase.scale)
-                        Circle().stroke(Theme.mint.opacity(0.75), lineWidth: 2).frame(width: 132, height: 132).scaleEffect(phase.scale)
-                        VStack(spacing: 5) {
-                            Text(phase.instruction).font(.title2.weight(.bold))
-                            Text("\(phase.secondsRemaining)s").font(.system(.title3, design: .rounded).weight(.semibold)).foregroundStyle(Theme.secondaryText)
+                        breathingHalo(phase: phase)
+                        VStack(spacing: 16) {
+                            ZStack {
+                                Circle()
+                                    .fill(Theme.mint.opacity(0.10))
+                                    .frame(width: 188, height: 188)
+                                    .scaleEffect(phase.lungScale + 0.12)
+                                Circle()
+                                    .stroke(Theme.mint.opacity(0.28), lineWidth: 1.2)
+                                    .frame(width: 210, height: 210)
+                                    .scaleEffect(phase.lungScale)
+                                Circle()
+                                    .stroke(phase.tint.opacity(0.78), style: StrokeStyle(lineWidth: 7, lineCap: .round))
+                                    .frame(width: 156, height: 156)
+                                    .scaleEffect(phase.lungScale)
+                                    .shadow(color: phase.tint.opacity(0.32), radius: 16)
+                                BoxSkinImageView(
+                                    decoration: selectedDecoration,
+                                    size: CGSize(width: 92, height: 92)
+                                )
+                                .scaleEffect(0.90 + phase.breathFill * 0.18)
+                                .offset(y: phase.mascotOffset)
+                            }
+
+                            VStack(spacing: 5) {
+                                Text(phase.title)
+                                    .font(.system(.title2, design: .rounded).weight(.heavy))
+                                    .foregroundStyle(phase.tint)
+                                    .contentTransition(.opacity)
+                                Text(phase.subtitle)
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(Theme.secondaryText)
+                                Text("\(phase.secondsRemaining)s")
+                                    .font(.system(size: 44, weight: .heavy, design: .rounded))
+                                    .monospacedDigit()
+                                    .contentTransition(.numericText())
+                            }
                         }
                     }
-                    .animation(.linear(duration: 0.08), value: phase.scale)
+                    .frame(maxWidth: .infinity)
+                    .animation(.easeInOut(duration: 0.18), value: phase.id)
+                    .onChange(of: phase.id) { newPhase in
+                        phaseHaptic(newPhase)
+                    }
 
-                    VStack(spacing: 7) {
-                        Text("4 · 4 · 6 breathing").font(.title3.weight(.bold))
-                        Text("Inhale for 4, hold for 4, then exhale slowly for 6.")
-                            .font(.subheadline).foregroundStyle(Theme.secondaryText).multilineTextAlignment(.center)
-                    }
-                    Button("Restart") {
-                        Haptics.light()
-                        cycleStartedAt = Date()
-                    }
-                    .buttonStyle(.borderedProminent).tint(Theme.mint)
-                    Spacer()
+                    phaseTrack(phase: phase)
+                    controls
+                    ScienceNote(
+                        text: "Cyclic sighing uses a full inhale, a small top-up inhale, then a longer relaxed exhale. Keep it easy; stop if you feel dizzy.",
+                        icon: "wind")
+                    Spacer(minLength: 0)
                 }
                 .padding(24)
             }
         }
-        .navigationTitle("Breathing")
+        .navigationTitle("Cyclic Sigh")
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func header(progress: Double, elapsed: TimeInterval) -> some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Downshift")
+                    .font(.title2.weight(.bold))
+                Text("5 min · \(completedCycles) sighs")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.secondaryText)
+            }
+            Spacer()
+            ZStack {
+                Circle().stroke(Color.white.opacity(0.10), lineWidth: 6)
+                Circle()
+                    .trim(from: 0, to: progress)
+                    .stroke(Theme.mint, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                Text(timeLeft(elapsed))
+                    .font(.caption.weight(.bold))
+                    .monospacedDigit()
+            }
+            .frame(width: 58, height: 58)
+        }
+    }
+
+    private func breathingHalo(phase: CyclicSighPhase) -> some View {
+        ZStack {
+            ForEach(0..<4, id: \.self) { index in
+                RoundedRectangle(cornerRadius: 46, style: .continuous)
+                    .stroke(
+                        LinearGradient(
+                            colors: [phase.tint.opacity(0.20), Theme.cool.opacity(0.08)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing),
+                        lineWidth: 1
+                    )
+                    .frame(width: 210 + CGFloat(index * 30), height: 210 + CGFloat(index * 30))
+                    .rotationEffect(.degrees(Double(index) * 12 + phase.rotation))
+                    .scaleEffect(0.90 + phase.breathFill * 0.16 + Double(index) * 0.025)
+                    .opacity(0.88 - Double(index) * 0.16)
+            }
+        }
+    }
+
+    private func phaseTrack(phase: CyclicSighPhase) -> some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                ForEach(CyclicSighPhase.ID.allCases, id: \.self) { id in
+                    Capsule()
+                        .fill(id == phase.id ? phase.tint : Color.white.opacity(0.12))
+                        .frame(height: 8)
+                        .overlay(alignment: .leading) {
+                            if id == phase.id {
+                                Capsule()
+                                    .fill(.white.opacity(0.34))
+                                    .frame(maxWidth: .infinity)
+                                    .scaleEffect(x: phase.phaseProgress, anchor: .leading)
+                            }
+                        }
+                }
+            }
+            HStack {
+                Label("Inhale", systemImage: "arrow.down.to.line.compact")
+                Spacer()
+                Label("Top up", systemImage: "plus")
+                Spacer()
+                Label("Exhale", systemImage: "arrow.up")
+            }
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(Theme.secondaryText)
+        }
+        .padding(14)
+        .background(Theme.card.opacity(0.72), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+
+    private var controls: some View {
+        HStack(spacing: 10) {
+            Button {
+                Haptics.light()
+                togglePause()
+            } label: {
+                Label(pausedAt == nil ? "Pause" : "Resume",
+                      systemImage: pausedAt == nil ? "pause.fill" : "play.fill")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 52)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(Theme.mint)
+
+            Button {
+                Haptics.light()
+                reset()
+            } label: {
+                Image(systemName: "arrow.counterclockwise")
+                    .font(.headline)
+                    .frame(width: 52, height: 52)
+            }
+            .buttonStyle(.bordered)
+            .tint(Theme.secondaryText)
+            .accessibilityLabel("Restart")
+        }
+    }
+
+    private func effectiveElapsed(at date: Date) -> TimeInterval {
+        let referenceDate = pausedAt ?? date
+        return max(0, referenceDate.timeIntervalSince(startedAt) - accumulatedPause)
+    }
+
+    private func togglePause() {
+        if let pausedAt {
+            accumulatedPause += Date().timeIntervalSince(pausedAt)
+            self.pausedAt = nil
+        } else {
+            pausedAt = Date()
+        }
+    }
+
+    private func reset() {
+        startedAt = Date()
+        pausedAt = nil
+        accumulatedPause = 0
+        lastPhase = nil
+        completedCycles = 0
+    }
+
+    private func phaseHaptic(_ newPhase: CyclicSighPhase.ID) {
+        guard newPhase != lastPhase else { return }
+        if lastPhase == .exhale, newPhase == .inhale {
+            completedCycles += 1
+        }
+        lastPhase = newPhase
+        switch newPhase {
+        case .inhale:
+            Haptics.light()
+        case .topUp:
+            Haptics.tick()
+        case .exhale:
+            Haptics.stream()
+        }
+    }
+
+    private func timeLeft(_ elapsed: TimeInterval) -> String {
+        let remaining = max(0, Int((targetSeconds - elapsed).rounded(.up)))
+        return String(format: "%d:%02d", remaining / 60, remaining % 60)
     }
 }
 
@@ -400,26 +593,100 @@ private struct MindDumpBubble: View {
     }
 }
 
-private struct BreathPhase {
-    let instruction: String
-    let secondsRemaining: Int
-    let scale: CGFloat
+private struct CyclicSighPhase {
+    enum ID: CaseIterable {
+        case inhale
+        case topUp
+        case exhale
+    }
+
+    private static let inhaleDuration = 1.8
+    private static let topUpDuration = 0.9
+    private static let exhaleDuration = 5.3
+    private static let cycleDuration = inhaleDuration + topUpDuration + exhaleDuration
+
+    let id: ID
+    let phaseElapsed: TimeInterval
 
     init(elapsed: TimeInterval) {
-        let position = elapsed.truncatingRemainder(dividingBy: 14)
-        if position < 4 {
-            instruction = "Breathe in"
-            secondsRemaining = max(1, 4 - Int(position))
-            scale = 0.72 + CGFloat(position / 4) * 0.30
-        } else if position < 8 {
-            instruction = "Hold"
-            secondsRemaining = max(1, 8 - Int(position))
-            scale = 1.02
+        let position = elapsed.truncatingRemainder(dividingBy: Self.cycleDuration)
+        if position < Self.inhaleDuration {
+            id = .inhale
+            phaseElapsed = position
+        } else if position < Self.inhaleDuration + Self.topUpDuration {
+            id = .topUp
+            phaseElapsed = position - Self.inhaleDuration
         } else {
-            instruction = "Breathe out"
-            secondsRemaining = max(1, 14 - Int(position))
-            scale = 1.02 - CGFloat((position - 8) / 6) * 0.30
+            id = .exhale
+            phaseElapsed = position - Self.inhaleDuration - Self.topUpDuration
         }
+    }
+
+    var title: String {
+        switch id {
+        case .inhale: return "Inhale"
+        case .topUp: return "Top up"
+        case .exhale: return "Long exhale"
+        }
+    }
+
+    var subtitle: String {
+        switch id {
+        case .inhale: return "Fill the lungs gently"
+        case .topUp: return "Tiny second sip of air"
+        case .exhale: return "Let the body drop"
+        }
+    }
+
+    var tint: Color {
+        switch id {
+        case .inhale: return Theme.cool
+        case .topUp: return Theme.amber
+        case .exhale: return Theme.mint
+        }
+    }
+
+    var phaseDuration: TimeInterval {
+        switch id {
+        case .inhale: return Self.inhaleDuration
+        case .topUp: return Self.topUpDuration
+        case .exhale: return Self.exhaleDuration
+        }
+    }
+
+    var phaseProgress: Double {
+        min(1, max(0, phaseElapsed / phaseDuration))
+    }
+
+    var breathFill: Double {
+        switch id {
+        case .inhale:
+            return 0.25 + phaseProgress * 0.55
+        case .topUp:
+            return 0.80 + phaseProgress * 0.20
+        case .exhale:
+            return 1.0 - phaseProgress * 0.76
+        }
+    }
+
+    var lungScale: Double {
+        0.82 + breathFill * 0.34
+    }
+
+    var mascotOffset: CGFloat {
+        CGFloat(-18 + breathFill * 24)
+    }
+
+    var rotation: Double {
+        switch id {
+        case .inhale: return phaseProgress * 8
+        case .topUp: return 8 + phaseProgress * 6
+        case .exhale: return 14 - phaseProgress * 20
+        }
+    }
+
+    var secondsRemaining: Int {
+        max(1, Int((phaseDuration - phaseElapsed).rounded(.up)))
     }
 }
 

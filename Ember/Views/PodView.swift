@@ -12,24 +12,21 @@ struct BoxSpaceView: View {
 
     private var snapshot: BoxSpaceSnapshot { store.boxSpace }
     private var everyone: [BoxSpacePerson] {
-        let friends = friendsViewModel.friends.map {
+        let rankedIDs = Set(snapshot.people.filter(\.isFriend).map(\.id))
+        let friendsMissingFromRanking = friendsViewModel.friends
+            .filter { !rankedIDs.contains($0.userId.uuidString) }
+            .map {
             BoxSpacePerson(
                 id: $0.userId.uuidString,
                 name: $0.displayName,
-                monthlyScore: 0,
+                monthlyScore: $0.points,
                 rank: 0,
                 isFriend: true,
                 isCurrentUser: false,
-                decorationID: nil
+                decorationID: $0.skinId
             )
         }
-        let friendIDs = Set(friends.map(\.id))
-        // Keep backend-provided box metadata (such as score and decoration)
-        // when available, while never showing bundled example friends.
-        let boxPeople = snapshot.people.filter { person in
-            !person.isFriend || !friendIDs.contains(person.id)
-        }
-        return [snapshot.currentUser] + friends + boxPeople
+        return [snapshot.currentUser] + snapshot.people + friendsMissingFromRanking
     }
 
     var body: some View {
@@ -93,7 +90,14 @@ struct BoxSpaceView: View {
                 AddFriendView(viewModel: friendsViewModel)
             }
         }
-        .task { await friendsViewModel.refreshAll() }
+        .task {
+            async let friends: Void = friendsViewModel.refreshAll()
+            async let community: Void = store.refreshBoxSpace()
+            _ = await (friends, community)
+        }
+        .onChange(of: friendsViewModel.friends.count) { _ in
+            Task { await store.refreshBoxSpace() }
+        }
     }
 
     private var scoreCard: some View {
@@ -187,11 +191,23 @@ struct BoxSpaceView: View {
     }
 
     private var resetLabel: String {
-        guard let date = ISO8601DateFormatter().date(from: snapshot.resetsAt) else {
+        let date = ISO8601DateFormatter().date(from: snapshot.resetsAt)
+            ?? Self.backendDateFormatter.date(from: snapshot.resetsAt)
+        guard let date else {
             return "next month"
         }
         return date.formatted(.dateTime.month(.abbreviated).day())
     }
+
+    private static let backendDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 8 * 3600)
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }()
+
 }
 
 // MARK: - Draggable map
@@ -717,11 +733,11 @@ private struct BoxDecorationStudio: View {
         }
     }
 
-    private let scoreGroups = [
-        DecorationScoreGroup(score: 500, ids: ["sleepy-blue", "happy-blue", "moon-blue"]),
-        DecorationScoreGroup(score: 2_500, ids: ["dream-blue", "royal-blue", "beauty-blue"]),
-        DecorationScoreGroup(score: 5_000, ids: ["cozy-blue", "foodie-blue", "story-blue"])
-    ]
+    private var scoreGroups: [DecorationScoreGroup] {
+        Dictionary(grouping: store.boxSpace.decorations, by: \.requiredScore)
+            .map { DecorationScoreGroup(score: $0.key, ids: $0.value.map(\.id)) }
+            .sorted { $0.score < $1.score }
+    }
 
     var body: some View {
         ZStack {
@@ -741,7 +757,7 @@ private struct BoxDecorationStudio: View {
                         }
                         .frame(width: 238, height: 210)
                         Text(selectedDecoration?.name ?? "Simple Blue Box").font(.headline)
-                        Text("\(store.boxSpace.currentUser.monthlyScore.formatted()) points this month")
+                        Text("\(store.restJourney.points.formatted()) total Rest Points")
                             .font(.caption).foregroundStyle(.secondary)
                     }
                     .frame(maxWidth: .infinity)
@@ -782,13 +798,13 @@ private struct BoxDecorationStudio: View {
     }
 
     private func decorationTile(_ decoration: BoxDecoration) -> some View {
-        let unlocked = store.boxSpace.currentUser.monthlyScore >= decoration.requiredScore
-        let selected = store.boxSpace.currentUser.decorationID == decoration.id
+        let unlocked = store.restJourney.points >= decoration.requiredScore
+        let selected = store.restJourney.skinID == decoration.id
         return Button {
-            let changedSkin = store.boxSpace.currentUser.decorationID != decoration.id
-            store.selectBoxDecoration(decoration.id)
+            let changedSkin = store.restJourney.skinID != decoration.id
             if changedSkin {
                 playEquipAnimation()
+                Task { await store.selectBoxDecoration(decoration.id) }
             }
         } label: {
             VStack(spacing: 10) {
@@ -805,6 +821,9 @@ private struct BoxDecorationStudio: View {
                             .foregroundStyle(.white.opacity(0.82))
                             .padding(7)
                             .background(Color.black.opacity(0.34), in: Circle())
+                    }
+                    if store.selectingSkinID == decoration.id {
+                        ProgressView().tint(.white)
                     }
                 }
                 HStack(spacing: 4) {

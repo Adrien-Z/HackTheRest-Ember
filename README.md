@@ -36,8 +36,9 @@ open Ember.xcodeproj
 
 ## HealthKit
 - Usage strings live in `Ember/Info.plist` (`NSHealthShareUsageDescription`).
-- `HealthManager` requests read access to `sleepAnalysis` and sums the last 24h
-  of "asleep" samples into total sleep time, shown on the Today screen.
+- `HealthManager` requests read access to sleep and supporting recovery signals,
+  plus steps, active energy, and Apple Exercise Time. Rest Journey uses
+  deduplicated daily HealthKit statistics to maintain its local point ledger.
 - The app never writes to Health.
 - On the simulator, add sleep samples via the Health app to see live data;
   otherwise the app runs entirely on the bundled validated seed.

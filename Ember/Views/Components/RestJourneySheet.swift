@@ -12,29 +12,33 @@ struct RestJourneySheet: View {
         self.expandedHeight = expandedHeight
     }
 
-    private let todaysMoments = [
-        JourneyMoment(title: "Rested well last night", points: 30),
-        JourneyMoment(title: "Wind-down ritual completed", points: 30),
-        JourneyMoment(title: "Kept your sleep rhythm", points: 50)
+    private let dailyMoments = [
+        JourneyPointEvent(id: "daily_check_in", title: "Daily check-in",
+                          detail: "Synced once per UTC+8 day", points: 20),
+        JourneyPointEvent(id: "rested_well", title: "Rested well last night",
+                          detail: "7h sleep with at least 80% efficiency", points: 30),
+        JourneyPointEvent(id: "wind_down_completed", title: "Wind-down ritual completed",
+                          detail: "Tap to confirm your personal ritual", points: 30),
+        JourneyPointEvent(id: "rhythm_kept", title: "Kept your sleep rhythm",
+                          detail: "Stable sleep timing across recent nights", points: 50)
     ]
 
-    private let upcomingMoments = [
-        JourneyMoment(title: "Tomorrow's recovery sleep", points: 30),
-        JourneyMoment(title: "Next wind-down ritual", points: 30)
-    ]
-
-    private let milestones = [
-        JourneyMilestone(
-            title: "10 Days of Rest",
-            caption: "10 days of caring for your rest",
-            points: 100,
-            isUnlocked: true),
-        JourneyMilestone(
-            title: "Rhythm Keeper",
-            caption: "7 days of keeping your sleep rhythm",
-            points: 300,
-            isUnlocked: true)
-    ]
+    private var milestones: [JourneyMilestone] {
+        let restDays = Array(store.restJourney.dailyScores.values)
+            .filter { ($0.sleepMinutes ?? 0) >= 300 }.count
+        return [
+            JourneyMilestone(
+                title: "10 Days of Rest",
+                caption: "Sleep 5+ hours on 10 tracked nights",
+                progressText: "\(min(restDays, 10))/10",
+                isUnlocked: store.completedPointEvents.contains("ten_days_rest")),
+            JourneyMilestone(
+                title: "Rhythm Keeper",
+                caption: "Keep a stable rhythm for 7 consecutive nights",
+                progressText: store.completedPointEvents.contains("rhythm_keeper") ? "Unlocked" : "In progress",
+                isUnlocked: store.completedPointEvents.contains("rhythm_keeper"))
+        ]
+    }
 
     var body: some View {
         GeometryReader { proxy in
@@ -112,23 +116,30 @@ struct RestJourneySheet: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("\(store.displayName)'s Rest Journey")
-                    .font(.title2.weight(.bold))
-                Text("July 2026")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.secondary)
-            }
+        HStack(alignment: .top, spacing: 14) {
+            VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("\(store.displayName)'s Rest Journey")
+                        .font(.title2.weight(.bold))
+                    Text(Date.now.formatted(.dateTime.month(.wide).year()))
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.secondary)
+                }
 
-            VStack(alignment: .leading, spacing: 3) {
-                Text("2,480 Rest Points")
-                    .font(.system(.largeTitle, design: .rounded).weight(.bold))
-                    .foregroundStyle(Color(red: 0.61, green: 0.85, blue: 1.0))
-                Text("Built from your everyday rest moments")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("\(store.restJourney.points.formatted()) Rest Points")
+                        .font(.system(.largeTitle, design: .rounded).weight(.bold))
+                        .foregroundStyle(Color(red: 0.61, green: 0.85, blue: 1.0))
+                    Text("Synced from HealthKit-qualified Supabase rewards")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
             }
+            Spacer(minLength: 4)
+            BoxSkinImageView(
+                decoration: store.selectedBoxDecoration,
+                size: CGSize(width: 78, height: 72))
+                .accessibilityLabel(store.selectedBoxDecoration?.name ?? "Simple Blue Box")
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .emberCard()
@@ -137,11 +148,15 @@ struct RestJourneySheet: View {
     private var todaysMomentsSection: some View {
         JourneySection(title: "Today's Moments") {
             VStack(spacing: 12) {
-                ForEach(todaysMoments) { moment in
+                ForEach(dailyMoments) { moment in
                     JourneyMomentRow(
                         title: moment.title,
+                        detail: moment.detail,
                         points: moment.points,
-                        isComplete: true)
+                        isComplete: store.completedPointEvents.contains(moment.id),
+                        action: moment.id == "wind_down_completed" ? {
+                            Task { await store.completeWindDown() }
+                        } : nil)
                 }
 
                 Divider().overlay(Color.white.opacity(0.08))
@@ -150,7 +165,7 @@ struct RestJourneySheet: View {
                     Text("Today's collection")
                         .font(.subheadline.weight(.semibold))
                     Spacer()
-                    Text("+130 pts")
+                    Text("+\(todayAwardedPoints) pts")
                         .font(.headline.weight(.bold))
                         .foregroundStyle(Theme.mint)
                 }
@@ -159,16 +174,26 @@ struct RestJourneySheet: View {
     }
 
     private var upcomingMomentsSection: some View {
-        JourneySection(title: "Upcoming Moments") {
+        JourneySection(title: "Health Data Used Locally") {
             VStack(spacing: 12) {
-                ForEach(upcomingMoments) { moment in
-                    JourneyMomentRow(
-                        title: moment.title,
-                        points: moment.points,
-                        isComplete: false)
+                if let day = store.todayRestPointDay {
+                    HealthSignalRow(label: "Steps", value: day.steps.formatted())
+                    HealthSignalRow(label: "Active energy", value: "\(day.activeEnergyKcal.formatted()) kcal")
+                    HealthSignalRow(label: "Exercise", value: "\(day.exerciseMinutes.formatted()) min")
+                } else {
+                    Text("Connect Apple Health to qualify for health-based rewards.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
         }
+    }
+
+    private var todayAwardedPoints: Int {
+        dailyMoments
+            .filter { store.completedPointEvents.contains($0.id) }
+            .reduce(0) { $0 + $1.points }
     }
 
     private var milestonesSection: some View {
@@ -431,27 +456,80 @@ private struct JourneySection<Content: View>: View {
 
 private struct JourneyMomentRow: View {
     let title: String
+    let detail: String
     let points: Int
     let isComplete: Bool
+    let action: (() -> Void)?
+
+    init(
+        title: String,
+        detail: String,
+        points: Int,
+        isComplete: Bool,
+        action: (() -> Void)? = nil
+    ) {
+        self.title = title
+        self.detail = detail
+        self.points = points
+        self.isComplete = isComplete
+        self.action = action
+    }
 
     var body: some View {
-        HStack(spacing: 11) {
+        Button {
+            guard !isComplete else { return }
+            action?()
+        } label: {
+            HStack(spacing: 11) {
             Image(systemName: isComplete ? "checkmark.circle.fill" : "circle")
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(isComplete ? Theme.mint : Color.secondary.opacity(0.65))
 
-            Text(title)
-                .font(.subheadline)
-                .foregroundStyle(isComplete ? Color.primary : Color.secondary)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline)
+                    .foregroundStyle(isComplete ? Color.primary : Color.secondary)
+                Text(detail)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
 
             Spacer()
 
+            if action != nil && !isComplete {
+                Text("Mark done")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(Theme.boxBlue)
+            }
             Text("+\(points) pts")
                 .font(.caption.weight(.bold))
                 .foregroundStyle(isComplete ? Theme.mint : Color.secondary.opacity(0.7))
+            }
+            .opacity(isComplete ? 1 : (action == nil ? 0.62 : 0.88))
         }
-        .opacity(isComplete ? 1 : 0.62)
+        .buttonStyle(.plain)
+        .disabled(action == nil || isComplete)
     }
+}
+
+private struct HealthSignalRow: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        HStack {
+            Text(label).font(.subheadline)
+            Spacer()
+            Text(value).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+        }
+    }
+}
+
+private struct JourneyPointEvent: Identifiable {
+    let id: String
+    let title: String
+    let detail: String
+    let points: Int
 }
 
 private struct JourneyMilestoneRow: View {
@@ -475,7 +553,7 @@ private struct JourneyMilestoneRow: View {
 
             Spacer()
 
-            Text("+\(milestone.points) pts")
+            Text(milestone.progressText)
                 .font(.caption.weight(.bold))
                 .foregroundStyle(milestone.isUnlocked ? Theme.mint : Color.secondary.opacity(0.7))
         }
@@ -489,17 +567,11 @@ private struct JourneyMilestoneRow: View {
     }
 }
 
-private struct JourneyMoment: Identifiable {
-    let id = UUID()
-    let title: String
-    let points: Int
-}
-
 private struct JourneyMilestone: Identifiable {
-    let id = UUID()
+    var id: String { title }
     let title: String
     let caption: String
-    let points: Int
+    let progressText: String
     let isUnlocked: Bool
 }
 

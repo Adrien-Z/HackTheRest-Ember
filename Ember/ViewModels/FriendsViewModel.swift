@@ -49,7 +49,7 @@ final class FriendsViewModel: ObservableObject {
         defer { isSendingRequest = false }
         do {
             let response = try await service.sendFriendRequest(email: email)
-            showSuccess(response.message)
+            showSuccess(response.message ?? "Friend request updated.")
             return true
         } catch {
             present(error)
@@ -73,7 +73,7 @@ final class FriendsViewModel: ObservableObject {
         do {
             let response = try await service.respondToRequest(requestID: request.id, accept: accept)
             incomingRequests.removeAll { $0.id == request.id }
-            showSuccess(response.message)
+            showSuccess(response.message ?? "Friend request updated.")
             if accept { await loadFriends() }
         } catch {
             present(error)

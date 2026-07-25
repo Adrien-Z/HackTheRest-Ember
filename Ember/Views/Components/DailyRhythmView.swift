@@ -250,50 +250,129 @@ private struct RhythmEventOverlay: View {
 
     var body: some View {
         ZStack {
-            RhythmPointMarker(
+            ForEach(positionedMarkers) { marker in
+                RhythmPointMarker(
+                    time: marker.time,
+                    title: marker.title,
+                    coordinate: marker.coordinate,
+                    placement: marker.placement,
+                    accentColor: marker.accentColor,
+                    showGuideLine: marker.showGuideLine,
+                    containerWidth: geometry.size.width,
+                    containerHeight: geometry.size.height,
+                    isCurrentState: marker.isCurrentState,
+                    verticalAdjustment: marker.verticalAdjustment,
+                    labelHorizontalAdjustment: marker.labelHorizontalAdjustment,
+                    textAlignmentOverride: marker.textAlignmentOverride)
+            }
+        }
+    }
+
+    private var positionedMarkers: [RhythmMarkerSpec] {
+        var resolved: [RhythmMarkerSpec] = []
+
+        for marker in baseMarkers.sorted(by: { $0.coordinate.x < $1.coordinate.x }) {
+            var candidate = marker
+            candidate.verticalAdjustment += collisionAdjustment(for: candidate, against: resolved)
+            resolved.append(candidate)
+        }
+
+        return resolved
+    }
+
+    private var baseMarkers: [RhythmMarkerSpec] {
+        [
+            RhythmMarkerSpec(
+                id: "sunrise",
                 time: rhythmTimeLabel(sunriseHour),
                 title: "Sunrise",
                 coordinate: geometry.point(clockHour: sunriseHour),
-                placement: .above,
+                placement: .axisBelow,
                 accentColor: Color(red: 1.0, green: 0.82, blue: 0.38),
-                showGuideLine: false,
-                containerWidth: geometry.size.width
-            )
-
-
-            RhythmPointMarker(
+                showGuideLine: true),
+            RhythmMarkerSpec(
+                id: "sunset",
                 time: rhythmTimeLabel(sunsetHour),
                 title: "Sunset",
                 coordinate: geometry.point(clockHour: sunsetHour),
                 placement: .above,
                 accentColor: Color(red: 1.0, green: 0.55, blue: 0.30),
-                showGuideLine: false,
-                containerWidth: geometry.size.width
-            )
-            
-
-            RhythmPointMarker(
+                showGuideLine: true),
+            RhythmMarkerSpec(
+                id: "sleep",
                 time: rhythmTimeLabel(sleepStartHour),
                 title: "Sleep",
                 coordinate: geometry.point(clockHour: sleepStartHour),
                 placement: .below,
                 accentColor: Color(red: 0.76, green: 0.72, blue: 1.0),
                 showGuideLine: true,
-                containerWidth: geometry.size.width,
                 isCurrentState: true,
-                verticalAdjustment: scheduleEventsAreClose ? 6 : 0)
-
-            RhythmPointMarker(
+                verticalAdjustment: scheduleEventsAreClose ? 6 : 0),
+            RhythmMarkerSpec(
+                id: "wake",
                 time: rhythmTimeLabel(wakeHour),
                 title: "Wake",
                 coordinate: geometry.point(clockHour: wakeHour),
                 placement: .above,
                 accentColor: Color(red: 1.0, green: 0.82, blue: 0.42),
-                showGuideLine: false,
-                containerWidth: geometry.size.width
-            )
-        }
+                showGuideLine: true)
+        ]
     }
+
+    private func collisionAdjustment(for marker: RhythmMarkerSpec, against placedMarkers: [RhythmMarkerSpec]) -> CGFloat {
+        let candidates: [CGFloat]
+        switch marker.placement {
+        case .above:
+            candidates = [0, -18, 18, -36, 36, -54, 54]
+        case .below, .axisBelow:
+            candidates = [0, 18, -18, 36, -36, 54, -54]
+        }
+
+        for adjustment in candidates {
+            let rect = labelRect(for: marker, verticalAdjustment: marker.verticalAdjustment + adjustment)
+            let hasCollision = placedMarkers.contains {
+                rect.intersects(labelRect(for: $0, verticalAdjustment: $0.verticalAdjustment))
+            }
+            if !hasCollision {
+                return adjustment
+            }
+        }
+
+        return candidates.last ?? 0
+    }
+
+    private func labelRect(for marker: RhythmMarkerSpec, verticalAdjustment: CGFloat) -> CGRect {
+        let layout = MarkerLayout(
+            markerPoint: marker.coordinate,
+            labelAlignment: .center,
+            verticalDirection: marker.placement.verticalDirection,
+            isAxisLevel: marker.placement.isAxisLevel,
+            usesGuideLine: marker.showGuideLine,
+            verticalAdjustment: verticalAdjustment,
+            labelHorizontalAdjustment: marker.labelHorizontalAdjustment,
+            containerWidth: geometry.size.width,
+            containerHeight: geometry.size.height)
+        let position = layout.labelPosition
+        return CGRect(
+            x: position.x - MarkerLayout.labelWidth / 2,
+            y: position.y - MarkerLayout.labelHeight / 2,
+            width: MarkerLayout.labelWidth,
+            height: MarkerLayout.labelHeight)
+    }
+}
+
+private struct RhythmMarkerSpec: Identifiable {
+    let id: String
+    let time: String
+    let title: String
+    let coordinate: CGPoint
+    let placement: RhythmPointMarker.Placement
+    let accentColor: Color
+    let showGuideLine: Bool
+    var isCurrentState: Bool = false
+    var verticalAdjustment: CGFloat = 0
+    var labelHorizontalAdjustment: CGFloat = 0
+    var textAlignmentOverride: TextAlignment?
 }
 
 private struct MarkerLayout {
@@ -309,18 +388,26 @@ private struct MarkerLayout {
     let markerPoint: CGPoint
     let labelAlignment: Alignment
     let verticalDirection: VerticalDirection
+    let isAxisLevel: Bool
     var usesGuideLine: Bool
     var verticalAdjustment: CGFloat = 0
+    var labelHorizontalAdjustment: CGFloat = 0
     let containerWidth: CGFloat
+    let containerHeight: CGFloat
     
-    private let labelWidth: CGFloat = 72 // 固定标签宽度
+    static let labelWidth: CGFloat = 72
+    static let labelHeight: CGFloat = 34
 
     private var guideLength: CGFloat {
         usesGuideLine ? 24 : 0
     }
 
     private var labelDistance: CGFloat {
-        usesGuideLine ? 34 : 20
+        if usesGuideLine {
+            return 34
+        }
+
+        return curveAwareLabelDistance
     }
 
     var guideEnd: CGPoint {
@@ -330,24 +417,72 @@ private struct MarkerLayout {
     }
     
     private var horizontalOffset: CGFloat {
-        let halfWidth = labelWidth / 2
+        let halfWidth = Self.labelWidth / 2
         let leftBound = halfWidth
         let rightBound = containerWidth - halfWidth
+        let preferredX = markerPoint.x + curveAvoidanceOffset + labelHorizontalAdjustment
         
-        if markerPoint.x < leftBound {
+        if preferredX < leftBound {
             return leftBound - markerPoint.x
-        } else if markerPoint.x > rightBound {
+        } else if preferredX > rightBound {
             return rightBound - markerPoint.x
         } else {
-            return 0
+            return curveAvoidanceOffset + labelHorizontalAdjustment
         }
     }
 
     var labelPosition: CGPoint {
         CGPoint(
             x: markerPoint.x + horizontalOffset,
-            y: markerPoint.y + verticalDirection.multiplier * labelDistance + verticalAdjustment
+            y: boundedY(markerPoint.y + verticalDirection.multiplier * labelDistance + verticalAdjustment)
         )
+    }
+
+    var textAlignment: TextAlignment {
+        if markerPoint.x < Self.labelWidth / 2 {
+            return .leading
+        }
+        if markerPoint.x > containerWidth - Self.labelWidth / 2 {
+            return .trailing
+        }
+        return .center
+    }
+
+    private func boundedY(_ y: CGFloat) -> CGFloat {
+        let topBound = Self.labelHeight / 2 + 4
+        let bottomBound = containerHeight - Self.labelHeight / 2 - 4
+        return min(max(y, topBound), bottomBound)
+    }
+
+    private var curveAwareLabelDistance: CGFloat {
+        let minimumClearance = Self.labelHeight / 2 + 12
+        let preferredClearance = Self.labelHeight / 2 + 18
+        let availableSpace = verticalDirection == .above
+            ? markerPoint.y - (Self.labelHeight / 2 + 4)
+            : containerHeight - markerPoint.y - (Self.labelHeight / 2 + 4)
+
+        guard availableSpace > minimumClearance else {
+            return max(minimumClearance, availableSpace)
+        }
+
+        return min(preferredClearance, availableSpace)
+    }
+
+    private var curveAvoidanceOffset: CGFloat {
+        guard !usesGuideLine, !isAxisLevel, verticalDirection == .above else {
+            return 0
+        }
+
+        let nearLeftCurve = markerPoint.x < containerWidth * 0.35
+        let nearRightCurve = markerPoint.x > containerWidth * 0.65
+
+        if nearLeftCurve {
+            return -Self.labelWidth * 0.34
+        }
+        if nearRightCurve {
+            return Self.labelWidth * 0.34
+        }
+        return 0
     }
 }
 
@@ -355,9 +490,14 @@ private struct RhythmPointMarker: View {
     enum Placement {
         case above
         case below
+        case axisBelow
 
         var verticalDirection: MarkerLayout.VerticalDirection {
             self == .above ? .above : .below
+        }
+
+        var isAxisLevel: Bool {
+            self == .axisBelow
         }
     }
 
@@ -367,9 +507,12 @@ private struct RhythmPointMarker: View {
     let placement: Placement
     let accentColor: Color
     let showGuideLine: Bool
-    let containerWidth: CGFloat   // 新增
+    let containerWidth: CGFloat
+    let containerHeight: CGFloat
     var isCurrentState: Bool = false
     var verticalAdjustment: CGFloat = 0
+    var labelHorizontalAdjustment: CGFloat = 0
+    var textAlignmentOverride: TextAlignment?
     @State private var isPulsing = false
 
     private let markerSize: CGFloat = 5
@@ -379,9 +522,12 @@ private struct RhythmPointMarker: View {
             markerPoint: coordinate,
             labelAlignment: .center,
             verticalDirection: placement.verticalDirection,
+            isAxisLevel: placement.isAxisLevel,
             usesGuideLine: showGuideLine,
             verticalAdjustment: verticalAdjustment,
-            containerWidth: containerWidth)
+            labelHorizontalAdjustment: labelHorizontalAdjustment,
+            containerWidth: containerWidth,
+            containerHeight: containerHeight)
     }
 
     var body: some View {
@@ -406,7 +552,8 @@ private struct RhythmPointMarker: View {
                 time: time,
                 title: title,
                 tint: accentColor.opacity(showGuideLine ? 0.78 : 0.72),
-                isPulsing: isCurrentState && isPulsing)
+                isPulsing: isCurrentState && isPulsing,
+                textAlignment: textAlignmentOverride ?? layout.textAlignment)
                 .position(layout.labelPosition)
         }
         .animation(
@@ -429,6 +576,7 @@ private struct RhythmMarkerLabel: View {
     let title: String
     let tint: Color
     var isPulsing: Bool = false
+    var textAlignment: TextAlignment = .center
 
     var body: some View {
         VStack(spacing: 1) {
@@ -439,7 +587,8 @@ private struct RhythmMarkerLabel: View {
                 .font(.system(size: 11, weight: .regular, design: .rounded))
                 .foregroundStyle(tint.opacity(isPulsing ? 0.76 : 0.64))
         }
-        .frame(width: 72)
+        .multilineTextAlignment(textAlignment)
+        .frame(width: MarkerLayout.labelWidth, height: MarkerLayout.labelHeight)
         .shadow(color: .black.opacity(0.20), radius: 3, y: 1)
     }
 }

@@ -758,6 +758,8 @@ struct HealthInsightSnapshot {
     let hrvLabel: String
     let heartRateLabel: String
     let recoveryLabel: String
+    let sleepFactors: [HealthInsightFactor]
+    let bodyFactors: [HealthInsightFactor]
 
     init(nights: [NightSample], latest: NightSample) {
         self.latest = latest
@@ -795,6 +797,36 @@ struct HealthInsightSnapshot {
         hrvLabel = latest.hrvMs.map { "HRV \(Int($0)) ms" } ?? "HRV unavailable"
         heartRateLabel = latest.avgHRBpm.map { "HR \(Int($0)) bpm" } ?? "HR unavailable"
         recoveryLabel = "\(sleepScore >= 75 ? "well recovered" : "take it easy")"
+        
+        sleepFactors = [
+            HealthInsightFactor(
+                id: "duration",
+                label: "Duration",
+                value: "\(latest.tstMin)m",
+                score: Int(min(100, Double(latest.tstMin) / 480 * 100)),
+                symbol: "bed.double.fill",
+                tint: Theme.cool
+            ),
+            HealthInsightFactor(
+                id: "efficiency",
+                label: "Efficiency",
+                value: "\(Int(latest.sePct))%",
+                score: Int(latest.sePct),
+                symbol: "checkmark.seal.fill",
+                tint: Theme.mint
+            )
+        ]
+
+        bodyFactors = [
+            HealthInsightFactor(
+                id: "hrv",
+                label: "HRV",
+                value: hrvLabel,
+                score: bodyBattery,
+                symbol: "waveform.path.ecg",
+                tint: Theme.ember
+            )
+        ]
     }
 
     private static func sleepScore(for night: NightSample, hrvBaseline: Double?) -> Int {
@@ -845,3 +877,78 @@ struct HealthInsightSnapshot {
         min(100, max(0, value))
     }
 }
+
+struct HealthInsightFactor: Identifiable {
+    let id: String
+    let label: String
+    let value: String
+    let score: Int
+    let symbol: String
+    let tint: Color
+}
+
+struct InsightMascot: View {
+    enum Style { case blanket, battery, rhythm }
+
+    let style: Style
+    let decoration: BoxDecoration?
+    let tint: Color
+    @State private var bob = false
+
+    var body: some View {
+        ZStack {
+            switch style {
+            case .blanket:
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(tint.opacity(0.20))
+                    .frame(width: 78, height: 42)
+                    .rotationEffect(.degrees(-6))
+                    .offset(y: 16)
+                BoxSkinImageView(decoration: decoration, size: CGSize(width: 58, height: 58))
+                    .scaleEffect(0.92)
+                    .offset(y: -2)
+                Image(systemName: "moon.zzz.fill")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(tint)
+                    .offset(x: 28, y: -24)
+            case .battery:
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(tint.opacity(0.75), lineWidth: 2)
+                    .frame(width: 70, height: 34)
+                    .overlay(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(tint.opacity(0.55))
+                            .frame(width: 48, height: 22)
+                            .padding(.leading, 6)
+                    }
+                    .offset(y: 20)
+                BoxSkinImageView(decoration: decoration, size: CGSize(width: 56, height: 56))
+                    .offset(y: -10)
+                Image(systemName: "bolt.fill")
+                    .font(.caption.weight(.heavy))
+                    .foregroundStyle(.white)
+                    .offset(x: 2, y: 19)
+            case .rhythm:
+                Circle()
+                    .strokeBorder(tint.opacity(0.22), lineWidth: 8)
+                    .frame(width: 62, height: 62)
+                    .offset(y: 4)
+                Circle()
+                    .trim(from: 0.08, to: 0.70)
+                    .stroke(Theme.amber.opacity(0.46), style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                    .frame(width: 70, height: 70)
+                    .rotationEffect(.degrees(-28))
+                    .offset(y: 4)
+                BoxSkinImageView(decoration: decoration, size: CGSize(width: 56, height: 56))
+                    .offset(y: -8)
+            }
+        }
+        .frame(width: 92, height: 96)
+        .opacity(0.42)
+        .offset(y: bob ? -3 : 3)
+        .animation(.easeInOut(duration: 2.4).repeatForever(autoreverses: true), value: bob)
+        .onAppear { bob = true }
+    }
+}
+
+

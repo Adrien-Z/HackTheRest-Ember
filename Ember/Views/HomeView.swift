@@ -85,7 +85,7 @@ struct HomeView: View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text(greetingWord() + ", \(store.user.name)").font(.title2.weight(.bold))
-                Text("Let's set up tonight's rest.").font(.subheadline).foregroundStyle(.secondary)
+                Text("Let's set up tonight's rest.").font(.subheadline).foregroundStyle(Theme.secondaryText)
             }
             Spacer()
         }
@@ -106,7 +106,7 @@ struct HomeView: View {
             }
             if let plan = effectiveTonightPlan {
                 Text(tonightPlanSummary(plan))
-                    .font(.footnote).foregroundStyle(.secondary)
+                    .font(.footnote).foregroundStyle(Theme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
                 Button {
                     Haptics.light()
@@ -116,10 +116,10 @@ struct HomeView: View {
                         .font(.caption.weight(.semibold))
                         .padding(.horizontal, 11)
                         .padding(.vertical, 7)
-                        .background(Theme.ember.opacity(0.16), in: Capsule())
+                        .background(Theme.ember.opacity(0.26), in: Capsule())
                 }
                 .buttonStyle(.plain)
-                .foregroundStyle(Theme.ember)
+                .foregroundStyle(.white)
             }
             if WakeAlarmService.isSupported {
                 Divider().overlay(Color.white.opacity(0.08))
@@ -151,7 +151,7 @@ struct HomeView: View {
                 Button("Remove") { wakeAlarm.cancelWakeAlarm() }
                     .buttonStyle(.bordered).controlSize(.small)
             } else {
-                Text("Wake alarm").font(.footnote).foregroundStyle(.secondary)
+                Text("Wake alarm").font(.footnote).foregroundStyle(Theme.secondaryText)
                 Spacer()
                 Button("Set for \(tonightWakeTime)") {
                     Task { await wakeAlarm.setWakeAlarm(at: tonightWakeTime) }
@@ -201,7 +201,7 @@ struct HomeView: View {
             HStack(spacing: 7) {
                 ForEach(0..<3, id: \.self) { index in
                     Capsule()
-                        .fill(index == insightPage ? Theme.ember : Color.white.opacity(0.22))
+                        .fill(index == insightPage ? Theme.ember : Color.white.opacity(0.34))
                         .frame(width: index == insightPage ? 18 : 6, height: 6)
                         .animation(.easeInOut(duration: 0.2), value: insightPage)
                 }
@@ -250,7 +250,7 @@ struct HomeView: View {
                     Spacer()
                     Text("Open")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.secondaryText)
                 }
             } else {
                 HealthInsightEmptyState(
@@ -313,7 +313,7 @@ struct HomeView: View {
                 .foregroundStyle(tint)
             Text(label)
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
+            .foregroundStyle(Theme.secondaryText)
             Spacer()
         }
     }
@@ -336,7 +336,7 @@ struct HomeView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Sample data").font(.subheadline.weight(.semibold))
                     Text("Switch to Live in Settings to use your Apple Health data.")
-                        .font(.footnote).foregroundStyle(.secondary)
+                        .font(.footnote).foregroundStyle(Theme.secondaryText)
                 }
                 Spacer()
                 Button("Settings") { showSettings = true }
@@ -348,7 +348,7 @@ struct HomeView: View {
                 Image(systemName: "heart.fill").foregroundStyle(.pink).font(.title3)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Apple Health").font(.subheadline.weight(.semibold))
-                    Text("Connect to auto-import your sleep").font(.footnote).foregroundStyle(.secondary)
+                    Text("Connect to auto-import your sleep").font(.footnote).foregroundStyle(Theme.secondaryText)
                 }
                 Spacer()
                 Button("Connect") {
@@ -364,9 +364,9 @@ struct HomeView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Apple Health").font(.subheadline.weight(.semibold))
                         if let tst = store.healthLastNightTST {
-                            Text("Last night: \(fmtDur(tst)) asleep").font(.footnote).foregroundStyle(.secondary)
+                            Text("Last night: \(fmtDur(tst)) asleep").font(.footnote).foregroundStyle(Theme.secondaryText)
                         } else {
-                            Text("Connected · no sleep recorded last night").font(.footnote).foregroundStyle(.secondary)
+                            Text("Connected · no sleep recorded last night").font(.footnote).foregroundStyle(Theme.secondaryText)
                         }
                     }
                     Spacer()
@@ -413,7 +413,7 @@ struct HomeView: View {
         return HStack(spacing: 14) {
             VStack(alignment: .leading, spacing: 2) {
                 Label("Your rhythm", systemImage: "waveform.path.ecg").font(.subheadline.weight(.semibold))
-                Text("Regularity Index \(Int(r.sri ?? 0))/100").font(.caption).foregroundStyle(.secondary)
+                Text("Regularity Index \(Int(r.sri ?? 0))/100").font(.caption).foregroundStyle(Theme.secondaryText)
             }
             Spacer()
             Chart(Array(r.midpoints.enumerated()), id: \.offset) { i, p in
@@ -422,7 +422,7 @@ struct HomeView: View {
             }
             .chartXAxis(.hidden).chartYAxis(.hidden)
             .frame(width: 90, height: 34)
-            Image(systemName: "chevron.right").foregroundStyle(.secondary).font(.caption)
+            Image(systemName: "chevron.right").foregroundStyle(Theme.secondaryText).font(.caption)
         }
         .emberCard(14)
     }
@@ -432,9 +432,9 @@ struct HomeView: View {
             Image(systemName: "bubble.left.and.text.bubble.right.fill").foregroundStyle(Theme.ember)
             VStack(alignment: .leading) {
                 Text("Ask your Rest Coach").font(.subheadline.weight(.semibold))
-                Text("Why did my plan change this week?").font(.footnote).foregroundStyle(.secondary)
+                Text("Why did my plan change this week?").font(.footnote).foregroundStyle(Theme.secondaryText)
             }
-            Spacer(); Image(systemName: "chevron.right").foregroundStyle(.secondary).font(.caption)
+            Spacer(); Image(systemName: "chevron.right").foregroundStyle(Theme.secondaryText).font(.caption)
         }.emberCard(14)
     }
 
@@ -477,7 +477,7 @@ struct EngineCard: View {
                 Tag(text: metric, color: tint)
             }
             Text(title).font(.headline)
-            Text(blurb).font(.footnote).foregroundStyle(.secondary)
+            Text(blurb).font(.footnote).foregroundStyle(Theme.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
             HStack { Spacer(); Text("Open").font(.caption.weight(.semibold)).foregroundStyle(tint)
                 Image(systemName: "arrow.right").font(.caption).foregroundStyle(tint) }
@@ -504,7 +504,7 @@ private struct HealthInsightCard<Content: View>: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(title).font(.headline)
-                        Text(subtitle).font(.caption).foregroundStyle(.secondary)
+                        Text(subtitle).font(.caption).foregroundStyle(Theme.secondaryText)
                     }
                     Spacer()
                 }
@@ -513,10 +513,10 @@ private struct HealthInsightCard<Content: View>: View {
         }
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .background(Theme.card.opacity(0.96), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .strokeBorder(accent.opacity(0.20), lineWidth: 0.8)
+                .strokeBorder(accent.opacity(0.28), lineWidth: 0.9)
         )
         .padding(.vertical, 6)
     }
@@ -664,7 +664,7 @@ private struct DailyEnergyChart: View {
         .chartXAxis {
             AxisMarks(values: .automatic(desiredCount: 4)) { value in
                 AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5))
-                    .foregroundStyle(Color.white.opacity(0.12))
+                .foregroundStyle(Color.white.opacity(0.22))
                 AxisValueLabel {
                     if let date = value.as(Date.self) {
                         Text(date, format: .dateTime.hour())
@@ -687,10 +687,10 @@ private struct InsightPill: View {
         Label(text, systemImage: icon)
             .font(.caption2.weight(.semibold))
             .lineLimit(1)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Theme.secondaryText)
             .padding(.horizontal, 8)
             .frame(height: 28)
-            .background(Color.white.opacity(0.07), in: Capsule())
+            .background(Color.white.opacity(0.12), in: Capsule())
     }
 }
 
@@ -704,7 +704,7 @@ private struct HealthInsightEmptyState: View {
             Spacer(minLength: 8)
             Image(systemName: icon).font(.title2).foregroundStyle(Theme.cool)
             Text(title).font(.title3.weight(.bold))
-            Text(message).font(.footnote).foregroundStyle(.secondary)
+            Text(message).font(.footnote).foregroundStyle(Theme.secondaryText)
             Spacer()
         }
     }

@@ -138,14 +138,16 @@ private struct DayPage: View {
 
     private func rebuild() {
         let offset = store.currentThermalRx?.prescribedOffsetMin ?? store.user.currentOffsetMin
-        withAnimation(.snappy) {
-            let rebuilt = DayPlanner.build(
-                nightOf: day, user: store.user,
-                warmingOffsetMin: offset, prepBufferMin: wakeAlarm.prepBufferMin,
-                events: store.agendaEvents.filter { !$0.isAllDay })
+        let rebuilt = DayPlanner.build(
+            nightOf: day, user: store.user,
+            warmingOffsetMin: offset, prepBufferMin: wakeAlarm.prepBufferMin,
+            events: store.agendaEvents.filter { !$0.isAllDay })
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
             plan = rebuilt
-            store.updateTonightPlan(rebuilt)
         }
+        store.updateTonightPlan(rebuilt)
     }
     private func minuteOfDay(_ s: String) -> Int {
         let p = s.split(separator: ":").compactMap { Int($0) }; return p.count >= 2 ? p[0]*60+p[1] : 0
@@ -172,7 +174,7 @@ private struct DayStrip: View {
                                 Text(day, format: .dateTime.day()).font(.headline.weight(.semibold))
                             }
                             .frame(width: 46, height: 54)
-                            .background(sel ? Theme.ember : Color.white.opacity(0.06),
+                            .background(sel ? Theme.ember : Color.white.opacity(0.14),
                                         in: RoundedRectangle(cornerRadius: 14))
                             .foregroundStyle(sel ? .white : .primary)
                         }.buttonStyle(.plain).id(day)
@@ -220,7 +222,7 @@ private struct PlanBanner: View {
                     Spacer()
                     Tag(text: plan.level.label, color: color)
                 }
-                Text(plan.detail).font(.caption).foregroundStyle(.secondary)
+                Text(plan.detail).font(.caption).foregroundStyle(Theme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
                 HStack(spacing: 10) {
                     PlanMetric(systemImage: "bed.double.fill", value: clock(plan.bed))
@@ -231,7 +233,7 @@ private struct PlanBanner: View {
                         Image(systemName: "arrow.counterclockwise")
                     }
                     .buttonStyle(.plain)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.secondaryText)
                     .frame(width: 36, height: 32)
                     .accessibilityLabel("Reset plan")
                 }
@@ -256,7 +258,7 @@ private struct PlanMetric: View {
                 .minimumScaleFactor(0.85)
         }
         .font(.caption2.weight(.semibold))
-        .foregroundStyle(.secondary)
+        .foregroundStyle(Theme.secondaryText)
         .frame(width: 64, height: 28, alignment: .leading)
     }
 }
@@ -276,6 +278,7 @@ private struct DayCanvas: View {
     @State private var sleepBase: DayPlan?
     @State private var warmBase: DayPlan?
     @State private var lastStep = 0
+    @State private var dragTranslationY: CGFloat = 0
     @State private var appeared = false     // spring-in for the plan bands
     @State private var pulse = false        // "you are here" energy orb
 
@@ -290,6 +293,8 @@ private struct DayCanvas: View {
     private var origin: Date { cal.date(bySettingHour: startHour, minute: 0, second: 0, of: cal.startOfDay(for: day))! }
     private var ppm: CGFloat { hourHeight / 60 }
     private var totalHeight: CGFloat { CGFloat(spanHours) * hourHeight }
+    private var isDraggingPlan: Bool { sleepBase != nil || warmBase != nil }
+    private var planDragOffset: CGFloat { isDraggingPlan ? dragTranslationY : 0 }
     private func y(_ date: Date) -> CGFloat { CGFloat(date.timeIntervalSince(origin) / 60) * ppm }
 
     var body: some View {
@@ -359,9 +364,9 @@ private struct DayCanvas: View {
             let date = origin.addingTimeInterval(Double(h) * 3600)
             let yy = CGFloat(h) * hourHeight
             ZStack(alignment: .topLeading) {
-                Rectangle().fill(Color.white.opacity(0.06)).frame(width: width, height: 0.5).offset(y: yy)
+                Rectangle().fill(Color.white.opacity(0.12)).frame(width: width, height: 0.5).offset(y: yy)
                 Text(date, format: .dateTime.hour())
-                    .font(.caption2).foregroundStyle(.secondary)
+                    .font(.caption2).foregroundStyle(Theme.secondaryText)
                     .frame(width: gutter - 8, alignment: .trailing)
                     .offset(x: 0, y: yy - 6)
             }
@@ -418,7 +423,7 @@ private struct DayCanvas: View {
                 p.move(to: f); for pt in pts.dropFirst() { p.addLine(to: pt) }
             }
             .stroke(Theme.amber.opacity(0.85), lineWidth: 1.5)
-            Text("ENERGY").font(.system(size: 8, weight: .bold)).foregroundStyle(.secondary)
+            Text("ENERGY").font(.system(size: 8, weight: .bold)).foregroundStyle(Theme.secondaryText)
                 .rotationEffect(.degrees(90)).fixedSize()
                 .offset(x: ribbonX + ribbonWidth - 8, y: 16)
         }
@@ -479,7 +484,7 @@ private struct DayCanvas: View {
                         .gesture(bandDrag(base: $sleepBase))
                         .padding(.trailing, 8)
                 }
-                .offset(x: laneX, y: top)
+                .offset(x: laneX, y: top + planDragOffset)
         }
     }
 
@@ -494,7 +499,7 @@ private struct DayCanvas: View {
                         .gesture(bandDrag(base: $warmBase))
                         .padding(.trailing, 8)
                 }
-                .offset(x: laneX, y: top)
+                .offset(x: laneX, y: top + planDragOffset)
         }
     }
 
@@ -513,10 +518,9 @@ private struct DayCanvas: View {
         .background(color.opacity(lifted ? 0.34 : 0.22), in: RoundedRectangle(cornerRadius: 12))
         .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(color.opacity(lifted ? 0.9 : 0.55), lineWidth: lifted ? 1.5 : 1))
         .foregroundStyle(.white)
-        .shadow(color: .black.opacity(lifted ? 0.4 : 0), radius: lifted ? 8 : 0, y: lifted ? 4 : 0)
-        .scaleEffect(lifted ? 1.03 : (appeared ? 1 : 0.94), anchor: .leading)
+        .shadow(color: .black.opacity(lifted ? 0.32 : 0), radius: lifted ? 7 : 0, y: lifted ? 3 : 0)
+        .scaleEffect(appeared ? 1 : 0.94, anchor: .leading)
         .opacity(appeared ? 1 : 0)
-        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: lifted)
     }
 
     private func dragHandle(lifted: Bool) -> some View {
@@ -531,8 +535,8 @@ private struct DayCanvas: View {
 
     /// Native-Calendar behavior: drag the small handle to move the WHOLE night
     /// (sleep + warm-up stay linked). The rest of the band stays scrollable.
-    /// Snapped to 5 min. Shared state is committed on end so other screens don't
-    /// re-render against the finger mid-drag.
+    /// The visual drag follows the finger continuously; the shared plan is
+    /// snapped and committed only on release to avoid relayout jitter mid-drag.
     private func bandDrag(base: Binding<DayPlan?>) -> some Gesture {
         DragGesture(minimumDistance: 6)
             .onChanged { value in
@@ -541,23 +545,27 @@ private struct DayCanvas: View {
                     lastStep = 0
                     Haptics.light()
                 }
-                guard let b = base.wrappedValue else { return }
+                dragTranslationY = value.translation.height
                 let step = Int((value.translation.height / ppm / 5).rounded()) * 5
                 guard step != lastStep else { return }
-                var p = b
-                p.bed = shift(b.bed, step); p.wake = shift(b.wake, step)
-                p.warmingStart = shift(b.warmingStart, step); p.warmingEnd = shift(b.warmingEnd, step)
-                var transaction = Transaction()
-                transaction.disablesAnimations = true
-                withTransaction(transaction) {
-                    plan = p
-                }
                 Haptics.tick()
                 lastStep = step
             }
-            .onEnded { _ in
-                if let plan { onPlanChange(plan) }
+            .onEnded { value in
+                if let b = base.wrappedValue {
+                    let step = Int((value.translation.height / ppm / 5).rounded()) * 5
+                    var p = b
+                    p.bed = shift(b.bed, step); p.wake = shift(b.wake, step)
+                    p.warmingStart = shift(b.warmingStart, step); p.warmingEnd = shift(b.warmingEnd, step)
+                    var transaction = Transaction()
+                    transaction.disablesAnimations = true
+                    withTransaction(transaction) {
+                        plan = p
+                    }
+                    onPlanChange(p)
+                }
                 base.wrappedValue = nil
+                dragTranslationY = 0
                 lastStep = 0
             }
     }
@@ -573,7 +581,7 @@ private struct DayCanvas: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(pos.event.title).font(.caption.weight(.semibold)).lineLimit(pos.cols > 2 ? 1 : 2)
                 if h > 34 && pos.cols < 3 {
-                    Text("\(clock(pos.event.start))–\(clock(pos.event.end))").font(.caption2).foregroundStyle(.secondary)
+                    Text("\(clock(pos.event.start))–\(clock(pos.event.end))").font(.caption2).foregroundStyle(Theme.secondaryText)
                 }
                 Spacer(minLength: 0)
             }
@@ -675,7 +683,7 @@ private struct EventDetailSheet: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(event.title).font(.title3.weight(.bold))
                         Text("\(event.start.formatted(.dateTime.weekday().hour().minute())) – \(event.end.formatted(.dateTime.hour().minute()))")
-                            .font(.subheadline).foregroundStyle(.secondary)
+                            .font(.subheadline).foregroundStyle(Theme.secondaryText)
                     }
                     if let why = event.why, !why.isEmpty {
                         Label { Text(why) } icon: { Image(systemName: "sparkles").foregroundStyle(Theme.ember) }
@@ -695,11 +703,11 @@ private struct EventDetailSheet: View {
                                     if active { Image(systemName: "checkmark.circle.fill").foregroundStyle(Theme.ember) }
                                 }
                                 .padding(.vertical, 10).padding(.horizontal, 12)
-                                .background(active ? Theme.ember.opacity(0.14) : Color.white.opacity(0.05),
+                                .background(active ? Theme.ember.opacity(0.22) : Color.white.opacity(0.12),
                                             in: RoundedRectangle(cornerRadius: 10))
                             }.buttonStyle(.plain)
                         }
-                        Text("Your correction sticks and won't be re-analyzed.").font(.caption2).foregroundStyle(.secondary)
+                        Text("Your correction sticks and won't be re-analyzed.").font(.caption2).foregroundStyle(Theme.secondaryText)
                     }
                     Button {
                         Task {
@@ -734,9 +742,9 @@ private struct MarkerSheet: View {
         VStack(spacing: 14) {
             Image(systemName: marker.symbol).font(.system(size: 40)).foregroundStyle(Theme.ember).padding(.top, 24)
             Text(marker.label).font(.title3.weight(.bold))
-            Text(timeLabel).font(.subheadline).foregroundStyle(.secondary)
+            Text(timeLabel).font(.subheadline).foregroundStyle(Theme.secondaryText)
             Text(marker.detail).font(.callout).multilineTextAlignment(.center)
-                .foregroundStyle(.secondary).padding(.horizontal, 24)
+                .foregroundStyle(Theme.secondaryText).padding(.horizontal, 24)
             Spacer()
         }
     }
@@ -773,7 +781,7 @@ private struct AgendaInfoSheet: View {
             Image(systemName: icon).foregroundStyle(tint).font(.title3).frame(width: 30)
             VStack(alignment: .leading, spacing: 3) {
                 Text(title).font(.subheadline.weight(.semibold))
-                Text(body).font(.footnote).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                Text(body).font(.footnote).foregroundStyle(Theme.secondaryText).fixedSize(horizontal: false, vertical: true)
             }
         }
     }

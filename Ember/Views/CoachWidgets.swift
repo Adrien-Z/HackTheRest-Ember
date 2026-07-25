@@ -134,7 +134,7 @@ struct CoachWidgetView: View {
             }
             content()
             if let caption = spec.caption, !caption.isEmpty {
-                Text(caption).font(.footnote).foregroundStyle(.secondary)
+                Text(caption).font(.footnote).foregroundStyle(Theme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -208,7 +208,7 @@ struct CoachWidgetView: View {
                 if let spread = store.regularity.midpointStdevMin {
                     Text("±\(Int(spread))m drift")
                         .font(.caption2.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.secondaryText)
                 }
             }
             Chart {
@@ -236,7 +236,7 @@ struct CoachWidgetView: View {
                         if let index = value.as(Int.self), let point = points.first(where: { $0.index == index }) {
                             Text(rhythmAxisLabel(for: point, total: points.count))
                                 .font(.caption2)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Theme.secondaryText)
                         }
                     }
                 }
@@ -249,7 +249,7 @@ struct CoachWidgetView: View {
                         if let hour = value.as(Double.self) {
                             Text(clockHour(hour))
                                 .font(.caption2)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Theme.secondaryText)
                         }
                     }
                 }
@@ -266,8 +266,8 @@ struct CoachWidgetView: View {
                 VStack(spacing: 2) {
                     Text(item.value).font(.system(.title2, design: .rounded).weight(.bold))
                         .foregroundStyle(i == 0 ? Theme.ember : .primary)
-                    Text(item.label).font(.caption).foregroundStyle(.secondary)
-                    if let c = item.caption { Text(c).font(.caption2).foregroundStyle(.secondary) }
+                    Text(item.label).font(.caption).foregroundStyle(Theme.secondaryText)
+                    if let c = item.caption { Text(c).font(.caption2).foregroundStyle(Theme.secondaryText) }
                 }.frame(maxWidth: .infinity)
             }
         }
@@ -338,7 +338,7 @@ private struct LegendDot: View {
     var body: some View {
         HStack(spacing: 5) {
             Circle().fill(color).frame(width: 7, height: 7)
-            Text(label).font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
+            Text(label).font(.caption2.weight(.semibold)).foregroundStyle(Theme.secondaryText)
         }
     }
 }

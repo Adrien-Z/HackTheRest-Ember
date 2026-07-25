@@ -71,7 +71,7 @@ struct SettingsView: View {
                         if store.healthAuthorized && !store.liveHasData {
                             Label("No sleep data found in Apple Health for the last 60 days.",
                                   systemImage: "exclamationmark.triangle")
-                                .font(.footnote).foregroundStyle(.secondary)
+                                .font(.footnote).foregroundStyle(Theme.secondaryText)
                         }
                     }
 
@@ -83,7 +83,7 @@ struct SettingsView: View {
                 Section {
                     Label("Sleep Climate uses approximate location to factor overnight heat and humidity into coaching when it is relevant.", systemImage: "cloud.sun.fill")
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.secondaryText)
                 }
 
                 if WakeAlarmService.isSupported {
@@ -136,7 +136,7 @@ struct SettingsView: View {
                 Section {
                     Label("Pod content is illustrative until social sync is connected.",
                           systemImage: "person.3.fill")
-                        .font(.footnote).foregroundStyle(.secondary)
+                        .font(.footnote).foregroundStyle(Theme.secondaryText)
                 }
 
                 Section {

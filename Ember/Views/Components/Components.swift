@@ -7,7 +7,7 @@ struct SectionHeader: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title).font(.title3.weight(.semibold))
-            if let s = subtitle { Text(s).font(.subheadline).foregroundStyle(.secondary) }
+            if let s = subtitle { Text(s).font(.subheadline).foregroundStyle(Theme.secondaryText) }
         }.frame(maxWidth: .infinity, alignment: .leading)
     }
 }
@@ -33,7 +33,7 @@ struct MetricStat: View {
     var body: some View {
         VStack(spacing: 2) {
             Text(value).font(.system(.title, design: .rounded).weight(.bold)).foregroundStyle(color)
-            Text(label).font(.caption).foregroundStyle(.secondary)
+            Text(label).font(.caption).foregroundStyle(Theme.secondaryText)
         }.frame(maxWidth: .infinity)
     }
 }
@@ -45,7 +45,7 @@ struct ScienceNote: View {
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: icon).foregroundStyle(Theme.ember).font(.subheadline)
-            Text(text).font(.footnote).foregroundStyle(.secondary)
+            Text(text).font(.footnote).foregroundStyle(Theme.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .emberCard(12)
@@ -74,7 +74,7 @@ struct AskCoachLink: View {
                 Image(systemName: "bubble.left.and.text.bubble.right.fill").foregroundStyle(Theme.ember)
                 Text("Ask the coach").font(.subheadline.weight(.semibold))
                 Spacer()
-                Image(systemName: "chevron.right").font(.caption).foregroundStyle(.secondary)
+                Image(systemName: "chevron.right").font(.caption).foregroundStyle(Theme.secondaryText)
             }
             .emberCard(12)
         }

@@ -56,7 +56,7 @@ struct RhythmView: View {
                     Tag(text: sriBand.label, color: sriBand.color)
                 }
                 SRIRingView(value: r.sri ?? 0)
-                Text(sriBand.blurb).font(.footnote.weight(.semibold)).foregroundStyle(.secondary)
+                Text(sriBand.blurb).font(.footnote.weight(.semibold)).foregroundStyle(Theme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -102,7 +102,7 @@ struct RhythmView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Midpoint trail").font(.subheadline.weight(.semibold))
             Text("Flat = regular. Amber = weekend.")
-                .font(.caption2).foregroundStyle(.secondary)
+                .font(.caption2).foregroundStyle(Theme.secondaryText)
             MidpointChart(points: r.midpoints)
         }
         .emberCard()
@@ -140,7 +140,7 @@ struct SRIRingView: View {
                     .font(.system(size: 46, weight: .heavy, design: .rounded))
                     .monospacedDigit()
                     .contentTransition(.numericText())
-                Text("of 100").font(.caption).foregroundStyle(.secondary)
+                Text("of 100").font(.caption).foregroundStyle(Theme.secondaryText)
             }
         }
         .frame(width: 168, height: 168)
@@ -175,7 +175,7 @@ struct MidpointChart: View {
                 Spacer()
                 Text(selectedLabel)
                     .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.secondaryText)
                     .monospacedDigit()
             }
             Chart {
@@ -204,7 +204,7 @@ struct MidpointChart: View {
                         if let index = value.as(Int.self), let point = indexed.first(where: { $0.i == index }) {
                             Text(index == indexed.last?.i ? "last" : shortDate(point.day))
                                 .font(.caption2)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Theme.secondaryText)
                         }
                     }
                 }
@@ -217,7 +217,7 @@ struct MidpointChart: View {
                         if let hour = value.as(Double.self) {
                             Text(clock(hour))
                                 .font(.caption2)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Theme.secondaryText)
                         }
                     }
                 }
@@ -289,7 +289,7 @@ private struct RhythmLegendDot: View {
             Circle().fill(color).frame(width: 7, height: 7)
             Text(label)
                 .font(.caption2.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.secondaryText)
         }
     }
 }

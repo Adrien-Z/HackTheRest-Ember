@@ -81,7 +81,7 @@ struct OnboardingView: View {
 
             if page > 0 && page < lastPage {
                 Button("Back") { withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) { page -= 1 } }
-                    .font(.subheadline).foregroundStyle(.secondary)
+                    .font(.subheadline).foregroundStyle(Theme.secondaryText)
             }
         }
         .padding(.horizontal, 24).padding(.bottom, 20)
@@ -138,7 +138,7 @@ struct OnboardingView: View {
             OnboardTitle("Hello,\n\(auth.displayName)")
             Text(auth.email)
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.secondaryText)
                 .padding(.vertical, 14)
                 .frame(maxWidth: .infinity)
                 .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 14))
@@ -187,7 +187,7 @@ struct OnboardingView: View {
                 Text("How long do you need in the morning?")
                     .font(.subheadline.weight(.semibold))
                 Text("From alarm to out-the-door — we protect this before any early start.")
-                    .font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                    .font(.caption).foregroundStyle(Theme.secondaryText).multilineTextAlignment(.center)
                 PrepStepper(minutes: $wakeAlarm.prepBufferMin)
                     .padding(.top, 4)
             }
@@ -281,7 +281,7 @@ private struct OnboardBody: View {
     let text: String
     init(_ t: String) { text = t }
     var body: some View {
-        Text(text).font(.callout).foregroundStyle(.secondary)
+        Text(text).font(.callout).foregroundStyle(Theme.secondaryText)
             .fixedSize(horizontal: false, vertical: true)
     }
 }
@@ -333,7 +333,7 @@ private struct EngineBullet: View {
             Image(systemName: icon).font(.title3).foregroundStyle(tint).frame(width: 30)
             VStack(alignment: .leading, spacing: 2) {
                 Text(title).font(.subheadline.weight(.semibold))
-                Text(text).font(.caption).foregroundStyle(.secondary)
+                Text(text).font(.caption).foregroundStyle(Theme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 0)
@@ -395,7 +395,7 @@ private struct PrepStepper: View {
             stepButton("minus") { minutes = max(10, minutes - 5); Haptics.tick() }
             VStack(spacing: 0) {
                 Text("\(minutes)").font(.system(size: 40, weight: .heavy, design: .rounded)).monospacedDigit()
-                Text("minutes").font(.caption).foregroundStyle(.secondary)
+                Text("minutes").font(.caption).foregroundStyle(Theme.secondaryText)
             }
             .frame(width: 110)
             .contentTransition(.numericText())

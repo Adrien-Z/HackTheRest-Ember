@@ -123,7 +123,7 @@ struct RestJourneySheet: View {
                         .font(.title2.weight(.bold))
                     Text(Date.now.formatted(.dateTime.month(.wide).year()))
                         .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.secondaryText)
                 }
 
                 VStack(alignment: .leading, spacing: 3) {
@@ -132,7 +132,7 @@ struct RestJourneySheet: View {
                         .foregroundStyle(Color(red: 0.61, green: 0.85, blue: 1.0))
                     Text("Synced from HealthKit-qualified Supabase rewards")
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.secondaryText)
                 }
             }
             Spacer(minLength: 4)
@@ -183,7 +183,7 @@ struct RestJourneySheet: View {
                 } else {
                     Text("Connect Apple Health to qualify for health-based rewards.")
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.secondaryText)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
@@ -491,7 +491,7 @@ private struct JourneyMomentRow: View {
                     .foregroundStyle(isComplete ? Color.primary : Color.secondary)
                 Text(detail)
                     .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.secondaryText)
             }
 
             Spacer()
@@ -520,7 +520,7 @@ private struct HealthSignalRow: View {
         HStack {
             Text(label).font(.subheadline)
             Spacer()
-            Text(value).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+            Text(value).font(.caption.weight(.semibold)).foregroundStyle(Theme.secondaryText)
         }
     }
 }
@@ -548,7 +548,7 @@ private struct JourneyMilestoneRow: View {
                     .foregroundStyle(milestone.isUnlocked ? Color.primary : Color.secondary)
                 Text(milestone.caption)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.secondaryText)
             }
 
             Spacer()

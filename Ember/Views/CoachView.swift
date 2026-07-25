@@ -58,7 +58,7 @@ struct CoachView: View {
                             if thinking && (store.chat.last?.content.isEmpty ?? true) {
                                 HStack {
                                     ProgressView().tint(Theme.ember)
-                                    Text("Thinking…").font(.caption).foregroundStyle(.secondary)
+                                    Text("Thinking…").font(.caption).foregroundStyle(Theme.secondaryText)
                                     Spacer()
                                 }.padding(.horizontal).id("thinking")
                             }
@@ -111,7 +111,7 @@ struct CoachView: View {
                 .font(.headline)
             Text(emptyStateSubtitle)
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.secondaryText)
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
         }
@@ -141,7 +141,7 @@ struct CoachView: View {
         VStack(spacing: 6) {
             if !store.aiConfigured {
                 Text("Connect Agenda intelligence in Settings for richer, conversational answers.")
-                    .font(.caption2).foregroundStyle(.secondary)
+                    .font(.caption2).foregroundStyle(Theme.secondaryText)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal)
             }

@@ -69,7 +69,7 @@ struct ThermalView: View {
                         .foregroundStyle(Theme.ember)
                     Text(heroCopy)
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.trailing, 70)
                 }
@@ -124,13 +124,13 @@ struct ThermalView: View {
                         .font(.subheadline.weight(.semibold))
                     Text("Apple Health is reporting sleep, but not a separate in-bed start. EMBER can still plan tonight; this chart will wake up when that signal appears.")
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.secondaryText)
                         .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(maxWidth: .infinity)
                 .frame(height: 178)
-                .background(Color.white.opacity(0.035), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             } else {
                 Chart {
                     ForEach(fallAsleepPoints) { point in
@@ -154,7 +154,7 @@ struct ThermalView: View {
                 .chartXAxis {
                     AxisMarks(values: fallAsleepAxisValues) { value in
                         AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5))
-                            .foregroundStyle(Color.white.opacity(0.12))
+                            .foregroundStyle(Color.white.opacity(0.22))
                         AxisValueLabel {
                             if let index = value.as(Int.self),
                                let point = fallAsleepPoints.first(where: { $0.index == index }) {
@@ -247,7 +247,7 @@ private struct ThermalRxCard: View {
                     .foregroundStyle(isCurrent ? .white : .secondary)
                     .padding(.horizontal, 9)
                     .padding(.vertical, 5)
-                    .background(isCurrent ? Theme.ember : Color.white.opacity(0.06), in: Capsule())
+                    .background(isCurrent ? Theme.ember : Color.white.opacity(0.16), in: Capsule())
                 Spacer()
                 Text(actionLabel(rx.action))
                     .font(.caption2.weight(.bold))
@@ -258,10 +258,10 @@ private struct ThermalRxCard: View {
                 .foregroundStyle(Theme.ember)
             Text("before bed")
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.secondaryText)
             Text(shortRationale(rx))
                 .font(.caption2)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.secondaryText)
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
         }

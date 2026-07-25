@@ -36,7 +36,7 @@ struct FriendRequestsView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(request.displayName).font(.headline)
                     if let username = request.username, !username.isEmpty {
-                        Text("@\(username)").font(.caption).foregroundStyle(.secondary)
+                        Text("@\(username)").font(.caption).foregroundStyle(Theme.secondaryText)
                     }
                     if let points = request.points {
                         HStack(spacing: 8) {
@@ -49,7 +49,7 @@ struct FriendRequestsView: View {
                         .foregroundStyle(Theme.boxBlue)
                     }
                     if let date = request.requestedAt?.friendRelativeDate {
-                        Text(date).font(.caption2).foregroundStyle(.secondary)
+                        Text(date).font(.caption2).foregroundStyle(Theme.secondaryText)
                     }
                 }
                 Spacer()
@@ -93,7 +93,7 @@ struct FriendsEmptyState: View {
             Text(title).font(.headline)
             Text(message)
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.secondaryText)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)

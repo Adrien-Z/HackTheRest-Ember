@@ -23,7 +23,7 @@ struct WhiteNoiseView: View {
                             .animation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true), value: player.isPlaying)
                             VStack(spacing: 7) {
                                 Text(sound.title).font(.title2.weight(.bold))
-                                Text(sound.description).font(.subheadline).foregroundStyle(.secondary)
+                                Text(sound.description).font(.subheadline).foregroundStyle(Theme.secondaryText)
                                     .multilineTextAlignment(.center)
                             }
                         }
@@ -49,7 +49,7 @@ struct WhiteNoiseView: View {
                     HStack {
                         Text("Volume").font(.subheadline.weight(.semibold))
                         Spacer()
-                        Text("\(Int(player.volume * 100))%").font(.caption).foregroundStyle(.secondary)
+                        Text("\(Int(player.volume * 100))%").font(.caption).foregroundStyle(Theme.secondaryText)
                     }
                     Slider(value: $player.volume, in: 0.01...1.0).tint(selectedSound.tint)
                 }
@@ -220,7 +220,7 @@ struct BreathingTrainingView: View {
                         Circle().stroke(Theme.mint.opacity(0.75), lineWidth: 2).frame(width: 132, height: 132).scaleEffect(phase.scale)
                         VStack(spacing: 5) {
                             Text(phase.instruction).font(.title2.weight(.bold))
-                            Text("\(phase.secondsRemaining)s").font(.system(.title3, design: .rounded).weight(.semibold)).foregroundStyle(.secondary)
+                            Text("\(phase.secondsRemaining)s").font(.system(.title3, design: .rounded).weight(.semibold)).foregroundStyle(Theme.secondaryText)
                         }
                     }
                     .animation(.linear(duration: 0.08), value: phase.scale)
@@ -228,7 +228,7 @@ struct BreathingTrainingView: View {
                     VStack(spacing: 7) {
                         Text("4 · 4 · 6 breathing").font(.title3.weight(.bold))
                         Text("Inhale for 4, hold for 4, then exhale slowly for 6.")
-                            .font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                            .font(.subheadline).foregroundStyle(Theme.secondaryText).multilineTextAlignment(.center)
                     }
                     Button("Restart") { cycleStartedAt = Date() }.buttonStyle(.borderedProminent).tint(Theme.mint)
                     Spacer()
@@ -359,7 +359,7 @@ private struct RitualCard: View {
                     .background(ritual.tint.opacity(0.14), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
                 VStack(alignment: .leading, spacing: 3) {
                     Text(ritual.title).font(.headline)
-                    Text(ritual.subtitle).font(.caption).foregroundStyle(.secondary)
+                    Text(ritual.subtitle).font(.caption).foregroundStyle(Theme.secondaryText)
                 }
                 Spacer()
             }
@@ -378,7 +378,7 @@ private struct RitualCard: View {
             }
             Text(ritual.note)
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.secondaryText)
         }
         .padding(16)
         .emberCard(0)
@@ -400,7 +400,7 @@ struct QuickToolCard: View {
                 .background(tint.opacity(0.14), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
             Spacer(minLength: 4)
             Text(title).font(.headline)
-            Text(subtitle).font(.caption).foregroundStyle(.secondary)
+            Text(subtitle).font(.caption).foregroundStyle(Theme.secondaryText)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .aspectRatio(1, contentMode: .fit)

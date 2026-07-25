@@ -152,7 +152,7 @@ private struct InsightHero: View {
                         .fixedSize(horizontal: false, vertical: true)
                     Text("0-100")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.secondaryText)
                 }
                 Spacer(minLength: 0)
             }
@@ -190,7 +190,7 @@ private struct AnimatedScoreRing: View {
                     .contentTransition(.numericText())
                 Text("score")
                     .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.secondaryText)
             }
         }
         .frame(width: 116, height: 116)
@@ -296,7 +296,7 @@ private struct SleepScoreTrendCard: View {
                         if let index = value.as(Int.self) {
                             Text(index == points.last?.index ? "last" : "\(index + 1)")
                                 .font(.caption2)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Theme.secondaryText)
                         }
                     }
                 }
@@ -309,7 +309,7 @@ private struct SleepScoreTrendCard: View {
                         if let score = value.as(Int.self) {
                             Text("\(score)")
                                 .font(.caption2)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Theme.secondaryText)
                         }
                     }
                 }
@@ -410,7 +410,7 @@ private struct MetricChip: View {
                 .font(.caption.weight(.bold))
             Text(value)
                 .font(.caption2)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.secondaryText)
                 .lineLimit(1)
                 .minimumScaleFactor(0.78)
         }
@@ -431,7 +431,7 @@ private struct HealthDetailEmptyState: View {
                 .font(.system(size: 42, weight: .semibold))
                 .foregroundStyle(Theme.cool)
             Text(title).font(.title2.weight(.bold))
-            Text(message).font(.footnote).foregroundStyle(.secondary)
+            Text(message).font(.footnote).foregroundStyle(Theme.secondaryText)
         }
         .frame(maxWidth: .infinity)
         .padding(24)

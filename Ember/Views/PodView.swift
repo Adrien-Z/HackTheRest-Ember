@@ -118,21 +118,21 @@ struct BoxSpaceView: View {
                         Text(snapshot.currentUser.name).font(.subheadline.weight(.bold))
                         Text(snapshot.monthLabel)
                             .font(.caption2.weight(.semibold))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.secondaryText)
                     }
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text(snapshot.currentUser.monthlyScore.formatted())
                             .font(.system(.title3, design: .rounded).weight(.bold))
                         Text("sleep pts")
                             .font(.caption2.weight(.semibold))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.secondaryText)
                     }
                 }
                 Spacer()
                 Divider().frame(height: 34)
                 VStack(alignment: .trailing, spacing: 3) {
                     Text("Rank #\(snapshot.currentUser.rank)").font(.caption.weight(.bold))
-                    Text("Resets \(resetLabel)").font(.caption2).foregroundStyle(.secondary)
+                    Text("Resets \(resetLabel)").font(.caption2).foregroundStyle(Theme.secondaryText)
                 }
                 if store.boxSpaceLoading { ProgressView().tint(Theme.boxBlue) }
             }
@@ -503,7 +503,7 @@ private struct BoxResident: View {
                     .font(.caption.weight(.semibold))
                 Text("\(person.monthlyScore.formatted()) pts")
                     .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.secondaryText)
             }
         }
         .frame(width: 94)
@@ -687,11 +687,11 @@ private struct BoxProfileSheet: View {
                     if let decoration {
                         Text(decoration.name)
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.secondaryText)
                     }
                 } else {
                     Label("No friend added", systemImage: "person.crop.circle.badge.plus")
-                        .font(.subheadline).foregroundStyle(.secondary)
+                        .font(.subheadline).foregroundStyle(Theme.secondaryText)
                 }
                 if let onDecorate {
                     Button(action: onDecorate) {
@@ -741,7 +741,7 @@ private struct BoxDecorationStudio: View {
                         .frame(width: 238, height: 210)
                         Text(selectedDecoration?.name ?? "Simple Blue Box").font(.headline)
                         Text("\(store.restJourney.points.formatted()) total Rest Points")
-                            .font(.caption).foregroundStyle(.secondary)
+                            .font(.caption).foregroundStyle(Theme.secondaryText)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
@@ -760,7 +760,7 @@ private struct BoxDecorationStudio: View {
                                     VStack(alignment: .leading, spacing: 14) {
                                         Text("\(scoreGroup.score.formatted()) pts")
                                             .font(.caption.weight(.bold))
-                                            .foregroundStyle(.secondary)
+                                            .foregroundStyle(Theme.secondaryText)
                                         HStack(alignment: .top, spacing: 10) {
                                             ForEach(group) { item in
                                                 decorationTile(item)

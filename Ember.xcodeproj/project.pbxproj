@@ -53,6 +53,7 @@
 		C4F21D76EC06C70091F87A36 /* LiveDataBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 318C100DF234B4EEFA0F2DBF /* LiveDataBuilder.swift */; };
 		C9D9AC4B4ACAB488956A0AED /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FB44B3689CD07DBC9882119 /* CalendarView.swift */; };
 		CA6324C330135A9900DE4A98 /* RestJourneySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA6324C230135A9900DE4A98 /* RestJourneySheet.swift */; };
+		CAAA6C133014E9E800303B55 /* DailyRhythmView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAAA6C123014E9E600303B55 /* DailyRhythmView.swift */; };
 		CC61FB7EF004C844AB38D550 /* seed.json in Resources */ = {isa = PBXBuildFile; fileRef = 0E772F5F4704359879D51C50 /* seed.json */; };
 		D6AEB02A011B1DA89B0D199F /* DataStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69CD122E9F7624B5B3059A0D /* DataStore.swift */; };
 		DEBC6433C916466E3B845EA4 /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1071B7F3397AF5D791F5C9C /* AuthViewModel.swift */; };
@@ -110,6 +111,7 @@
 		B880D7180FBA450F7CD94056 /* Previews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Previews.swift; sourceTree = "<group>"; };
 		C4A9AFE62BAC146DAA949394 /* FriendRequestsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendRequestsView.swift; sourceTree = "<group>"; };
 		CA6324C230135A9900DE4A98 /* RestJourneySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestJourneySheet.swift; sourceTree = "<group>"; };
+		CAAA6C123014E9E600303B55 /* DailyRhythmView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyRhythmView.swift; sourceTree = "<group>"; };
 		CB68B45CBF076764D83BC86A /* CoachWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachWidgets.swift; sourceTree = "<group>"; };
 		CCAECECB01C03E7C4363DCA5 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		CECC631C4BCF34EE70327532 /* FriendModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendModels.swift; sourceTree = "<group>"; };
@@ -150,6 +152,7 @@
 		216E155063217A1DBDE1DAB0 /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				CAAA6C123014E9E600303B55 /* DailyRhythmView.swift */,
 				A7E71F4A54D24B0DB64F0005 /* BoxSkinImageView.swift */,
 				CA6324C230135A9900DE4A98 /* RestJourneySheet.swift */,
 				E2F98006241E922BE2EAEEB0 /* Components.swift */,
@@ -460,6 +463,7 @@
 				A7E71F4A54D24B0DB64F0009 /* SkinRevealSparkle.swift in Sources */,
 				BA64B89583B37AC63DDB410F /* SleepMetrics.swift in Sources */,
 				708896B1DCC0BFF175A362F2 /* SleepScience.swift in Sources */,
+				CAAA6C133014E9E800303B55 /* DailyRhythmView.swift in Sources */,
 				0EBF820742223F6E93108F98 /* SplashView.swift in Sources */,
 				BC45625A6468C0772AAC482A /* SupabaseManager.swift in Sources */,
 				77499C61D5A7A51062740001 /* Theme.swift in Sources */,
@@ -478,13 +482,13 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Ember/Ember.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = Q6F6T9227F;
+				DEVELOPMENT_TEAM = WZKT7VLB8Y;
 				INFOPLIST_FILE = Ember/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.bluebox.ember;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bluebox.ember666;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
@@ -559,13 +563,13 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Ember/Ember.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = Q6F6T9227F;
+				DEVELOPMENT_TEAM = WZKT7VLB8Y;
 				INFOPLIST_FILE = Ember/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.bluebox.ember;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bluebox.ember666;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;

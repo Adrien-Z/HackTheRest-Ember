@@ -9,6 +9,7 @@ struct SettingsView: View {
     @EnvironmentObject var calendar: CalendarService
     @EnvironmentObject var wakeAlarm: WakeAlarmService
     @EnvironmentObject var sleepClimate: SleepClimateService
+    @EnvironmentObject private var auth: AuthViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var apiKeyDraft = ""
 
@@ -136,6 +137,23 @@ struct SettingsView: View {
                     Label("Pod content is illustrative until social sync is connected.",
                           systemImage: "person.3.fill")
                         .font(.footnote).foregroundStyle(.secondary)
+                }
+
+                Section {
+                    LabeledContent("Display name", value: auth.displayName)
+                    LabeledContent("Email", value: auth.email)
+
+                    Button("Sign Out", role: .destructive) {
+                        Task {
+                            await auth.signOut()
+                            dismiss()
+                        }
+                    }
+                    .disabled(auth.isLoading)
+                } header: {
+                    Text("Account")
+                } footer: {
+                    Text("Sign in again to continue using Ember.")
                 }
             }
             .navigationTitle("Settings")

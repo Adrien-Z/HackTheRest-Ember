@@ -8,10 +8,36 @@
 	</array>
 	<key>CFBundleDisplayName</key>
 	<string>Ember</string>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>MKDirectionsRequest</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.apple.maps.directionsrequest</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>MKDirectionsApplicationSupportedModes</key>
+	<array>
+		<string>MKDirectionsModeBike</string>
+		<string>MKDirectionsModeBus</string>
+		<string>MKDirectionsModeCar</string>
+		<string>MKDirectionsModeFerry</string>
+		<string>MKDirectionsModeOther</string>
+		<string>MKDirectionsModePedestrian</string>
+		<string>MKDirectionsModePlane</string>
+		<string>MKDirectionsModeRideShare</string>
+		<string>MKDirectionsModeStreetCar</string>
+		<string>MKDirectionsModeSubway</string>
+		<string>MKDirectionsModeTaxi</string>
+		<string>MKDirectionsModeTrain</string>
+	</array>
 	<key>NSAlarmKitUsageDescription</key>
 	<string>Ember schedules your wake alarm to match your rest plan, so your wake time stays anchored even after late nights or travel.</string>
 	<key>NSCalendarsFullAccessUsageDescription</key>
@@ -23,7 +49,7 @@
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Ember does not write to Apple Health.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Ember uses your approximate location to check tonight's heat and humidity risk for sleep. It does not track your location in the background.</string>
+	<string>Ember uses your location to personalize your daily rhythm, sunrise, sunset, and sleep recommendations.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>

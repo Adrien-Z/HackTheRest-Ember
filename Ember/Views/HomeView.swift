@@ -10,6 +10,7 @@ struct HomeView: View {
     @State private var showSettings = false
     @State private var showCoach = false
     @State private var insightPage = 0
+    @StateObject private var locationManager = LocationManager.shared
 
     private var effectiveTonightPlan: DayPlan? {
         if let plan = store.tonightPlan, Calendar.current.isDateInToday(plan.day) {
@@ -82,7 +83,11 @@ struct HomeView: View {
                     await store.refreshTodayEnergy(health: health)
                 }
             }
+            .task {
+                locationManager.requestLocation()
+            }
     }
+    
 
     private var greeting: some View {
         HStack {

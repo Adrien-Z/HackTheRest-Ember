@@ -7,10 +7,24 @@
 import SwiftUI
 
 struct DailyRhythmView: View {
-    private let sunriseHour = 5.14
-    private let sunsetHour = 21.0
+    @ObservedObject private var weatherManager = WeatherManager.shared
+
+    private let fallbackSunriseHour = 5.08
+    private let fallbackSunsetHour = 21.0
     private let sleepHour = 23.0
     private let wakeHour = 7.0
+
+    private var weatherRhythmData: WeatherRhythmData? {
+        weatherManager.rhythmData
+    }
+
+    private var sunriseHour: Double {
+        weatherRhythmData?.sunriseHour ?? fallbackSunriseHour
+    }
+
+    private var sunsetHour: Double {
+        weatherRhythmData?.sunsetHour ?? fallbackSunsetHour
+    }
 
     var body: some View {
         GeometryReader { proxy in
@@ -33,6 +47,9 @@ struct DailyRhythmView: View {
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         }
         .frame(height: 260)
+        .task {
+            await weatherManager.refreshWeather()
+        }
     }
 }
 

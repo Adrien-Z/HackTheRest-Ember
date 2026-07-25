@@ -61,6 +61,7 @@ private struct DayPage: View {
     @State private var plan: DayPlan?
     @State private var selectedEvent: AgendaEvent?
     @State private var selectedMarker: CircadianModel.Marker?
+    @State private var showClimateDetail = false
 
     private let cal = Calendar.current
 
@@ -102,6 +103,12 @@ private struct DayPage: View {
         .sheet(item: $selectedMarker) { marker in
             MarkerSheet(marker: marker).presentationDetents([.height(300)])
         }
+        .sheet(isPresented: $showClimateDetail) {
+            SleepClimateDetailSheet()
+                .environmentObject(store)
+                .environmentObject(sleepClimate)
+                .presentationDetents([.medium, .large])
+        }
     }
 
     private var eventsForWindow: [AgendaEvent] {
@@ -115,18 +122,23 @@ private struct DayPage: View {
            cal.isDateInToday(day),
            let snapshot = store.sleepClimate,
            snapshot.risk != .low {
-            HStack(spacing: 5) {
-                Image(systemName: snapshot.risk == .high ? "thermometer.high" : "thermometer.medium")
-                Text(snapshot.risk == .high ? "Hot night" : "Warm night")
+            Button {
+                Haptics.light()
+                showClimateDetail = true
+            } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: snapshot.risk == .high ? "thermometer.high" : "thermometer.medium")
+                    Text(snapshot.risk == .high ? "Hot night" : "Warm night")
+                }
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(climateColor(snapshot.risk))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 7)
+                .background(.ultraThinMaterial, in: Capsule())
+                .overlay(Capsule().strokeBorder(climateColor(snapshot.risk).opacity(0.45), lineWidth: 0.8))
+                .shadow(color: climateColor(snapshot.risk).opacity(0.18), radius: 8, y: 4)
             }
-            .font(.caption2.weight(.bold))
-            .foregroundStyle(climateColor(snapshot.risk))
-            .padding(.horizontal, 10)
-            .padding(.vertical, 7)
-            .background(.ultraThinMaterial, in: Capsule())
-            .overlay(Capsule().strokeBorder(climateColor(snapshot.risk).opacity(0.45), lineWidth: 0.8))
-            .shadow(color: climateColor(snapshot.risk).opacity(0.18), radius: 8, y: 4)
-            .allowsHitTesting(false)
+            .buttonStyle(.plain)
             .accessibilityLabel("Tonight's sleep climate: \(snapshot.risk.label)")
         }
     }
@@ -765,6 +777,211 @@ private struct MarkerSheet: View {
         }
     }
     private var timeLabel: String { String(format: "%02d:%02d", marker.minuteOfDay / 60, marker.minuteOfDay % 60) }
+}
+
+// MARK: - Sleep climate sheet
+
+private struct SleepClimateDetailSheet: View {
+    @EnvironmentObject private var store: DataStore
+    @EnvironmentObject private var sleepClimate: SleepClimateService
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                if let snapshot = store.sleepClimate {
+                    VStack(alignment: .leading, spacing: 16) {
+                        climateHero(snapshot)
+                        HStack(spacing: 10) {
+                            metricCard(
+                                icon: "thermometer.medium",
+                                title: "Overnight",
+                                value: "\(Int(snapshot.overnightLowC))-\(Int(snapshot.overnightHighC))°C",
+                                tint: climateColor(snapshot.risk))
+                            metricCard(
+                                icon: "humidity.fill",
+                                title: "Humidity",
+                                value: humidityText(snapshot),
+                                tint: Theme.cool)
+                        }
+                        actionList(snapshot)
+                        sourceRow(snapshot)
+                    }
+                    .padding()
+                } else {
+                    VStack(spacing: 14) {
+                        Image(systemName: "cloud.sun.fill")
+                            .font(.system(size: 42, weight: .semibold))
+                            .foregroundStyle(Theme.cool)
+                        Text("No forecast yet")
+                            .font(.title3.weight(.bold))
+                        Button {
+                            Haptics.light()
+                            Task { await sleepClimate.refresh(store: store) }
+                        } label: {
+                            Label("Check weather", systemImage: "location.fill")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(Theme.ember)
+                        .padding(.horizontal, 28)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                }
+            }
+            .navigationTitle("Sleep climate")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        Haptics.light()
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+
+    private func climateHero(_ snapshot: SleepClimateSnapshot) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            if let locationName = snapshot.locationName {
+                Label("Forecast location · \(locationName)", systemImage: "location.fill")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(climateColor(snapshot.risk))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+            }
+            HStack(spacing: 14) {
+                ZStack {
+                    Circle()
+                        .fill(Color.white.opacity(0.08))
+                        .frame(width: 86, height: 86)
+                    Image(systemName: snapshot.risk == .high ? "thermometer.high" : "thermometer.medium")
+                        .font(.system(size: 34, weight: .semibold))
+                        .foregroundStyle(climateColor(snapshot.risk))
+                }
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(snapshot.risk == .high ? "Sticky night" : "Warm night")
+                        .font(.title3.weight(.bold))
+                    Text(reason(snapshot))
+                        .font(.subheadline)
+                        .foregroundStyle(Theme.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+            }
+        }
+        .emberCard()
+    }
+
+    private func metricCard(icon: String, title: String, value: String, tint: Color) -> some View {
+        VStack(alignment: .leading, spacing: 9) {
+            Image(systemName: icon)
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(tint)
+            Text(value)
+                .font(.system(.title3, design: .rounded).weight(.bold))
+                .monospacedDigit()
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Theme.secondaryText)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(Theme.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(tint.opacity(0.18), lineWidth: 0.8))
+    }
+
+    private func actionList(_ snapshot: SleepClimateSnapshot) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Tonight")
+                .font(.subheadline.weight(.bold))
+            VStack(spacing: 8) {
+                ForEach(actions(snapshot), id: \.self) { action in
+                    HStack(spacing: 10) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(Theme.mint)
+                        Text(action)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.primary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.86)
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 9)
+                    .background(Color.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .emberCard(12)
+    }
+
+    private func sourceRow(_ snapshot: SleepClimateSnapshot) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "dot.radiowaves.left.and.right")
+                .foregroundStyle(Theme.mint)
+            Text(sourceText(snapshot))
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Theme.secondaryText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+            Spacer()
+            Button {
+                Haptics.light()
+                Task { await sleepClimate.refresh(store: store) }
+            } label: {
+                Image(systemName: sleepClimate.isLoading ? "clock" : "arrow.clockwise")
+            }
+            .disabled(sleepClimate.isLoading)
+        }
+        .padding(.horizontal, 4)
+    }
+
+    private func sourceText(_ snapshot: SleepClimateSnapshot) -> String {
+        if let locationName = snapshot.locationName {
+            return "Live near \(locationName) · \(snapshot.source)"
+        }
+        return "Live forecast · \(snapshot.source)"
+    }
+
+    private func reason(_ snapshot: SleepClimateSnapshot) -> String {
+        switch snapshot.risk {
+        case .low:
+            return "Weather is unlikely to change your plan."
+        case .moderate:
+            return "Heat can make falling asleep a bit harder."
+        case .high:
+            return "Heat plus humidity can raise sleep friction."
+        }
+    }
+
+    private func actions(_ snapshot: SleepClimateSnapshot) -> [String] {
+        switch snapshot.risk {
+        case .low:
+            return ["usual ritual", "normal bedding"]
+        case .moderate:
+            return ["pre-cool room", "lighter bedding", "hydrate earlier"]
+        case .high:
+            return ["pre-cool room", "skip heavy bedding", "warm-up optional"]
+        }
+    }
+
+    private func humidityText(_ snapshot: SleepClimateSnapshot) -> String {
+        guard let humidity = snapshot.maxHumidity else { return "—" }
+        return "\(Int((humidity * 100).rounded()))%"
+    }
+
+    private func climateColor(_ risk: SleepClimateSnapshot.Risk) -> Color {
+        switch risk {
+        case .low: return Theme.mint
+        case .moderate: return Theme.amber
+        case .high: return Theme.ember
+        }
+    }
 }
 
 // MARK: - Info / legend sheet

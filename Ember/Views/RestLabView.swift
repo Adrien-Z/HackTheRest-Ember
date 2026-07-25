@@ -85,8 +85,8 @@ struct RestLabView: View {
 
                 NavigationLink { BreathingTrainingView() } label: {
                     RestLabSmallCard(
-                        title: "Breathing",
-                        subtitle: "4 · 4 · 6 reset",
+                        title: "Cyclic Sigh",
+                        subtitle: "Double inhale, long exhale",
                         icon: "wind",
                         tint: Theme.mint)
                 }

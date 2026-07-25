@@ -164,20 +164,30 @@ struct BoxSpaceSnapshot: Codable {
             resetsAt: "2026-08-01T00:00:00+08:00",
             currentUser: BoxSpacePerson(
                 id: "me", name: "Alex", monthlyScore: 2_480, rank: 2,
-                isFriend: true, isCurrentUser: true, decorationID: "sleep-cap"),
+                isFriend: true, isCurrentUser: true, decorationID: "sleepy-blue"),
             people: [
                 BoxSpacePerson(id: "empty-box-3", name: "", monthlyScore: 0, rank: 0,
                                isFriend: false, isCurrentUser: false, decorationID: nil)
             ],
             decorations: [
-                BoxDecoration(id: "sleep-cap", name: "Sleep cap",
-                              systemImage: "moon.stars.fill", requiredScore: 500),
-                BoxDecoration(id: "plant", name: "Little plant",
-                              systemImage: "leaf.fill", requiredScore: 1_500),
-                BoxDecoration(id: "star", name: "Dream star",
-                              systemImage: "sparkles", requiredScore: 2_500),
-                BoxDecoration(id: "crown", name: "Moon crown",
-                              systemImage: "crown.fill", requiredScore: 3_000)
+                BoxDecoration(id: "sleepy-blue", name: "Sleepy Blue",
+                              assetName: "sleepy_blue", requiredScore: 500),
+                BoxDecoration(id: "happy-blue", name: "Happy Blue",
+                              assetName: "happy_blue", requiredScore: 500),
+                BoxDecoration(id: "moon-blue", name: "Moon Blue",
+                              assetName: "moon_blue", requiredScore: 500),
+                BoxDecoration(id: "dream-blue", name: "Dream Blue",
+                              assetName: "dream_blue", requiredScore: 5_000),
+                BoxDecoration(id: "royal-blue", name: "Royal Blue",
+                              assetName: "royal_blue", requiredScore: 5_000),
+                BoxDecoration(id: "beauty-blue", name: "Beauty Blue",
+                              assetName: "beauty_blue", requiredScore: 5_000),
+                BoxDecoration(id: "cozy-blue", name: "Cozy Blue",
+                              assetName: "cozy_blue", requiredScore: 2_500),
+                BoxDecoration(id: "foodie-blue", name: "Foodie Blue",
+                              assetName: "foodie_blue", requiredScore: 2_500),
+                BoxDecoration(id: "story-blue", name: "Story Blue",
+                              assetName: "story_blue", requiredScore: 2_500)
             ])
     }
 }
@@ -203,13 +213,40 @@ struct BoxSpacePerson: Codable, Identifiable, Equatable {
 struct BoxDecoration: Codable, Identifiable, Equatable {
     let id: String
     let name: String
-    let systemImage: String
+    let assetName: String
+    let systemImage: String?
     let requiredScore: Int
 
     enum CodingKeys: String, CodingKey {
         case id, name
+        case assetName = "asset_name"
         case systemImage = "system_image"
         case requiredScore = "required_score"
+    }
+
+    init(
+        id: String,
+        name: String,
+        assetName: String,
+        requiredScore: Int,
+        systemImage: String? = nil
+    ) {
+        self.id = id
+        self.name = name
+        self.assetName = assetName
+        self.requiredScore = requiredScore
+        self.systemImage = systemImage
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        systemImage = try container.decodeIfPresent(String.self, forKey: .systemImage)
+        assetName = try container.decodeIfPresent(String.self, forKey: .assetName)
+            ?? systemImage
+            ?? id
+        requiredScore = try container.decode(Int.self, forKey: .requiredScore)
     }
 }
 

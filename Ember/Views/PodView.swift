@@ -98,19 +98,12 @@ struct BoxSpaceView: View {
             }
         } label: {
             HStack(spacing: 13) {
-                ZStack(alignment: .bottomTrailing) {
-                    BlueBoxMascot(isActive: true, isCurrentUser: false)
-                        .scaleEffect(0.8)
-                        .frame(width: 44, height: 40)
-                    if let decoration = selectedDecoration {
-                        Image(systemName: decoration.systemImage)
-                            .font(.system(size: 8, weight: .bold))
-                            .foregroundStyle(Theme.amber)
-                            .padding(3)
-                            .background(.regularMaterial, in: Circle())
-                            .offset(x: 2, y: 1)
-                    }
-                }
+                BoxSkinImageView(
+                    decoration: selectedDecoration,
+                    size: CGSize(width: 54, height: 50)
+                )
+                .scaleEffect(0.82)
+                .frame(width: 44, height: 40)
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 6) {
                         Text(snapshot.currentUser.name).font(.subheadline.weight(.bold))
@@ -474,18 +467,25 @@ private struct BoxResident: View {
 
     var body: some View {
         VStack(spacing: 5) {
-            ZStack(alignment: .topTrailing) {
-                BlueBoxMascot(isActive: person.isFriend, isCurrentUser: person.isCurrentUser)
-                    .frame(
-                        width: person.isCurrentUser ? 78 : 66,
-                        height: person.isCurrentUser ? 72 : 61)
-                if let decoration, person.isFriend {
-                    Image(systemName: decoration.systemImage)
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(Theme.amber)
-                        .padding(5)
-                        .background(Theme.card, in: Circle())
-                        .offset(x: 5, y: -8)
+            BoxSkinImageView(
+                decoration: person.isFriend ? decoration : nil,
+                size: CGSize(
+                    width: person.isCurrentUser ? 82 : 70,
+                    height: person.isCurrentUser ? 76 : 65)
+            )
+            .opacity(person.isFriend ? 1 : 0.42)
+            .shadow(
+                color: person.isCurrentUser ? Theme.boxBlue.opacity(0.55) : Color.black.opacity(0.25),
+                radius: person.isCurrentUser ? 12 : 5,
+                y: 5)
+            .overlay(alignment: .topLeading) {
+                if person.isCurrentUser {
+                    Text("ME")
+                        .font(.system(size: 7, weight: .black, design: .rounded))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 5).padding(.vertical, 3)
+                        .background(Theme.boxBlueDeep, in: Capsule())
+                        .offset(x: -2, y: -9)
                 }
             }
             if person.isFriend {
@@ -656,8 +656,11 @@ private struct BoxProfileSheet: View {
         ZStack {
             NightBackground()
             VStack(spacing: 14) {
-                BlueBoxMascot(isActive: person.isFriend, isCurrentUser: person.isCurrentUser)
-                    .frame(width: 86, height: 80)
+                BoxSkinImageView(
+                    decoration: person.isFriend ? decoration : nil,
+                    size: CGSize(width: 100, height: 92)
+                )
+                .opacity(person.isFriend ? 1 : 0.42)
                 Text(
                     person.isCurrentUser
                         ? "Your Blue Box"
@@ -672,8 +675,9 @@ private struct BoxProfileSheet: View {
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Theme.boxBlue)
                     if let decoration {
-                        Label(decoration.name, systemImage: decoration.systemImage)
-                            .font(.caption).foregroundStyle(.secondary)
+                        Text(decoration.name)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                 } else {
                     Label("No friend added", systemImage: "person.crop.circle.badge.plus")
@@ -699,6 +703,9 @@ private struct BoxProfileSheet: View {
 
 private struct BoxDecorationStudio: View {
     @EnvironmentObject private var store: DataStore
+    @State private var previewScale: CGFloat = 1
+    @State private var previewRotation: Double = 0
+    @State private var showSkinSparkles = false
 
     private var selectedDecoration: BoxDecoration? {
         store.boxSpace.decorations.first {
@@ -706,51 +713,58 @@ private struct BoxDecorationStudio: View {
         }
     }
 
+    private let scoreGroups = [
+        DecorationScoreGroup(score: 500, ids: ["sleepy-blue", "happy-blue", "moon-blue"]),
+        DecorationScoreGroup(score: 2_500, ids: ["dream-blue", "royal-blue", "beauty-blue"]),
+        DecorationScoreGroup(score: 5_000, ids: ["cozy-blue", "foodie-blue", "story-blue"])
+    ]
+
     var body: some View {
         ZStack {
             NightBackground()
             ScrollView {
                 VStack(spacing: 22) {
-                    VStack(spacing: 12) {
-                        ZStack(alignment: .topTrailing) {
-                            BlueBoxMascot(isActive: true, isCurrentUser: true)
-                                .frame(width: 130, height: 120)
-                                .scaleEffect(1.35)
-                            if let selectedDecoration {
-                                Image(systemName: selectedDecoration.systemImage)
-                                    .font(.title2.weight(.bold))
-                                    .foregroundStyle(Theme.amber)
-                                    .padding(10)
-                                    .background(Theme.card, in: Circle())
-                                    .offset(x: 8, y: -2)
-                            }
+                    VStack(spacing: 16) {
+                        ZStack {
+                            BoxSkinImageView(
+                                decoration: selectedDecoration,
+                                size: CGSize(width: 218, height: 200)
+                            )
+                            .scaleEffect(previewScale)
+                            .rotationEffect(.degrees(previewRotation))
+
+                            SkinRevealSparkle(isVisible: showSkinSparkles)
                         }
+                        .frame(width: 238, height: 210)
                         Text(selectedDecoration?.name ?? "Simple Blue Box").font(.headline)
                         Text("\(store.boxSpace.currentUser.monthlyScore.formatted()) points this month")
                             .font(.caption).foregroundStyle(.secondary)
                     }
                     .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
                     .emberCard()
 
                     VStack(alignment: .leading, spacing: 14) {
                         SectionHeader(
-                            title: "Your decorations",
-                            subtitle: "Tap an unlocked item to equip it")
-                        LazyVGrid(
-                            columns: [GridItem(.flexible()), GridItem(.flexible())],
-                            spacing: 12
-                        ) {
-                            decorationTile(
-                                name: "No decoration",
-                                systemImage: "shippingbox.fill",
-                                requiredScore: 0,
-                                id: nil)
-                            ForEach(store.boxSpace.decorations) { item in
-                                decorationTile(
-                                    name: item.name,
-                                    systemImage: item.systemImage,
-                                    requiredScore: item.requiredScore,
-                                    id: item.id)
+                            title: "Box Decorations",
+                            subtitle: "Tap an unlocked style to equip it")
+                        VStack(spacing: 26) {
+                            ForEach(scoreGroups) { scoreGroup in
+                                let group = scoreGroup.ids.compactMap { id in
+                                    store.boxSpace.decorations.first { $0.id == id }
+                                }
+                                if !group.isEmpty {
+                                    VStack(alignment: .leading, spacing: 14) {
+                                        Text("\(scoreGroup.score.formatted()) pts")
+                                            .font(.caption.weight(.bold))
+                                            .foregroundStyle(.secondary)
+                                        HStack(alignment: .top, spacing: 10) {
+                                            ForEach(group) { item in
+                                                decorationTile(item)
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -763,39 +777,79 @@ private struct BoxDecorationStudio: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    private func decorationTile(
-        name: String,
-        systemImage: String,
-        requiredScore: Int,
-        id: String?
-    ) -> some View {
-        let unlocked = store.boxSpace.currentUser.monthlyScore >= requiredScore
-        let selected = store.boxSpace.currentUser.decorationID == id
+    private func decorationTile(_ decoration: BoxDecoration) -> some View {
+        let unlocked = store.boxSpace.currentUser.monthlyScore >= decoration.requiredScore
+        let selected = store.boxSpace.currentUser.decorationID == decoration.id
         return Button {
-            store.selectBoxDecoration(id)
+            let changedSkin = store.boxSpace.currentUser.decorationID != decoration.id
+            store.selectBoxDecoration(decoration.id)
+            if changedSkin {
+                playEquipAnimation()
+            }
         } label: {
-            VStack(spacing: 9) {
+            VStack(spacing: 10) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 17, style: .continuous)
-                        .fill(selected ? Theme.boxBlue.opacity(0.22) : Color.white.opacity(0.045))
-                        .frame(height: 82)
-                    Image(systemName: unlocked ? systemImage : "lock.fill")
-                        .font(.title2)
-                        .foregroundStyle(unlocked ? Theme.boxBlue : Color.secondary)
-                    if selected {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(Theme.mint)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                            .padding(8)
+                    BoxSkinImageView(
+                        decoration: decoration,
+                        size: CGSize(width: 98, height: 90)
+                    )
+                    .grayscale(unlocked ? 0 : 1)
+                    .opacity(unlocked ? 1 : 0.32)
+                    if !unlocked {
+                        Image(systemName: "lock.fill")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(.white.opacity(0.82))
+                            .padding(7)
+                            .background(Color.black.opacity(0.34), in: Circle())
                     }
                 }
-                Text(name).font(.caption.weight(.semibold)).lineLimit(1)
-                Text(unlocked ? (selected ? "Equipped" : "Unlocked") : "\(requiredScore.formatted()) pts")
-                    .font(.caption2)
-                    .foregroundStyle(unlocked ? Theme.mint : Color.secondary)
+                HStack(spacing: 4) {
+                    if selected {
+                        Image(systemName: "checkmark")
+                            .font(.caption2.weight(.black))
+                            .foregroundStyle(Theme.mint)
+                    }
+                    Text(decoration.name)
+                        .font(.caption.weight(.semibold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.82)
+                }
+                .frame(maxWidth: .infinity)
             }
+            .frame(maxWidth: .infinity)
         }
         .buttonStyle(.plain)
         .disabled(!unlocked)
     }
+
+    private func playEquipAnimation() {
+        previewScale = 0.9
+        previewRotation = -2
+        showSkinSparkles = false
+
+        withAnimation(.spring(response: 0.24, dampingFraction: 0.58)) {
+            previewScale = 1.08
+            previewRotation = 2
+            showSkinSparkles = true
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+            withAnimation(.spring(response: 0.38, dampingFraction: 0.72)) {
+                previewScale = 1
+                previewRotation = 0
+            }
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.48) {
+            withAnimation(.easeOut(duration: 0.22)) {
+                showSkinSparkles = false
+            }
+        }
+    }
+}
+
+private struct DecorationScoreGroup: Identifiable {
+    let score: Int
+    let ids: [String]
+    var id: Int { score }
 }

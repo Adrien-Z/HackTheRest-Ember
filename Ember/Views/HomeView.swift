@@ -8,7 +8,6 @@ struct HomeView: View {
     @EnvironmentObject var wakeAlarm: WakeAlarmService
     @EnvironmentObject var sleepClimate: SleepClimateService
     @State private var showSettings = false
-    @State private var showAccount = false
     @State private var showCoach = false
     @State private var insightPage = 0
     @State private var quickToolPage = 0
@@ -58,12 +57,6 @@ struct HomeView: View {
             .navigationTitle("EMBER")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button { showAccount = true } label: {
-                        Image(systemName: "person.crop.circle.fill")
-                    }
-                    .accessibilityLabel("Account settings")
-                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { showSettings = true } label: { Image(systemName: "gearshape") }
                 }
@@ -75,9 +68,6 @@ struct HomeView: View {
                     .environmentObject(calendar)
                     .environmentObject(wakeAlarm)
                     .environmentObject(sleepClimate)
-            }
-            .sheet(isPresented: $showAccount) {
-                AccountView()
             }
             .navigationDestination(isPresented: $showCoach) {
                 CoachView()

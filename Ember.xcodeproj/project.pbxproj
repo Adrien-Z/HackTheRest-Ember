@@ -52,6 +52,9 @@
 		C4F21D76EC06C70091F87A36 /* LiveDataBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 318C100DF234B4EEFA0F2DBF /* LiveDataBuilder.swift */; };
 		C9D9AC4B4ACAB488956A0AED /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FB44B3689CD07DBC9882119 /* CalendarView.swift */; };
 		CA6324C330135A9900DE4A98 /* RestJourneySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA6324C230135A9900DE4A98 /* RestJourneySheet.swift */; };
+		CAF275BC30145A120072E9C5 /* DailyRhythmView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAF275BB30145A120072E9C5 /* DailyRhythmView.swift */; };
+		CAF275C130149EC30072E9C5 /* SunScheduleService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAF275C030149EC30072E9C5 /* SunScheduleService.swift */; };
+		CAF275C33014A0840072E9C5 /* DailyRhythmViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAF275C23014A07F0072E9C5 /* DailyRhythmViewModel.swift */; };
 		CC61FB7EF004C844AB38D550 /* seed.json in Resources */ = {isa = PBXBuildFile; fileRef = 0E772F5F4704359879D51C50 /* seed.json */; };
 		D6AEB02A011B1DA89B0D199F /* DataStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69CD122E9F7624B5B3059A0D /* DataStore.swift */; };
 		DEBC6433C916466E3B845EA4 /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1071B7F3397AF5D791F5C9C /* AuthViewModel.swift */; };
@@ -101,13 +104,16 @@
 		A7E71F4A54D24B0DB64F0001 /* RestToolsViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestToolsViews.swift; sourceTree = "<group>"; };
 		A7E71F4A54D24B0DB64F0003 /* HealthInsightDetailViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthInsightDetailViews.swift; sourceTree = "<group>"; };
 		A7E71F4A54D24B0DB64F0005 /* BoxSkinImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoxSkinImageView.swift; sourceTree = "<group>"; };
-		A7E71F4A54D24B0DB64F0007 /* BoxSkins */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Assets.xcassets/BoxSkins; sourceTree = "<group>"; };
+		A7E71F4A54D24B0DB64F0007 /* Assets.xcassets/BoxSkins */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Assets.xcassets/BoxSkins; sourceTree = "<group>"; };
 		A7E71F4A54D24B0DB64F0008 /* SkinRevealSparkle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkinRevealSparkle.swift; sourceTree = "<group>"; };
 		A9C90DC46AFD2014FEED1D85 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		B62730A81455B32AE9014A11 /* CircadianModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CircadianModel.swift; sourceTree = "<group>"; };
 		B880D7180FBA450F7CD94056 /* Previews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Previews.swift; sourceTree = "<group>"; };
 		C4A9AFE62BAC146DAA949394 /* FriendRequestsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendRequestsView.swift; sourceTree = "<group>"; };
 		CA6324C230135A9900DE4A98 /* RestJourneySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestJourneySheet.swift; sourceTree = "<group>"; };
+		CAF275BB30145A120072E9C5 /* DailyRhythmView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyRhythmView.swift; sourceTree = "<group>"; };
+		CAF275C030149EC30072E9C5 /* SunScheduleService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SunScheduleService.swift; sourceTree = "<group>"; };
+		CAF275C23014A07F0072E9C5 /* DailyRhythmViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyRhythmViewModel.swift; sourceTree = "<group>"; };
 		CB68B45CBF076764D83BC86A /* CoachWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachWidgets.swift; sourceTree = "<group>"; };
 		CCAECECB01C03E7C4363DCA5 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		CECC631C4BCF34EE70327532 /* FriendModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendModels.swift; sourceTree = "<group>"; };
@@ -148,6 +154,7 @@
 		216E155063217A1DBDE1DAB0 /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				CAF275BB30145A120072E9C5 /* DailyRhythmView.swift */,
 				A7E71F4A54D24B0DB64F0005 /* BoxSkinImageView.swift */,
 				CA6324C230135A9900DE4A98 /* RestJourneySheet.swift */,
 				E2F98006241E922BE2EAEEB0 /* Components.swift */,
@@ -179,7 +186,7 @@
 			isa = PBXGroup;
 			children = (
 				CCAECECB01C03E7C4363DCA5 /* Assets.xcassets */,
-				A7E71F4A54D24B0DB64F0007 /* BoxSkins */,
+				A7E71F4A54D24B0DB64F0007 /* Assets.xcassets/BoxSkins */,
 				738C57AD4865B9D8A9B2012D /* Ember.entitlements */,
 				DC635EBE2AC3C4079688D51C /* EmberApp.swift */,
 				9B5E3461D20AC34B06E3EDF9 /* Info.plist */,
@@ -320,6 +327,7 @@
 		DCC9971EB3E3496CA540644A /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				CAF275C030149EC30072E9C5 /* SunScheduleService.swift */,
 				29AAF313D28B06BACEA7BACC /* FriendService.swift */,
 				7AA585CB3013A02600B57C71 /* SleepClimateService.swift */,
 			);
@@ -337,6 +345,7 @@
 		F732AB640FBC1CC86A070176 /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
+				CAF275C23014A07F0072E9C5 /* DailyRhythmViewModel.swift */,
 				26EB659676DA2EBE700750DE /* FriendsViewModel.swift */,
 			);
 			path = ViewModels;
@@ -430,6 +439,7 @@
 				8F95790C1EFABD19ED1EB2D2 /* CalendarService.swift in Sources */,
 				C9D9AC4B4ACAB488956A0AED /* CalendarView.swift in Sources */,
 				5B948CFCFD612BB39AD421D1 /* CircadianModel.swift in Sources */,
+				CAF275C130149EC30072E9C5 /* SunScheduleService.swift in Sources */,
 				9E554E9F764DC57D8D8DD505 /* CoachView.swift in Sources */,
 				96C48726FEA71DF974E1876E /* CoachWidgets.swift in Sources */,
 				0138F8D037CE413B632B3DD7 /* Components.swift in Sources */,
@@ -438,6 +448,7 @@
 				78B9CA4A2393CF8AB9B1E469 /* EmberApp.swift in Sources */,
 				4070F51276CA68CB1DBE7FE6 /* Formatters.swift in Sources */,
 				AF50EF8EC0B514E38659EE81 /* FriendModels.swift in Sources */,
+				CAF275BC30145A120072E9C5 /* DailyRhythmView.swift in Sources */,
 				A13B78469D99F6AAB848D8C2 /* FriendRequestsView.swift in Sources */,
 				A7E71F4A54D24B0DB64F0004 /* HealthInsightDetailViews.swift in Sources */,
 				A7E71F4A54D24B0DB64F0002 /* RestToolsViews.swift in Sources */,
@@ -466,6 +477,7 @@
 				708896B1DCC0BFF175A362F2 /* SleepScience.swift in Sources */,
 				0EBF820742223F6E93108F98 /* SplashView.swift in Sources */,
 				BC45625A6468C0772AAC482A /* SupabaseManager.swift in Sources */,
+				CAF275C33014A0840072E9C5 /* DailyRhythmViewModel.swift in Sources */,
 				77499C61D5A7A51062740001 /* Theme.swift in Sources */,
 				EB0CD7C9CED89A3C9822C4C4 /* ThermalView.swift in Sources */,
 				A5F97F870FB3C3127CD65AD5 /* WakeAlarmService.swift in Sources */,
@@ -482,13 +494,13 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Ember/Ember.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = Q6F6T9227F;
+				DEVELOPMENT_TEAM = WZKT7VLB8Y;
 				INFOPLIST_FILE = Ember/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.bluebox.ember;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bluebox.ember666;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
@@ -563,13 +575,13 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Ember/Ember.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = Q6F6T9227F;
+				DEVELOPMENT_TEAM = WZKT7VLB8Y;
 				INFOPLIST_FILE = Ember/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.bluebox.ember;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bluebox.ember666;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;

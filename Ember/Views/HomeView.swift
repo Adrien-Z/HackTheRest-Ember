@@ -46,7 +46,13 @@ struct HomeView: View {
                 ScrollView {
                     VStack(spacing: 18) {
                         greeting
-                        tonightCard
+                        
+                        DailyRhythmView(
+                            sunriseHour: 7.03,
+                            sunsetHour: 18.5,
+                            sleepStartHour: 23,
+                            wakeHour: 7
+                        )
                         sleepClimateCard
                         healthInsightCarousel
                         quickToolEntrances

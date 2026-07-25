@@ -203,9 +203,9 @@ struct OnboardingView: View {
     private var climatePage: some View {
         OnboardScaffold {
             OnboardGlyph("thermometer.medium", tint: Theme.cool)
-            OnboardTitle("Plan around\ntonight's room climate.")
-            OnboardBody("EMBER can use your approximate location to check overnight heat and humidity. Weather only changes practical wind-down advice — it does not diagnose you or move your circadian rhythm.")
-            PermissionButton(title: "Check Sleep Climate", tint: Theme.cool, granted: climateGranted) {
+            OnboardTitle("Let EMBER read\nthe night air.")
+            OnboardBody("Approximate location lets EMBER quietly factor overnight heat and humidity into Coach and Agenda advice. It only surfaces when relevant, and never moves your circadian rhythm.")
+            PermissionButton(title: "Allow Location", tint: Theme.cool, granted: climateGranted) {
                 await sleepClimate.refresh(store: store)
                 climateGranted = store.sleepClimate != nil
                 return climateGranted

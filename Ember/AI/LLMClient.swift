@@ -9,7 +9,7 @@ enum LLMError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .missingKey: return "No API key set. Add your OpenRouter key in Settings."
+        case .missingKey: return "Connect Agenda intelligence in Settings."
         case .http(let code, let body): return "AI request failed (HTTP \(code)). \(body)"
         case .emptyResponse: return "The AI returned an empty response."
         case .decoding(let detail): return "Couldn't read the AI response: \(detail)"

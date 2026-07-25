@@ -45,16 +45,21 @@ struct RhythmView: View {
     // MARK: - SRI ring
 
     private var sriCard: some View {
-        VStack(spacing: 14) {
-            HStack {
-                Label("Timing consistency", systemImage: "waveform.path.ecg").font(.headline)
-                Spacer()
-                Tag(text: sriBand.label, color: sriBand.color)
+        ZStack(alignment: .topTrailing) {
+            InsightMascot(style: .rhythm, tint: Theme.ember)
+                .offset(x: 6, y: 18)
+                .allowsHitTesting(false)
+            VStack(spacing: 14) {
+                HStack {
+                    Label("Timing consistency", systemImage: "waveform.path.ecg").font(.headline)
+                    Spacer()
+                    Tag(text: sriBand.label, color: sriBand.color)
+                }
+                SRIRingView(value: r.sri ?? 0)
+                Text(sriBand.blurb).font(.footnote.weight(.semibold)).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
-            SRIRingView(value: r.sri ?? 0)
-            Text(sriBand.blurb).font(.footnote.weight(.semibold)).foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
         }
         .emberCard()
     }
@@ -144,7 +149,8 @@ struct SRIRingView: View {
 
 /// Night-by-night sleep midpoint with drag-to-inspect. Uses a numeric night
 /// index for the x so touch position maps cleanly to the nearest point;
-/// scrubbing ticks a selection haptic and reveals a callout.
+/// scrubbing ticks a selection haptic and updates a stable readout above the
+/// plot. The plot domain is fixed so the chart does not jump while dragging.
 struct MidpointChart: View {
     let points: [SleepScience.RegularityReport.MidpointPoint]
     @State private var selected: Int? = nil
@@ -156,44 +162,76 @@ struct MidpointChart: View {
     }
 
     var body: some View {
-        Chart {
-            ForEach(indexed, id: \.i) { p in
-                LineMark(x: .value("Night", p.i), y: .value("Midpoint", p.hours))
-                    .foregroundStyle(Theme.cool.opacity(0.5))
-                    .interpolationMethod(.catmullRom)
-                PointMark(x: .value("Night", p.i), y: .value("Midpoint", p.hours))
-                    .foregroundStyle(p.weekend ? Theme.amber : Theme.ember)
-                    .symbolSize(selected == p.i ? 160 : 60)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 12) {
+                RhythmLegendDot(color: Theme.ember, label: "Weeknight")
+                RhythmLegendDot(color: Theme.amber, label: "Weekend")
+                Spacer()
+                Text(selectedLabel)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
             }
-            if let sel = selected, let p = indexed.first(where: { $0.i == sel }) {
-                RuleMark(x: .value("Night", p.i))
-                    .foregroundStyle(Color.white.opacity(0.25))
-                    .annotation(position: .top, alignment: .center) {
-                        VStack(spacing: 1) {
-                            Text(clock(p.hours)).font(.caption.weight(.bold)).monospacedDigit()
-                            Text(shortDate(p.day)).font(.caption2).foregroundStyle(.secondary)
+            Chart {
+                ForEach(indexed, id: \.i) { p in
+                    LineMark(x: .value("Night", p.i), y: .value("Midpoint", p.hours))
+                        .foregroundStyle(Theme.cool.opacity(0.5))
+                        .interpolationMethod(.catmullRom)
+                    PointMark(x: .value("Night", p.i), y: .value("Midpoint", p.hours))
+                        .foregroundStyle(p.weekend ? Theme.amber : Theme.ember)
+                        .symbolSize(selected == p.i ? 84 : 54)
+                }
+                if let sel = selected {
+                    RuleMark(x: .value("Night", sel))
+                        .foregroundStyle(Color.white.opacity(0.24))
+                }
+            }
+            .frame(height: 200)
+            .chartXScale(domain: xDomain)
+            .chartYScale(domain: yDomain)
+            .chartYAxisLabel("midpoint")
+            .chartXAxis {
+                AxisMarks(values: axisValues) { value in
+                    AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5))
+                        .foregroundStyle(Color.white.opacity(0.10))
+                    AxisValueLabel {
+                        if let index = value.as(Int.self), let point = indexed.first(where: { $0.i == index }) {
+                            Text(index == indexed.last?.i ? "last" : shortDate(point.day))
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
                         }
-                        .padding(6)
-                        .background(Theme.card, in: RoundedRectangle(cornerRadius: 8))
                     }
+                }
             }
-        }
-        .frame(height: 200)
-        .chartYAxisLabel("midpoint (h)")
-        .chartXAxis { AxisMarks(values: .automatic(desiredCount: 4)) { _ in AxisGridLine() } }
-        .opacity(drawn ? 1 : 0)
-        .scaleEffect(y: drawn ? 1 : 0.85, anchor: .bottom)
-        .chartOverlay { proxy in
-            GeometryReader { geo in
-                Rectangle().fill(.clear).contentShape(Rectangle())
-                    .gesture(DragGesture(minimumDistance: 0)
-                        .onChanged { drag in
-                            let x = drag.location.x - geo[proxy.plotAreaFrame].origin.x
-                            guard let raw: Double = proxy.value(atX: x) else { return }
-                            let idx = min(max(Int(raw.rounded()), 0), points.count - 1)
-                            if idx != selected { selected = idx; Haptics.tick() }
+            .chartYAxis {
+                AxisMarks(values: .automatic(desiredCount: 4)) { value in
+                    AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5))
+                        .foregroundStyle(Color.white.opacity(0.10))
+                    AxisValueLabel {
+                        if let hour = value.as(Double.self) {
+                            Text(clock(hour))
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
                         }
-                        .onEnded { _ in selected = nil })
+                    }
+                }
+            }
+            .opacity(drawn ? 1 : 0)
+            .scaleEffect(y: drawn ? 1 : 0.85, anchor: .bottom)
+            .chartOverlay { proxy in
+                GeometryReader { geo in
+                    Rectangle().fill(.clear).contentShape(Rectangle())
+                        .gesture(DragGesture(minimumDistance: 0)
+                            .onChanged { drag in
+                                let x = drag.location.x - geo[proxy.plotAreaFrame].origin.x
+                                guard let raw: Double = proxy.value(atX: x) else { return }
+                                let idx = min(max(Int(raw.rounded()), 0), points.count - 1)
+                                if idx != selected { selected = idx; Haptics.tick() }
+                            })
+                }
+            }
+            .transaction { transaction in
+                transaction.animation = nil
             }
         }
         .onAppear {
@@ -205,5 +243,47 @@ struct MidpointChart: View {
     private func clock(_ hours: Double) -> String {
         let m = Int((hours * 60).rounded()) % 1440
         return String(format: "%02d:%02d", m / 60, m % 60)
+    }
+
+    private var selectedLabel: String {
+        guard let selected, let point = indexed.first(where: { $0.i == selected }) else {
+            return "drag to inspect"
+        }
+        return "\(shortDate(point.day)) · \(clock(point.hours))"
+    }
+
+    private var xDomain: ClosedRange<Int> {
+        0...max(1, points.count - 1)
+    }
+
+    private var yDomain: ClosedRange<Double> {
+        let values = indexed.map(\.hours)
+        guard let minValue = values.min(), let maxValue = values.max() else { return 0...10 }
+        let lower = max(0, floor(minValue - 1))
+        let upper = min(24, ceil(maxValue + 1))
+        return lower == upper ? (lower - 1)...(upper + 1) : lower...upper
+    }
+
+    private var axisValues: [Int] {
+        let count = points.count
+        guard count > 1 else { return [0] }
+        let step = count > 21 ? 7 : max(1, count / 4)
+        var values = Array(stride(from: 0, to: count, by: step))
+        if values.last != count - 1 { values.append(count - 1) }
+        return values
+    }
+}
+
+private struct RhythmLegendDot: View {
+    let color: Color
+    let label: String
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Circle().fill(color).frame(width: 7, height: 7)
+            Text(label)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.secondary)
+        }
     }
 }

@@ -80,7 +80,7 @@ struct SettingsView: View {
                     }
                 }
                 Section {
-                    Label("Sleep Climate uses approximate location and forecast data from Open-Meteo. No Apple WeatherKit entitlement or API key is required for the demo build.", systemImage: "cloud.sun.fill")
+                    Label("Sleep Climate uses approximate location to factor overnight heat and humidity into coaching when it is relevant.", systemImage: "cloud.sun.fill")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -104,7 +104,7 @@ struct SettingsView: View {
                             Image(systemName: "checkmark.circle.fill").foregroundStyle(Theme.mint)
                         }
                     }
-                    SecureField(store.aiConfigured ? "OpenRouter key (saved)" : "OpenRouter API key", text: $apiKeyDraft)
+                    SecureField(store.aiConfigured ? "AI access key saved" : "AI access key", text: $apiKeyDraft)
                         .textContentType(.password)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
@@ -118,7 +118,7 @@ struct SettingsView: View {
                         Button("Re-categorize calendar now") {
                             Task { await store.categorizeCalendar(calendar: calendar) }
                         }
-                        Button("Clear key", role: .destructive) {
+                        Button("Remove AI access", role: .destructive) {
                             store.setAPIKey(""); apiKeyDraft = ""
                         }
                     }
@@ -129,11 +129,11 @@ struct SettingsView: View {
                 } header: {
                     Text("Agenda intelligence")
                 } footer: {
-                    Text("Your calendar event text is sent to the AI provider to sort events into sleep-relevant categories. The key is stored in the device Keychain — fine for personal use; a shipping app should proxy through a backend.")
+                    Text("Calendar event text is used to sort events into sleep-relevant categories and personalize recommendations.")
                 }
 
                 Section {
-                    Label("The Pod is social data with no on-device source, so it always shows sample content.",
+                    Label("Pod content is illustrative until social sync is connected.",
                           systemImage: "person.3.fill")
                         .font(.footnote).foregroundStyle(.secondary)
                 }

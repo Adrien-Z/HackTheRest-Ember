@@ -8,6 +8,7 @@ import SwiftUI
 /// sheet to reclassify or set a reminder.
 struct AgendaView: View {
     @EnvironmentObject var store: DataStore
+    @EnvironmentObject var sleepClimate: SleepClimateService
     @State private var selectedDay = Calendar.current.startOfDay(for: Date())
     @State private var showInfo = false
 
@@ -32,6 +33,8 @@ struct AgendaView: View {
                 .animation(.snappy, value: selectedDay)
             }
         }
+        .onChange(of: selectedDay) { _ in Haptics.tick() }
+        .task { await sleepClimate.refreshIfAuthorized(store: store) }
         .navigationTitle("Agenda")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -50,6 +53,7 @@ private struct DayPage: View {
     @EnvironmentObject var store: DataStore
     @EnvironmentObject var calendar: CalendarService
     @EnvironmentObject var wakeAlarm: WakeAlarmService
+    @EnvironmentObject var sleepClimate: SleepClimateService
 
     @State private var plan: DayPlan?
     @State private var selectedEvent: AgendaEvent?
@@ -60,24 +64,29 @@ private struct DayPage: View {
     var body: some View {
         VStack(spacing: 0) {
             if let plan { PlanBanner(plan: plan) { rebuild() }.padding(.horizontal).padding(.bottom, 6) }
-            ScrollViewReader { proxy in
-                ScrollView {
-                    DayCanvas(
-                        day: day, events: eventsForWindow, plan: $plan,
-                        wakeMin: minuteOfDay(store.user.targetWakeTime),
-                        bedMin: minuteOfDay(store.user.targetBedTime),
-                        onSelectEvent: { selectedEvent = $0 },
-                        onSelectMarker: { selectedMarker = $0 },
-                        onPlanChange: { store.updateTonightPlan($0) })
-                    .padding(.horizontal, 12).padding(.bottom, 24)
-                }
-                .onAppear {
-                    // Land on the part of the day that matters: now (today) or the
-                    // evening wind-down, rather than the 6 AM top of the window.
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        withAnimation(.easeInOut) { proxy.scrollTo("focus", anchor: .center) }
+            ZStack(alignment: .topTrailing) {
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        DayCanvas(
+                            day: day, events: eventsForWindow, plan: $plan,
+                            wakeMin: minuteOfDay(store.user.targetWakeTime),
+                            bedMin: minuteOfDay(store.user.targetBedTime),
+                            onSelectEvent: { selectedEvent = $0 },
+                            onSelectMarker: { selectedMarker = $0 },
+                            onPlanChange: { store.updateTonightPlan($0) })
+                        .padding(.horizontal, 12).padding(.bottom, 24)
+                    }
+                    .onAppear {
+                        // Land on the part of the day that matters: now (today) or the
+                        // evening wind-down, rather than the 6 AM top of the window.
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            withAnimation(.easeInOut) { proxy.scrollTo("focus", anchor: .center) }
+                        }
                     }
                 }
+                climateCornerBadge
+                    .padding(.trailing, 18)
+                    .padding(.top, 8)
             }
         }
         .onAppear(perform: rebuild)
@@ -96,6 +105,35 @@ private struct DayPage: View {
         let origin = cal.date(bySettingHour: 6, minute: 0, second: 0, of: cal.startOfDay(for: day))!
         let end = origin.addingTimeInterval(27 * 3600)
         return store.agendaEvents.filter { $0.end > origin && $0.start < end && !$0.isAllDay }
+    }
+
+    @ViewBuilder private var climateCornerBadge: some View {
+        if SleepClimateService.isSupported,
+           cal.isDateInToday(day),
+           let snapshot = store.sleepClimate,
+           snapshot.risk != .low {
+            HStack(spacing: 5) {
+                Image(systemName: snapshot.risk == .high ? "thermometer.high" : "thermometer.medium")
+                Text(snapshot.risk == .high ? "Hot night" : "Warm night")
+            }
+            .font(.caption2.weight(.bold))
+            .foregroundStyle(climateColor(snapshot.risk))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background(.ultraThinMaterial, in: Capsule())
+            .overlay(Capsule().strokeBorder(climateColor(snapshot.risk).opacity(0.45), lineWidth: 0.8))
+            .shadow(color: climateColor(snapshot.risk).opacity(0.18), radius: 8, y: 4)
+            .allowsHitTesting(false)
+            .accessibilityLabel("Tonight's sleep climate: \(snapshot.risk.label)")
+        }
+    }
+
+    private func climateColor(_ risk: SleepClimateSnapshot.Risk) -> Color {
+        switch risk {
+        case .low: return Theme.mint
+        case .moderate: return Theme.amber
+        case .high: return Theme.ember
+        }
     }
 
     private func rebuild() {
@@ -127,7 +165,6 @@ private struct DayStrip: View {
                     ForEach(days, id: \.self) { day in
                         let sel = cal.isDate(day, inSameDayAs: selectedDay)
                         Button {
-                            Haptics.tick()
                             withAnimation(.snappy) { selectedDay = day }
                         } label: {
                             VStack(spacing: 2) {
@@ -492,31 +529,37 @@ private struct DayCanvas: View {
             .accessibilityLabel("Move sleep plan")
     }
 
-    /// Native-Calendar behavior: press-and-hold the handle to pick up a block, then drag to
-    /// move the WHOLE night (sleep + warm-up stay linked). A plain scroll never
-    /// engages, so scrolling the timeline never shifts times. Snapped to 5 min.
+    /// Native-Calendar behavior: drag the small handle to move the WHOLE night
+    /// (sleep + warm-up stay linked). The rest of the band stays scrollable.
+    /// Snapped to 5 min. Shared state is committed on end so other screens don't
+    /// re-render against the finger mid-drag.
     private func bandDrag(base: Binding<DayPlan?>) -> some Gesture {
-        LongPressGesture(minimumDuration: 0.3)
-            .sequenced(before: DragGesture(minimumDistance: 0))
+        DragGesture(minimumDistance: 6)
             .onChanged { value in
-                switch value {
-                case .first(true):
-                    break
-                case .second(true, let drag):
-                    if base.wrappedValue == nil { base.wrappedValue = plan; lastStep = 0; Haptics.light() }
-                    guard let b = base.wrappedValue, let drag else { return }
-                    let step = Int((drag.translation.height / ppm / 5).rounded()) * 5
-                    var p = b
-                    p.bed = shift(b.bed, step); p.wake = shift(b.wake, step)
-                    p.warmingStart = shift(b.warmingStart, step); p.warmingEnd = shift(b.warmingEnd, step)
-                    plan = p
-                    onPlanChange(p)
-                    if step != lastStep { Haptics.tick(); lastStep = step }
-                default:
-                    break
+                if base.wrappedValue == nil {
+                    base.wrappedValue = plan
+                    lastStep = 0
+                    Haptics.light()
                 }
+                guard let b = base.wrappedValue else { return }
+                let step = Int((value.translation.height / ppm / 5).rounded()) * 5
+                guard step != lastStep else { return }
+                var p = b
+                p.bed = shift(b.bed, step); p.wake = shift(b.wake, step)
+                p.warmingStart = shift(b.warmingStart, step); p.warmingEnd = shift(b.warmingEnd, step)
+                var transaction = Transaction()
+                transaction.disablesAnimations = true
+                withTransaction(transaction) {
+                    plan = p
+                }
+                Haptics.tick()
+                lastStep = step
             }
-            .onEnded { _ in base.wrappedValue = nil }
+            .onEnded { _ in
+                if let plan { onPlanChange(plan) }
+                base.wrappedValue = nil
+                lastStep = 0
+            }
     }
 
     // MARK: events (side-by-side column packing for overlaps)

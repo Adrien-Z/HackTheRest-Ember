@@ -472,6 +472,10 @@ final class DataStore: ObservableObject {
         if let dev = wristTempDeviationC, abs(dev) >= 0.3 {
             parts.append("wrist temperature ran \(dev > 0 ? "+" : "")\(String(format: "%.1f", dev))°C vs baseline (a relative wrist skin measure, not core temperature — can rise with illness, alcohol, or menstrual phase)")
         }
+        if let climate = sleepClimate, climate.risk != .low {
+            let humidity = climate.maxHumidity.map { ", humidity up to \(Int(($0 * 100).rounded()))%" } ?? ""
+            parts.append("tonight's local sleep climate is \(climate.risk.label.lowercased()): \(Int(climate.overnightLowC))-\(Int(climate.overnightHighC))°C\(humidity); use this only for sleep-friction advice, not as a circadian phase shift")
+        }
         if let debt = sleepDebtMin(), debt >= 30 { parts.append("carrying roughly \(fmtDur(debt)) of sleep debt this week") }
         return parts.joined(separator: "; ") + "."
     }

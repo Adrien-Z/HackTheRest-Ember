@@ -18,6 +18,6 @@ struct RootTabView: View {
                 .tabItem { Label("Box Space", systemImage: "shippingbox.fill") }
                 .tag(3)
         }
-        .onChange(of: selectedTab) { _ in Haptics.tick() }
+        .onChange(of: selectedTab) { Haptics.tick() }
     }
 }

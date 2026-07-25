@@ -61,7 +61,7 @@ struct AddFriendView: View {
                     .padding(24)
                 }
                 .scrollDismissesKeyboard(.interactively)
-                .onChange(of: emailFieldFocused) { isFocused in
+                .onChange(of: emailFieldFocused) { _, isFocused in
                     guard isFocused else { return }
                     withAnimation(.easeOut(duration: 0.22)) {
                         proxy.scrollTo("sendRequest", anchor: .bottom)

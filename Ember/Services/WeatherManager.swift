@@ -41,16 +41,12 @@ final class WeatherManager: ObservableObject {
     private let cacheStore: CachedRhythmStore
     private var cachedSnapshot: CachedRhythmSnapshot?
 
-    private init(
-        openMeteoService: OpenMeteoService = .shared,
-        locationManager: LocationManager = .shared,
-        cacheStore: CachedRhythmStore = .shared
-    ) {
-        self.openMeteoService = openMeteoService
-        self.locationManager = locationManager
-        self.cacheStore = cacheStore
+    private init() {
+        self.openMeteoService = .shared
+        self.locationManager = .shared
+        self.cacheStore = .shared
 
-        if let snapshot = cacheStore.load() {
+        if let snapshot = self.cacheStore.load() {
             cachedSnapshot = snapshot
             rhythmData = snapshot.rhythmData
         }

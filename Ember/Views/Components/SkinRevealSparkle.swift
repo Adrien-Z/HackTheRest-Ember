@@ -17,7 +17,7 @@ struct SkinRevealPreview: View {
 
             SkinRevealSparkle(isVisible: showSparkles)
         }
-        .onChange(of: revealToken) { _ in
+        .onChange(of: revealToken) {
             playRevealAnimation()
         }
     }

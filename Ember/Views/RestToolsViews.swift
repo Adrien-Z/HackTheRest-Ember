@@ -33,7 +33,7 @@ struct WhiteNoiseView: View {
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .frame(height: 272)
-                .onChange(of: selectedSound) { sound in player.select(sound) }
+                .onChange(of: selectedSound) { _, sound in player.select(sound) }
 
                 HStack(spacing: 7) {
                     ForEach(AmbientSound.allCases) { sound in
@@ -282,10 +282,10 @@ struct BreathingTrainingView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .animation(.easeInOut(duration: 0.18), value: phase.id)
-                    .onChange(of: phase.id) { newPhase in
+                    .onChange(of: phase.id) { _, newPhase in
                         phaseHaptic(newPhase)
                     }
-                    .onChange(of: Int(elapsed.rounded(.down))) { second in
+                    .onChange(of: Int(elapsed.rounded(.down))) { _, second in
                         secondHaptic(second: second, elapsed: elapsed)
                     }
 
@@ -642,12 +642,12 @@ struct MindDumpCoachView: View {
                         .padding()
                         .lockHorizontal()
                     }
-                    .onChange(of: mindMessages.count) { _ in
+                    .onChange(of: mindMessages.count) {
                         withAnimation(.easeOut(duration: 0.22)) {
                             proxy.scrollTo("mindBottom", anchor: .bottom)
                         }
                     }
-                    .onChange(of: mindMessages.last?.content) { _ in
+                    .onChange(of: mindMessages.last?.content) {
                         proxy.scrollTo("mindBottom", anchor: .bottom)
                         streamHaptic()
                     }
@@ -657,7 +657,7 @@ struct MindDumpCoachView: View {
         }
         .navigationTitle("Mind Dump")
         .navigationBarTitleDisplayMode(.inline)
-        .onChange(of: speech.transcript) { transcript in
+        .onChange(of: speech.transcript) { _, transcript in
             guard speech.isRecording else { return }
             if dictationPrefix.isEmpty {
                 draft = transcript
@@ -893,7 +893,7 @@ private final class SpeechTranscriber: NSObject, ObservableObject {
 
     private func requestMicrophoneAuthorization() async -> Bool {
         await withCheckedContinuation { continuation in
-            AVAudioSession.sharedInstance().requestRecordPermission { allowed in
+            AVAudioApplication.requestRecordPermission { allowed in
                 continuation.resume(returning: allowed)
             }
         }

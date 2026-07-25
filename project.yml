@@ -2,7 +2,7 @@ name: Ember
 options:
   bundleIdPrefix: com.bluebox
   deploymentTarget:
-    iOS: "16.0"
+    iOS: "17.6"
   createIntermediateGroups: true
 settings:
   base:

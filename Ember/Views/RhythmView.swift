@@ -229,7 +229,8 @@ struct MidpointChart: View {
                     Rectangle().fill(.clear).contentShape(Rectangle())
                         .gesture(DragGesture(minimumDistance: 0)
                             .onChanged { drag in
-                                let x = drag.location.x - geo[proxy.plotAreaFrame].origin.x
+                                guard let plotFrame = proxy.plotFrame else { return }
+                                let x = drag.location.x - geo[plotFrame].origin.x
                                 guard let raw: Double = proxy.value(atX: x) else { return }
                                 let idx = min(max(Int(raw.rounded()), 0), points.count - 1)
                                 if idx != selected { selected = idx; Haptics.tick() }

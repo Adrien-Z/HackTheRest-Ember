@@ -43,7 +43,7 @@ struct SettingsView: View {
                         Label("Show sample agenda events", systemImage: "calendar.badge.plus")
                     }
                     .tint(Theme.ember)
-                    .onChange(of: store.demoEventsEnabled) { _ in Haptics.tick() }
+                    .onChange(of: store.demoEventsEnabled) { Haptics.tick() }
                 } header: {
                     Text("Demo")
                 } footer: {
@@ -94,7 +94,7 @@ struct SettingsView: View {
                     Section {
                         Toggle("Auto-adjust for early events", isOn: $wakeAlarm.autoAdaptEnabled)
                             .tint(Theme.ember)
-                            .onChange(of: wakeAlarm.autoAdaptEnabled) { _ in Haptics.tick() }
+                            .onChange(of: wakeAlarm.autoAdaptEnabled) { Haptics.tick() }
                     } header: {
                         Text("Wake Alarm")
                     } footer: {

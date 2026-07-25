@@ -107,7 +107,7 @@ struct BoxSpaceView: View {
             async let community: Void = store.refreshBoxSpace()
             _ = await (friends, community)
         }
-        .onChange(of: friendsViewModel.friends.count) { _ in
+        .onChange(of: friendsViewModel.friends.count) {
             Task { await store.refreshBoxSpace() }
         }
     }
@@ -259,7 +259,7 @@ private struct CountUpPointsText: View {
                     animatedValue = Double(value)
                 }
             }
-            .onChange(of: value) { newValue in
+            .onChange(of: value) { _, newValue in
                 withAnimation(.easeOut(duration: 0.65)) {
                     animatedValue = Double(newValue)
                 }

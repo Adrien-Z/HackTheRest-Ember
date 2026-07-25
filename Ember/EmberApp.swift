@@ -29,7 +29,7 @@ struct EmberApp: App {
                 await sleepClimate.refreshIfAuthorized(store: store)
                 await store.refreshBoxSpace()
             }
-            .onChange(of: scenePhase) { phase in
+            .onChange(of: scenePhase) { _, phase in
                 if phase == .background {
                     EmberApp.scheduleBackgroundRefresh()
                 } else if phase == .active, auth.isAuthenticated {

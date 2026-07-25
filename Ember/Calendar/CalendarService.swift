@@ -27,19 +27,12 @@ final class CalendarService: ObservableObject {
     private let store = EKEventStore()
 
     var isAuthorized: Bool {
-        let status = EKEventStore.authorizationStatus(for: .event)
-        if #available(iOS 17.0, *) { return status == .fullAccess }
-        return status == .authorized
+        EKEventStore.authorizationStatus(for: .event) == .fullAccess
     }
 
     func requestAccess() async {
         do {
-            let granted: Bool
-            if #available(iOS 17.0, *) {
-                granted = try await store.requestFullAccessToEvents()
-            } else {
-                granted = try await store.requestAccess(to: .event)
-            }
+            let granted = try await store.requestFullAccessToEvents()
             authorized = granted
             if !granted { lastError = "Calendar access denied. Enable it in Settings." }
         } catch {

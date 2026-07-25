@@ -152,7 +152,7 @@ struct HomeView: View {
         .onAppear {
             alarmEnabled = wakeAlarm.scheduledTime != nil
         }
-        .onChange(of: alarmEnabled) { enabled in
+        .onChange(of: alarmEnabled) { _, enabled in
             Haptics.light()
             if enabled {
                 Task { await wakeAlarm.setWakeAlarm(at: tonightWakeTime) }
@@ -160,7 +160,7 @@ struct HomeView: View {
                 wakeAlarm.cancelWakeAlarm()
             }
         }
-        .onChange(of: wakeAlarm.scheduledTime) { scheduledTime in
+        .onChange(of: wakeAlarm.scheduledTime) { _, scheduledTime in
             alarmEnabled = scheduledTime != nil
         }
     }

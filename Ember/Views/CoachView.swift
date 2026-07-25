@@ -71,11 +71,11 @@ struct CoachView: View {
                                 if thinking { shouldFollowStreaming = false }
                             }
                     )
-                    .onChange(of: store.chat.count) { _ in
+                    .onChange(of: store.chat.count) {
                         guard shouldFollowStreaming else { return }
                         withAnimation { proxy.scrollTo("coachBottom", anchor: .bottom) }
                     }
-                    .onChange(of: store.chat.last?.content) { _ in
+                    .onChange(of: store.chat.last?.content) {
                         if shouldFollowStreaming { proxy.scrollTo("coachBottom", anchor: .bottom) }
                         streamHaptic()
                     }

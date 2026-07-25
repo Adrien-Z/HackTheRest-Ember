@@ -33,7 +33,7 @@ struct AgendaView: View {
                 .animation(.snappy, value: selectedDay)
             }
         }
-        .onChange(of: selectedDay) { _ in Haptics.tick() }
+        .onChange(of: selectedDay) { Haptics.tick() }
         .task { await sleepClimate.refreshIfAuthorized(store: store) }
         .navigationTitle("Agenda")
         .navigationBarTitleDisplayMode(.inline)
@@ -94,7 +94,7 @@ private struct DayPage: View {
             }
         }
         .onAppear(perform: rebuild)
-        .onChange(of: store.agendaEvents) { _ in rebuild() }
+        .onChange(of: store.agendaEvents) { rebuild() }
         .sheet(item: $selectedEvent) { event in
             EventDetailSheet(event: event)
                 .environmentObject(store).environmentObject(calendar).environmentObject(wakeAlarm)
@@ -196,7 +196,7 @@ private struct DayStrip: View {
                     }
                 }.padding(.horizontal, 12)
             }
-            .onChange(of: selectedDay) { day in
+            .onChange(of: selectedDay) { _, day in
                 withAnimation(.snappy) { proxy.scrollTo(day, anchor: .center) }
             }
         }

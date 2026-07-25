@@ -321,7 +321,8 @@ private struct SleepScoreTrendCard: View {
                     Rectangle().fill(.clear).contentShape(Rectangle())
                         .gesture(DragGesture(minimumDistance: 0)
                             .onChanged { value in
-                                let x = value.location.x - geo[proxy.plotAreaFrame].origin.x
+                                guard let plotFrame = proxy.plotFrame else { return }
+                                let x = value.location.x - geo[plotFrame].origin.x
                                 guard let raw: Double = proxy.value(atX: x) else { return }
                                 let idx = min(max(Int(raw.rounded()), 0), max(0, points.count - 1))
                                 if idx != selected { selected = idx; Haptics.tick() }
@@ -374,7 +375,8 @@ private struct EnergyCurveCard: View {
                     Rectangle().fill(.clear).contentShape(Rectangle())
                         .gesture(DragGesture(minimumDistance: 0)
                             .onChanged { value in
-                                let x = value.location.x - geo[proxy.plotAreaFrame].origin.x
+                                guard let plotFrame = proxy.plotFrame else { return }
+                                let x = value.location.x - geo[plotFrame].origin.x
                                 guard let date: Date = proxy.value(atX: x),
                                       let nearest = points.min(by: { abs($0.time.timeIntervalSince(date)) < abs($1.time.timeIntervalSince(date)) })
                                 else { return }

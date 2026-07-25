@@ -248,6 +248,158 @@ struct BreathingTrainingView: View {
     }
 }
 
+struct MindDumpCoachView: View {
+    @EnvironmentObject private var store: DataStore
+    @State private var draft = ""
+    @State private var thinking = false
+    @State private var lastStreamHaptic = Date.distantPast
+
+    private var selectedDecoration: BoxDecoration? {
+        store.boxSpace.decorations.first {
+            $0.id == store.boxSpace.currentUser.decorationID
+        }
+    }
+
+    var body: some View {
+        ZStack {
+            NightBackground()
+            VStack(spacing: 0) {
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        VStack(spacing: 12) {
+                            hero
+                            ForEach(store.mindChat) { message in
+                                MindDumpBubble(message: message, decoration: selectedDecoration)
+                                    .id(message.id)
+                            }
+                            if thinking && (store.mindChat.last?.content.isEmpty ?? false) {
+                                HStack(spacing: 8) {
+                                    ProgressView().tint(Theme.amber)
+                                    Text("Sorting…")
+                                        .font(.caption)
+                                        .foregroundStyle(Theme.secondaryText)
+                                    Spacer()
+                                }
+                                .padding(.horizontal)
+                                .id("mindThinking")
+                            }
+                            Color.clear.frame(height: 1).id("mindBottom")
+                        }
+                        .padding()
+                        .lockHorizontal()
+                    }
+                    .onChange(of: store.mindChat.count) { _ in
+                        withAnimation(.easeOut(duration: 0.22)) {
+                            proxy.scrollTo("mindBottom", anchor: .bottom)
+                        }
+                    }
+                    .onChange(of: store.mindChat.last?.content) { _ in
+                        proxy.scrollTo("mindBottom", anchor: .bottom)
+                        streamHaptic()
+                    }
+                }
+                inputBar
+            }
+        }
+        .navigationTitle("Mind Dump")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Haptics.light()
+                    store.resetMindDump()
+                } label: {
+                    Image(systemName: "arrow.counterclockwise")
+                }
+                .accessibilityLabel("Reset mind dump")
+            }
+        }
+    }
+
+    private var hero: some View {
+        HStack(spacing: 13) {
+            BoxSkinImageView(decoration: selectedDecoration, size: CGSize(width: 58, height: 58))
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Brain dump, then park it")
+                    .font(.headline)
+                Text("EMBER keeps the thread here and reminds you tomorrow morning.")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .emberCard(12)
+    }
+
+    private var inputBar: some View {
+        HStack(spacing: 10) {
+            TextField("What's on your mind?", text: $draft, axis: .vertical)
+                .lineLimit(1...4)
+                .textFieldStyle(.plain)
+                .padding(12)
+                .background(Theme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            Button {
+                Task { await send() }
+            } label: {
+                Image(systemName: "arrow.up.circle.fill")
+                    .font(.title2)
+                    .foregroundStyle(Theme.amber)
+            }
+            .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || thinking)
+        }
+        .padding()
+    }
+
+    private func send() async {
+        let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty, !thinking else { return }
+        Haptics.light()
+        draft = ""
+        thinking = true
+        await store.sendMindDumpMessage(text)
+        thinking = false
+        Haptics.success()
+    }
+
+    private func streamHaptic() {
+        guard thinking, Date().timeIntervalSince(lastStreamHaptic) > 0.12 else { return }
+        lastStreamHaptic = Date()
+        Haptics.stream()
+    }
+}
+
+private struct MindDumpBubble: View {
+    let message: ChatMessage
+    let decoration: BoxDecoration?
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 9) {
+            if message.role == .coach {
+                BoxSkinImageView(decoration: decoration, size: CGSize(width: 34, height: 34))
+                    .padding(5)
+                    .background(Theme.card.opacity(0.7), in: Circle())
+                    .overlay(Circle().strokeBorder(Theme.amber.opacity(0.18), lineWidth: 0.8))
+            } else {
+                Spacer(minLength: 40)
+            }
+            Text(message.content)
+                .font(.subheadline)
+                .foregroundStyle(message.role == .user ? .white : .primary.opacity(0.94))
+                .padding(12)
+                .background(
+                    message.role == .user ? Theme.ember.opacity(0.9) : Theme.card.opacity(0.96),
+                    in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                )
+                .frame(maxWidth: 290, alignment: message.role == .user ? .trailing : .leading)
+                .fixedSize(horizontal: false, vertical: true)
+            if message.role == .coach {
+                Spacer(minLength: 0)
+            }
+        }
+    }
+}
+
 private struct BreathPhase {
     let instruction: String
     let secondsRemaining: Int
@@ -287,7 +439,7 @@ struct WindDownRitualsView: View {
         WindDownRitual(
             title: "Warm Towel",
             subtitle: "Low-effort warmth for busy nights",
-            icon: "towel.fill",
+            icon: "hand.raised.fill",
             tint: Theme.amber,
             steps: [
                 "Warm a towel and place it around shoulders, neck, or feet.",

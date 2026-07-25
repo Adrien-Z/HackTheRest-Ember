@@ -102,6 +102,16 @@ struct RestLabView: View {
                 }
                 .buttonStyle(.plain)
                 .simultaneousGesture(TapGesture().onEnded { Haptics.light() })
+
+                NavigationLink { MindDumpCoachView() } label: {
+                    RestLabSmallCard(
+                        title: "Mind Dump",
+                        subtitle: "Park worries for tomorrow",
+                        icon: "bubble.left.and.text.bubble.right.fill",
+                        tint: Theme.amber)
+                }
+                .buttonStyle(.plain)
+                .simultaneousGesture(TapGesture().onEnded { Haptics.light() })
             }
         }
     }

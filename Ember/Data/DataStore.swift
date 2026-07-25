@@ -1,4 +1,5 @@
 import Foundation
+import UserNotifications
 
 /// Where the app's data comes from.
 enum DataSourceMode: String {
@@ -45,6 +46,8 @@ final class DataStore: ObservableObject {
     @Published var chat: [ChatMessage] = []
     /// Set by other screens ("Ask the coach") so CoachView can auto-send on appear.
     @Published var pendingCoachQuestion: String? = nil
+    /// Separate anxiety/brain-dump thread for Rest Lab.
+    @Published var mindChat: [ChatMessage] = []
 
     // Live Apple Health readout (nil until authorized + fetched)
     @Published var healthLastNightTST: Int? = nil
@@ -91,6 +94,8 @@ final class DataStore: ObservableObject {
         static let calendarOverrides = "ember.calendarOverrides"   // eventId → category
         static let demoEvents = "ember.demoAgendaEvents"
         static let restJourney = "ember.restJourney.v1"
+        static let mindChat = "ember.mindDump.chat.v1"
+        static let mindReminder = "ember.mindDump.tomorrowReminder"
     }
 
     init() {
@@ -111,6 +116,10 @@ final class DataStore: ObservableObject {
         restJourney = Self.loadRestJourney()
         chat = [ChatMessage(role: .coach,
             content: "Hi \(displayName) — I'm your rest coach. Ask me why any prescription changed, or tap a suggested question below.")]
+        mindChat = Self.loadMindChat()
+        if mindChat.isEmpty {
+            mindChat = [Self.mindDumpOpeningMessage]
+        }
         if mode == .sample { applySample() }
         applyLocalJourneyToBoxSpace()
     }
@@ -805,6 +814,124 @@ final class DataStore: ObservableObject {
                 setContent(await RestCoach.answer(to: lastUser, store: self, adaptations: adaptations))
             }
         }
+    }
+
+    func sendMindDumpMessage(_ text: String) async {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        mindChat.append(ChatMessage(role: .user, content: trimmed))
+        persistMindChat()
+        await scheduleMindDumpReminder()
+        await streamMindDumpReply(history: mindChat)
+    }
+
+    func resetMindDump() {
+        mindChat = [Self.mindDumpOpeningMessage]
+        persistMindChat()
+    }
+
+    private func streamMindDumpReply(history: [ChatMessage]) async {
+        let lastUser = history.last(where: { $0.role == .user })?.content ?? ""
+        let fallback = Self.mindDumpFallback(for: lastUser)
+        guard let client = llmClient else {
+            mindChat.append(ChatMessage(role: .coach, content: fallback))
+            persistMindChat()
+            return
+        }
+
+        let system = """
+        You are EMBER's short evening brain-dump coach. Help the user lower pre-sleep anxiety by externalizing worries, separating controllable next actions from parked thoughts, and ending with one tiny next step.
+        Keep replies under 70 words. Use warm, plain language. Do not diagnose, do not claim therapy, and do not over-medicalize. If the user describes immediate danger or intent to harm themselves or someone else, tell them to contact local emergency services now.
+        """
+        var turns = history.suffix(12).map {
+            LLMClient.ChatTurn(role: $0.role == .user ? "user" : "assistant", content: $0.content)
+        }
+        while turns.first?.role == "assistant" { turns.removeFirst() }
+
+        mindChat.append(ChatMessage(role: .coach, content: ""))
+        let id = mindChat.last!.id
+        func setContent(_ text: String) { if let i = mindChat.firstIndex(where: { $0.id == id }) { mindChat[i].content = text } }
+        func appendContent(_ text: String) { if let i = mindChat.firstIndex(where: { $0.id == id }) { mindChat[i].content += text } }
+
+        do {
+            for try await piece in client.chatStream(system: system, messages: turns) {
+                appendContent(piece)
+            }
+            if let i = mindChat.firstIndex(where: { $0.id == id }), mindChat[i].content.isEmpty {
+                setContent(fallback)
+            }
+        } catch {
+            let produced = mindChat.first(where: { $0.id == id })?.content ?? ""
+            if produced.isEmpty {
+                setContent(fallback)
+            }
+        }
+        persistMindChat()
+    }
+
+    private func scheduleMindDumpReminder() async {
+        let center = UNUserNotificationCenter.current()
+        let settings = await center.notificationSettings()
+        if settings.authorizationStatus == .notDetermined {
+            _ = try? await center.requestAuthorization(options: [.alert, .sound])
+        }
+        let latestSettings = await center.notificationSettings()
+        guard latestSettings.authorizationStatus == .authorized
+            || latestSettings.authorizationStatus == .provisional else { return }
+
+        center.removePendingNotificationRequests(withIdentifiers: [Keys.mindReminder])
+        let startOfToday = Calendar.current.startOfDay(for: Date())
+        guard let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: startOfToday) else { return }
+        var components = Calendar.current.dateComponents([.year, .month, .day], from: tomorrow)
+        components.hour = 9
+        components.minute = 30
+
+        let content = UNMutableNotificationContent()
+        content.title = "Revisit last night's brain dump"
+        content.body = "Take one minute to sort what still needs action and what can stay parked."
+        content.sound = .default
+        let request = UNNotificationRequest(
+            identifier: Keys.mindReminder,
+            content: content,
+            trigger: UNCalendarNotificationTrigger(dateMatching: components, repeats: false))
+        try? await center.add(request)
+    }
+
+    private func persistMindChat() {
+        let payload = mindChat.map {
+            PersistedChatMessage(role: $0.role == .user ? "user" : "coach", content: $0.content)
+        }
+        guard let data = try? JSONEncoder().encode(payload) else { return }
+        UserDefaults.standard.set(data, forKey: Keys.mindChat)
+    }
+
+    private static func loadMindChat() -> [ChatMessage] {
+        guard let data = UserDefaults.standard.data(forKey: Keys.mindChat),
+              let payload = try? JSONDecoder().decode([PersistedChatMessage].self, from: data) else { return [] }
+        return payload.compactMap { item in
+            let content = item.content.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !content.isEmpty else { return nil }
+            return ChatMessage(role: item.role == "user" ? .user : .coach, content: content)
+        }
+    }
+
+    private static var mindDumpOpeningMessage: ChatMessage {
+        ChatMessage(
+            role: .coach,
+            content: "Tell me what's on your mind. Brain dump everything here; I'll help park it for tonight and remind you tomorrow.")
+    }
+
+    private static func mindDumpFallback(for text: String) -> String {
+        let lower = text.lowercased()
+        if lower.contains("anxious") || lower.contains("worry") || lower.contains("worried") || lower.contains("can't sleep") || lower.contains("cant sleep") {
+            return "Got it. Put the worry outside your head for now: one thing you can do tomorrow, one thing that can wait, then let the rest stay parked here."
+        }
+        return "I saved it for tomorrow. For tonight, choose one tiny next action if there is one; everything else can stay in this dump until morning."
+    }
+
+    private struct PersistedChatMessage: Codable {
+        let role: String
+        let content: String
     }
 
     private func applySample() {

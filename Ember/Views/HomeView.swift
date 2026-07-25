@@ -10,6 +10,7 @@ struct HomeView: View {
     @State private var showSettings = false
     @State private var showCoach = false
     @State private var insightPage = 0
+    @State private var alarmEnabled = false
 
     private var effectiveTonightPlan: DayPlan? {
         if let plan = store.tonightPlan, Calendar.current.isDateInToday(plan.day) {
@@ -138,34 +139,37 @@ struct HomeView: View {
         )
     }
 
-    /// Set / move / remove the AlarmKit wake alarm from the plan's wake time.
+    /// Set or remove the AlarmKit wake alarm from the plan's wake time.
     @ViewBuilder private var wakeAlarmRow: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "alarm.fill").foregroundStyle(Theme.amber)
-            if let t = wakeAlarm.scheduledTime {
-                Text("Wake alarm · \(t)").font(.footnote)
-                Spacer()
-                if t != tonightWakeTime {
-                    Button("Move to \(tonightWakeTime)") {
-                        Haptics.light()
-                        Task { await wakeAlarm.setWakeAlarm(at: tonightWakeTime) }
-                    }
-                    .buttonStyle(.borderedProminent).tint(Theme.ember).controlSize(.small)
+        Toggle(isOn: $alarmEnabled) {
+            HStack(spacing: 10) {
+                Image(systemName: "alarm.fill")
+                    .foregroundStyle(Theme.amber)
+                    .frame(width: 24)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Wake alarm")
+                        .font(.footnote.weight(.semibold))
+                    Text(wakeAlarm.scheduledTime ?? tonightWakeTime)
+                        .font(.caption)
+                        .foregroundStyle(Theme.secondaryText)
+                        .monospacedDigit()
                 }
-                Button("Remove") {
-                    Haptics.light()
-                    wakeAlarm.cancelWakeAlarm()
-                }
-                    .buttonStyle(.bordered).controlSize(.small)
-            } else {
-                Text("Wake alarm").font(.footnote).foregroundStyle(Theme.secondaryText)
-                Spacer()
-                Button("Set for \(tonightWakeTime)") {
-                    Haptics.light()
-                    Task { await wakeAlarm.setWakeAlarm(at: tonightWakeTime) }
-                }
-                .buttonStyle(.borderedProminent).tint(Theme.ember).controlSize(.small)
             }
+        }
+        .tint(Theme.ember)
+        .onAppear {
+            alarmEnabled = wakeAlarm.scheduledTime != nil
+        }
+        .onChange(of: alarmEnabled) { enabled in
+            Haptics.light()
+            if enabled {
+                Task { await wakeAlarm.setWakeAlarm(at: tonightWakeTime) }
+            } else {
+                wakeAlarm.cancelWakeAlarm()
+            }
+        }
+        .onChange(of: wakeAlarm.scheduledTime) { scheduledTime in
+            alarmEnabled = scheduledTime != nil
         }
     }
 

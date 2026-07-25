@@ -46,14 +46,12 @@ struct HomeView: View {
                 ScrollView {
                     VStack(spacing: 18) {
                         greeting
-                        
                         DailyRhythmView(
                             sunriseHour: 7.03,
                             sunsetHour: 18.5,
                             sleepStartHour: 23,
                             wakeHour: 7
                         )
-                        sleepClimateCard
                         healthInsightCarousel
                         quickToolEntrances
                     }
@@ -105,99 +103,6 @@ struct HomeView: View {
             Spacer()
             Tag(text: store.isSampleData ? "sample" : "live",
                 color: store.isSampleData ? Theme.amber : Theme.mint)
-        }
-    }
-
-    private var tonightCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Label("Tonight's plan", systemImage: "moon.stars.fill").font(.headline)
-                Spacer()
-                if store.thermalConverged { Tag(text: "dialed in", color: Theme.mint) }
-            }
-            HStack(spacing: 0) {
-                MetricStat(value: tonightWarmTime, label: "start warming", color: Theme.ember)
-                Divider().frame(height: 40).overlay(Color.white.opacity(0.1))
-                MetricStat(value: tonightBedTime, label: "lights out")
-                Divider().frame(height: 40).overlay(Color.white.opacity(0.1))
-                MetricStat(value: tonightWakeTime, label: "wake")
-            }
-            if let rx = store.currentThermalRx {
-                Text(warmingPlanSummary(rx: rx))
-                    .font(.footnote).foregroundStyle(.secondary)
-            }
-            if WakeAlarmService.isSupported {
-                Divider().overlay(Color.white.opacity(0.08))
-                wakeAlarmRow
-                if let err = wakeAlarm.lastError {
-                    Text(err).font(.caption2).foregroundStyle(.red)
-                }
-            }
-        }
-        .emberCard()
-        .background(
-            RoundedRectangle(cornerRadius: 20).fill(Theme.ember.opacity(0.06))
-        )
-    }
-
-    @ViewBuilder private var sleepClimateCard: some View {
-        if SleepClimateService.isSupported {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .top, spacing: 10) {
-                    Image(systemName: "thermometer.medium")
-                        .foregroundStyle(sleepClimateColor)
-                        .font(.title3)
-                        .frame(width: 28, height: 28)
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Text("Sleep climate").font(.headline)
-                            Spacer()
-                            if let snapshot = store.sleepClimate {
-                                Tag(text: snapshot.risk.label, color: sleepClimateColor)
-                            }
-                        }
-                        if let snapshot = store.sleepClimate {
-                            Text(snapshot.summary).font(.footnote).foregroundStyle(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                            Text(snapshot.guidance).font(.footnote)
-                                .fixedSize(horizontal: false, vertical: true)
-                            if let wrist = store.wristTempDeviationC, wrist >= 0.3, snapshot.risk != .low {
-                                Text("Your wrist temperature is also running +\(String(format: "%.1f", wrist))C vs baseline. That is a relative watch signal, not core temperature.")
-                                    .font(.caption2).foregroundStyle(.secondary)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                        } else {
-                            Text("Check tonight's heat and humidity before bed. Weather changes advice only; it does not move your body-clock curve.")
-                                .font(.footnote).foregroundStyle(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        if let error = sleepClimate.lastError {
-                            Text(error).font(.caption2).foregroundStyle(.orange)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                }
-                Button {
-                    Task { await sleepClimate.refresh(store: store) }
-                } label: {
-                    Label(store.sleepClimate == nil ? "Check tonight's forecast" : "Refresh forecast",
-                          systemImage: sleepClimate.isLoading ? "clock" : "location.fill")
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(Theme.ember)
-                .controlSize(.small)
-                .disabled(sleepClimate.isLoading)
-            }
-            .emberCard(14)
-        }
-    }
-
-    private var sleepClimateColor: Color {
-        switch store.sleepClimate?.risk {
-        case .low: return Theme.mint
-        case .moderate: return Theme.amber
-        case .high: return Theme.ember
-        case nil: return Theme.cool
         }
     }
 

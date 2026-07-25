@@ -164,31 +164,59 @@ struct BoxSpaceSnapshot: Codable {
             resetsAt: "2026-08-01T00:00:00+08:00",
             currentUser: BoxSpacePerson(
                 id: "me", name: "Alex", monthlyScore: 2_480, rank: 2,
-                isFriend: true, isCurrentUser: true, decorationID: "sleepy-blue"),
+                isFriend: true, isCurrentUser: true, decorationID: "sleepy-cloud"),
             people: [
                 BoxSpacePerson(id: "empty-box-3", name: "", monthlyScore: 0, rank: 0,
                                isFriend: false, isCurrentUser: false, decorationID: nil)
             ],
-            decorations: [
-                BoxDecoration(id: "sleepy-blue", name: "Sleepy Blue",
-                              assetName: "sleepy_blue", requiredScore: 500),
-                BoxDecoration(id: "happy-blue", name: "Happy Blue",
-                              assetName: "happy_blue", requiredScore: 500),
-                BoxDecoration(id: "moon-blue", name: "Moon Blue",
-                              assetName: "moon_blue", requiredScore: 500),
-                BoxDecoration(id: "dream-blue", name: "Dream Blue",
-                              assetName: "dream_blue", requiredScore: 5_000),
-                BoxDecoration(id: "royal-blue", name: "Royal Blue",
-                              assetName: "royal_blue", requiredScore: 5_000),
-                BoxDecoration(id: "beauty-blue", name: "Beauty Blue",
-                              assetName: "beauty_blue", requiredScore: 5_000),
-                BoxDecoration(id: "cozy-blue", name: "Cozy Blue",
-                              assetName: "cozy_blue", requiredScore: 2_500),
-                BoxDecoration(id: "foodie-blue", name: "Foodie Blue",
-                              assetName: "foodie_blue", requiredScore: 2_500),
-                BoxDecoration(id: "story-blue", name: "Story Blue",
-                              assetName: "story_blue", requiredScore: 2_500)
-            ])
+            decorations: localDecorations)
+    }
+
+    /// The backend intentionally stores only these stable IDs. Names, images,
+    /// and point thresholds remain versioned with the app.
+    static let localDecorations: [BoxDecoration] = [
+        BoxDecoration(id: "classic-blue", name: "Classic Blue",
+                      assetName: "basic_blue", requiredScore: 0),
+        BoxDecoration(id: "sleepy-cloud", name: "Sleepy Cloud",
+                      assetName: "sleepy_blue", requiredScore: 500),
+        BoxDecoration(id: "ocean-wave", name: "Ocean Wave",
+                      assetName: "happy_blue", requiredScore: 500),
+        BoxDecoration(id: "midnight", name: "Midnight",
+                      assetName: "moon_blue", requiredScore: 500),
+        BoxDecoration(id: "forest-dream", name: "Forest Dream",
+                      assetName: "dream_blue", requiredScore: 1_500),
+        BoxDecoration(id: "cozy-blue", name: "Cozy Blue",
+                      assetName: "cozy_blue", requiredScore: 1_500),
+        BoxDecoration(id: "starlight", name: "Starlight",
+                      assetName: "story_blue", requiredScore: 1_500),
+        BoxDecoration(id: "royal-blue", name: "Royal Blue",
+                      assetName: "royal_blue", requiredScore: 3_000),
+        BoxDecoration(id: "beauty-blue", name: "Beauty Blue",
+                      assetName: "beauty_blue", requiredScore: 3_000),
+        BoxDecoration(id: "foodie-blue", name: "Foodie Blue",
+                      assetName: "foodie_blue", requiredScore: 3_000)
+    ]
+
+    static func initial(displayName: String) -> BoxSpaceSnapshot {
+        let calendar = Calendar(identifier: .gregorian)
+        let now = Date()
+        let month = now.formatted(.dateTime.month(.wide))
+        let nextMonth = calendar.date(
+            byAdding: .month,
+            value: 1,
+            to: calendar.date(from: calendar.dateComponents([.year, .month], from: now)) ?? now)
+        return BoxSpaceSnapshot(
+            monthLabel: month,
+            resetsAt: (nextMonth ?? now).ISO8601Format(),
+            currentUser: BoxSpacePerson(
+                id: "me", name: displayName, monthlyScore: 0, rank: 0,
+                isFriend: true, isCurrentUser: true, decorationID: "classic-blue"),
+            people: [
+                BoxSpacePerson(
+                    id: "empty-box", name: "", monthlyScore: 0, rank: 0,
+                    isFriend: false, isCurrentUser: false, decorationID: nil)
+            ],
+            decorations: localDecorations)
     }
 }
 
@@ -248,6 +276,48 @@ struct BoxDecoration: Codable, Identifiable, Equatable {
             ?? id
         requiredScore = try container.decode(Int.self, forKey: .requiredScore)
     }
+}
+
+// Local Rest Journey -----------------------------------------------------
+/// One explainable source of points for a day. The stable `id` is persisted so
+/// the UI and a future backend can distinguish sleep, steps, energy, and
+/// exercise without parsing display copy.
+struct RestPointComponent: Codable, Identifiable, Equatable {
+    let id: String
+    let title: String
+    let detail: String
+    let points: Int
+    let maximumPoints: Int
+}
+
+/// A replaceable daily ledger entry. Recalculating a day from HealthKit updates
+/// this entry instead of awarding the same activity a second time.
+struct RestPointDay: Codable, Identifiable, Equatable {
+    let id: String                 // local calendar day, yyyy-MM-dd
+    let steps: Int
+    let activeEnergyKcal: Int
+    let exerciseMinutes: Int
+    let sleepMinutes: Int?
+    let components: [RestPointComponent]
+
+    var points: Int { components.reduce(0) { $0 + $1.points } }
+}
+
+/// `points` and `skin_id` cache the latest Supabase monthly record. The daily
+/// ledger stays local so HealthKit inputs remain explainable without uploading
+/// raw health measurements.
+struct RestJourneyProfile: Codable, Equatable {
+    var points: Int
+    var skinID: String?
+    var dailyScores: [String: RestPointDay]
+
+    enum CodingKeys: String, CodingKey {
+        case points
+        case skinID = "skin_id"
+        case dailyScores = "daily_scores"
+    }
+
+    static let empty = RestJourneyProfile(points: 0, skinID: nil, dailyScores: [:])
 }
 
 // Coach ------------------------------------------------------------------

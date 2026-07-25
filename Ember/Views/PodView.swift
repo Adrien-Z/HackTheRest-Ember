@@ -12,24 +12,21 @@ struct BoxSpaceView: View {
 
     private var snapshot: BoxSpaceSnapshot { store.boxSpace }
     private var everyone: [BoxSpacePerson] {
-        let friends = friendsViewModel.friends.map {
+        let rankedIDs = Set(snapshot.people.filter(\.isFriend).map(\.id))
+        let friendsMissingFromRanking = friendsViewModel.friends
+            .filter { !rankedIDs.contains($0.userId.uuidString) }
+            .map {
             BoxSpacePerson(
                 id: $0.userId.uuidString,
                 name: $0.displayName,
-                monthlyScore: 0,
+                monthlyScore: $0.points,
                 rank: 0,
                 isFriend: true,
                 isCurrentUser: false,
-                decorationID: nil
+                decorationID: $0.skinId
             )
         }
-        let friendIDs = Set(friends.map(\.id))
-        // Keep backend-provided box metadata (such as score and decoration)
-        // when available, while never showing bundled example friends.
-        let boxPeople = snapshot.people.filter { person in
-            !person.isFriend || !friendIDs.contains(person.id)
-        }
-        return [snapshot.currentUser] + friends + boxPeople
+        return [snapshot.currentUser] + snapshot.people + friendsMissingFromRanking
     }
 
     var body: some View {
@@ -93,11 +90,19 @@ struct BoxSpaceView: View {
                 AddFriendView(viewModel: friendsViewModel)
             }
         }
-        .task { await friendsViewModel.refreshAll() }
+        .task {
+            async let friends: Void = friendsViewModel.refreshAll()
+            async let community: Void = store.refreshBoxSpace()
+            _ = await (friends, community)
+        }
+        .onChange(of: friendsViewModel.friends.count) { _ in
+            Task { await store.refreshBoxSpace() }
+        }
     }
 
     private var scoreCard: some View {
         Button {
+            Haptics.light()
             withAnimation(.easeInOut(duration: 0.2)) {
                 showRestJourney.toggle()
             }
@@ -114,21 +119,21 @@ struct BoxSpaceView: View {
                         Text(snapshot.currentUser.name).font(.subheadline.weight(.bold))
                         Text(snapshot.monthLabel)
                             .font(.caption2.weight(.semibold))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.secondaryText)
                     }
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text(snapshot.currentUser.monthlyScore.formatted())
                             .font(.system(.title3, design: .rounded).weight(.bold))
                         Text("sleep pts")
                             .font(.caption2.weight(.semibold))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.secondaryText)
                     }
                 }
                 Spacer()
                 Divider().frame(height: 34)
                 VStack(alignment: .trailing, spacing: 3) {
                     Text("Rank #\(snapshot.currentUser.rank)").font(.caption.weight(.bold))
-                    Text("Resets \(resetLabel)").font(.caption2).foregroundStyle(.secondary)
+                    Text("Resets \(resetLabel)").font(.caption2).foregroundStyle(Theme.secondaryText)
                 }
                 if store.boxSpaceLoading { ProgressView().tint(Theme.boxBlue) }
             }
@@ -165,8 +170,12 @@ struct BoxSpaceView: View {
                 }
             }
             .buttonStyle(BoxSocialButtonStyle())
+            .simultaneousGesture(TapGesture().onEnded { Haptics.light() })
 
-            Button { showAddFriend = true } label: {
+            Button {
+                Haptics.light()
+                showAddFriend = true
+            } label: {
                 Image(systemName: "person.badge.plus")
                     .frame(width: 34, height: 34)
             }
@@ -181,17 +190,30 @@ struct BoxSpaceView: View {
     }
 
     private func closeRestJourney() {
+        Haptics.light()
         withAnimation(.easeInOut(duration: 0.2)) {
             showRestJourney = false
         }
     }
 
     private var resetLabel: String {
-        guard let date = ISO8601DateFormatter().date(from: snapshot.resetsAt) else {
+        let date = ISO8601DateFormatter().date(from: snapshot.resetsAt)
+            ?? Self.backendDateFormatter.date(from: snapshot.resetsAt)
+        guard let date else {
             return "next month"
         }
         return date.formatted(.dateTime.month(.abbreviated).day())
     }
+
+    private static let backendDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 8 * 3600)
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }()
+
 }
 
 // MARK: - Draggable map
@@ -348,7 +370,10 @@ private struct BoxWorldLayer: View, Equatable {
                     decoration: decorations.first { $0.id == item.person.decorationID }
                 )
                 .contentShape(Rectangle())
-                .onTapGesture { selectedPerson = item.person }
+                .onTapGesture {
+                    Haptics.light()
+                    selectedPerson = item.person
+                }
                 .position(item.point)
                 .zIndex(item.point.y)
                 .accessibilityAddTraits(.isButton)
@@ -482,22 +507,12 @@ private struct BoxResident: View {
                 color: person.isCurrentUser ? Theme.boxBlue.opacity(0.55) : Color.black.opacity(0.25),
                 radius: person.isCurrentUser ? 12 : 5,
                 y: 5)
-            .overlay(alignment: .topLeading) {
-                if person.isCurrentUser {
-                    Text("ME")
-                        .font(.system(size: 7, weight: .black, design: .rounded))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 5).padding(.vertical, 3)
-                        .background(Theme.boxBlueDeep, in: Capsule())
-                        .offset(x: -2, y: -9)
-                }
-            }
             if person.isFriend {
                 Text(person.isCurrentUser ? "You" : person.name)
                     .font(.caption.weight(.semibold))
                 Text("\(person.monthlyScore.formatted()) pts")
                     .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.secondaryText)
             }
         }
         .frame(width: 94)
@@ -681,14 +696,17 @@ private struct BoxProfileSheet: View {
                     if let decoration {
                         Text(decoration.name)
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.secondaryText)
                     }
                 } else {
                     Label("No friend added", systemImage: "person.crop.circle.badge.plus")
-                        .font(.subheadline).foregroundStyle(.secondary)
+                        .font(.subheadline).foregroundStyle(Theme.secondaryText)
                 }
                 if let onDecorate {
-                    Button(action: onDecorate) {
+                    Button {
+                        Haptics.light()
+                        onDecorate()
+                    } label: {
                         Label("Decorate my box", systemImage: "paintbrush.fill")
                             .font(.subheadline.weight(.bold))
                             .frame(maxWidth: .infinity)
@@ -707,9 +725,7 @@ private struct BoxProfileSheet: View {
 
 private struct BoxDecorationStudio: View {
     @EnvironmentObject private var store: DataStore
-    @State private var previewScale: CGFloat = 1
-    @State private var previewRotation: Double = 0
-    @State private var showSkinSparkles = false
+    @State private var skinRevealToken = 0
 
     private var selectedDecoration: BoxDecoration? {
         store.boxSpace.decorations.first {
@@ -717,11 +733,11 @@ private struct BoxDecorationStudio: View {
         }
     }
 
-    private let scoreGroups = [
-        DecorationScoreGroup(score: 500, ids: ["sleepy-blue", "happy-blue", "moon-blue"]),
-        DecorationScoreGroup(score: 2_500, ids: ["dream-blue", "royal-blue", "beauty-blue"]),
-        DecorationScoreGroup(score: 5_000, ids: ["cozy-blue", "foodie-blue", "story-blue"])
-    ]
+    private var scoreGroups: [DecorationScoreGroup] {
+        Dictionary(grouping: store.boxSpace.decorations, by: \.requiredScore)
+            .map { DecorationScoreGroup(score: $0.key, ids: $0.value.map(\.id)) }
+            .sorted { $0.score < $1.score }
+    }
 
     var body: some View {
         ZStack {
@@ -729,20 +745,15 @@ private struct BoxDecorationStudio: View {
             ScrollView {
                 VStack(spacing: 22) {
                     VStack(spacing: 16) {
-                        ZStack {
-                            BoxSkinImageView(
-                                decoration: selectedDecoration,
-                                size: CGSize(width: 218, height: 200)
-                            )
-                            .scaleEffect(previewScale)
-                            .rotationEffect(.degrees(previewRotation))
-
-                            SkinRevealSparkle(isVisible: showSkinSparkles)
-                        }
+                        SkinRevealPreview(
+                            decoration: selectedDecoration,
+                            size: CGSize(width: 218, height: 200),
+                            revealToken: skinRevealToken
+                        )
                         .frame(width: 238, height: 210)
                         Text(selectedDecoration?.name ?? "Simple Blue Box").font(.headline)
-                        Text("\(store.boxSpace.currentUser.monthlyScore.formatted()) points this month")
-                            .font(.caption).foregroundStyle(.secondary)
+                        Text("\(store.restJourney.points.formatted()) total Rest Points")
+                            .font(.caption).foregroundStyle(Theme.secondaryText)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
@@ -761,7 +772,7 @@ private struct BoxDecorationStudio: View {
                                     VStack(alignment: .leading, spacing: 14) {
                                         Text("\(scoreGroup.score.formatted()) pts")
                                             .font(.caption.weight(.bold))
-                                            .foregroundStyle(.secondary)
+                                            .foregroundStyle(Theme.secondaryText)
                                         HStack(alignment: .top, spacing: 10) {
                                             ForEach(group) { item in
                                                 decorationTile(item)
@@ -782,13 +793,16 @@ private struct BoxDecorationStudio: View {
     }
 
     private func decorationTile(_ decoration: BoxDecoration) -> some View {
-        let unlocked = store.boxSpace.currentUser.monthlyScore >= decoration.requiredScore
-        let selected = store.boxSpace.currentUser.decorationID == decoration.id
+        let unlocked = store.restJourney.points >= decoration.requiredScore
+        let selected = store.restJourney.skinID == decoration.id
         return Button {
-            let changedSkin = store.boxSpace.currentUser.decorationID != decoration.id
-            store.selectBoxDecoration(decoration.id)
+            let changedSkin = store.restJourney.skinID != decoration.id
             if changedSkin {
+                Haptics.success()
                 playEquipAnimation()
+                Task { await store.selectBoxDecoration(decoration.id) }
+            } else {
+                Haptics.tick()
             }
         } label: {
             VStack(spacing: 10) {
@@ -805,6 +819,9 @@ private struct BoxDecorationStudio: View {
                             .foregroundStyle(.white.opacity(0.82))
                             .padding(7)
                             .background(Color.black.opacity(0.34), in: Circle())
+                    }
+                    if store.selectingSkinID == decoration.id {
+                        ProgressView().tint(.white)
                     }
                 }
                 HStack(spacing: 4) {
@@ -827,28 +844,7 @@ private struct BoxDecorationStudio: View {
     }
 
     private func playEquipAnimation() {
-        previewScale = 0.9
-        previewRotation = -2
-        showSkinSparkles = false
-
-        withAnimation(.spring(response: 0.24, dampingFraction: 0.58)) {
-            previewScale = 1.08
-            previewRotation = 2
-            showSkinSparkles = true
-        }
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
-            withAnimation(.spring(response: 0.38, dampingFraction: 0.72)) {
-                previewScale = 1
-                previewRotation = 0
-            }
-        }
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.48) {
-            withAnimation(.easeOut(duration: 0.22)) {
-                showSkinSparkles = false
-            }
-        }
+        skinRevealToken += 1
     }
 }
 

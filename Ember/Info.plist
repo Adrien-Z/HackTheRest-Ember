@@ -6,8 +6,6 @@
 	<array>
 		<string>com.bluebox.ember.planRefresh</string>
 	</array>
-	<key>BOX_SPACE_API_URL</key>
-	<string></string>
 	<key>CFBundleDisplayName</key>
 	<string>Ember</string>
 	<key>CFBundleExecutable</key>
@@ -21,7 +19,7 @@
 	<key>NSCalendarsUsageDescription</key>
 	<string>Ember reads your upcoming events so it can pre-adapt your rest plan around late nights, early meetings, and travel before they disrupt your sleep.</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>Ember reads your sleep analysis from Apple Health to personalize your wind-down and sleep-efficiency plans automatically, instead of asking you to log every night by hand.</string>
+	<string>Ember reads your sleep, steps, active energy, and exercise time from Apple Health to personalize your rest plan and calculate Rest Journey points from your real activity.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Ember does not write to Apple Health.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>

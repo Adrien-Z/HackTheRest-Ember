@@ -27,7 +27,7 @@ struct CalendarView: View {
                         intro
                         if needsAIPrompt {
                             ScienceNote(text: store.aiError
-                                ?? "Connect an AI provider in Settings to auto-categorize your calendar into sleep-relevant events (travel, social jet lag, early starts).",
+                                ?? "Connect Agenda intelligence in Settings to sort calendar events into sleep-relevant patterns like travel, late nights, and early starts.",
                                 icon: "sparkles")
                         } else if store.calendarEvents.isEmpty {
                             ScienceNote(text: store.isSampleData
@@ -52,7 +52,7 @@ struct CalendarView: View {
         VStack(alignment: .leading, spacing: 6) {
             Label("Proactive rest agent", systemImage: "sparkles").font(.headline)
             Text("EMBER reads your upcoming events and adapts your rest plan before disruptions happen.")
-                .font(.footnote).foregroundStyle(.secondary)
+                .font(.footnote).foregroundStyle(Theme.secondaryText)
         }.emberCard()
     }
 }
@@ -67,7 +67,7 @@ struct EventCard: View {
                 Image(systemName: icon).foregroundStyle(Theme.ember)
                 VStack(alignment: .leading) {
                     Text(event.title).font(.subheadline.weight(.semibold))
-                    Text(shortDate(event.startTs)).font(.caption).foregroundStyle(.secondary)
+                    Text(shortDate(event.startTs)).font(.caption).foregroundStyle(Theme.secondaryText)
                 }
                 Spacer()
                 if adaptation?.applied == true { Tag(text: "adapted", color: Theme.mint) }
@@ -82,7 +82,7 @@ struct EventCard: View {
                     Image(systemName: "arrow.turn.down.right").foregroundStyle(Theme.ember).font(.caption)
                     Text(a.recommendation).font(.footnote).fixedSize(horizontal: false, vertical: true)
                 }
-                Text(a.scienceBasis).font(.caption2).foregroundStyle(.secondary)
+                Text(a.scienceBasis).font(.caption2).foregroundStyle(Theme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }

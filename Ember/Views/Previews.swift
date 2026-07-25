@@ -13,6 +13,7 @@ struct EmberRootPreview: PreviewProvider {
             .environmentObject(HealthManager())
             .environmentObject(CalendarService())
             .environmentObject(WakeAlarmService())
+            .environmentObject(SleepClimateService())
             .preferredColorScheme(.dark)
             .tint(Theme.ember)
             .previewDisplayName("Home")

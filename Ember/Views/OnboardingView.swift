@@ -80,8 +80,11 @@ struct OnboardingView: View {
             }
 
             if page > 0 && page < lastPage {
-                Button("Back") { withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) { page -= 1 } }
-                    .font(.subheadline).foregroundStyle(.secondary)
+                Button("Back") {
+                    Haptics.tick()
+                    withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) { page -= 1 }
+                }
+                    .font(.subheadline).foregroundStyle(Theme.secondaryText)
             }
         }
         .padding(.horizontal, 24).padding(.bottom, 20)
@@ -138,7 +141,7 @@ struct OnboardingView: View {
             OnboardTitle("Hello,\n\(auth.displayName)")
             Text(auth.email)
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.secondaryText)
                 .padding(.vertical, 14)
                 .frame(maxWidth: .infinity)
                 .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 14))
@@ -158,8 +161,8 @@ struct OnboardingView: View {
                              title: "Thermal Wind-Down",
                              text: "Times a foot bath, warm towel, or other warming ritual to support the core-temperature drop before sleep.")
                 EngineBullet(icon: "bed.double.fill", tint: Theme.cool,
-                             title: "Sleep Efficiency (CBT-I)",
-                             text: "The gold-standard therapy for insomnia — consolidates broken sleep, then widens it.")
+                             title: "Sleep Window Training",
+                             text: "Builds a steady wake time and a realistic sleep window, then widens it as sleep gets more solid.")
             }
             OnboardBody("Whether you take an hour to drift off or wrestle with insomnia, the plan learns and adjusts to fit you.")
         }
@@ -187,7 +190,7 @@ struct OnboardingView: View {
                 Text("How long do you need in the morning?")
                     .font(.subheadline.weight(.semibold))
                 Text("From alarm to out-the-door — we protect this before any early start.")
-                    .font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                    .font(.caption).foregroundStyle(Theme.secondaryText).multilineTextAlignment(.center)
                 PrepStepper(minutes: $wakeAlarm.prepBufferMin)
                     .padding(.top, 4)
             }
@@ -203,9 +206,9 @@ struct OnboardingView: View {
     private var climatePage: some View {
         OnboardScaffold {
             OnboardGlyph("thermometer.medium", tint: Theme.cool)
-            OnboardTitle("Plan around\ntonight's room climate.")
-            OnboardBody("EMBER can use your approximate location to check overnight heat and humidity. Weather only changes practical wind-down advice — it does not diagnose you or move your circadian rhythm.")
-            PermissionButton(title: "Check Sleep Climate", tint: Theme.cool, granted: climateGranted) {
+            OnboardTitle("Let EMBER read\nthe night air.")
+            OnboardBody("Approximate location lets EMBER quietly factor overnight heat and humidity into Coach and Agenda advice. It only surfaces when relevant, and never moves your circadian rhythm.")
+            PermissionButton(title: "Allow Location", tint: Theme.cool, granted: climateGranted) {
                 await sleepClimate.refresh(store: store)
                 climateGranted = store.sleepClimate != nil
                 return climateGranted
@@ -281,7 +284,7 @@ private struct OnboardBody: View {
     let text: String
     init(_ t: String) { text = t }
     var body: some View {
-        Text(text).font(.callout).foregroundStyle(.secondary)
+        Text(text).font(.callout).foregroundStyle(Theme.secondaryText)
             .fixedSize(horizontal: false, vertical: true)
     }
 }
@@ -333,7 +336,7 @@ private struct EngineBullet: View {
             Image(systemName: icon).font(.title3).foregroundStyle(tint).frame(width: 30)
             VStack(alignment: .leading, spacing: 2) {
                 Text(title).font(.subheadline.weight(.semibold))
-                Text(text).font(.caption).foregroundStyle(.secondary)
+                Text(text).font(.caption).foregroundStyle(Theme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 0)
@@ -395,7 +398,7 @@ private struct PrepStepper: View {
             stepButton("minus") { minutes = max(10, minutes - 5); Haptics.tick() }
             VStack(spacing: 0) {
                 Text("\(minutes)").font(.system(size: 40, weight: .heavy, design: .rounded)).monospacedDigit()
-                Text("minutes").font(.caption).foregroundStyle(.secondary)
+                Text("minutes").font(.caption).foregroundStyle(Theme.secondaryText)
             }
             .frame(width: 110)
             .contentTransition(.numericText())

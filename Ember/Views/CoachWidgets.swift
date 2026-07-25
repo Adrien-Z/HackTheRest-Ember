@@ -134,7 +134,7 @@ struct CoachWidgetView: View {
             }
             content()
             if let caption = spec.caption, !caption.isEmpty {
-                Text(caption).font(.footnote).foregroundStyle(.secondary)
+                Text(caption).font(.footnote).foregroundStyle(Theme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -197,14 +197,64 @@ struct CoachWidgetView: View {
     }
 
     private var rhythmChart: some View {
-        Chart(store.regularity.midpoints) { p in
-            PointMark(x: .value("Night", shortDate(p.day)),
-                      y: .value("Midpoint", Double(p.minOfDay) / 60))
-                .foregroundStyle(p.isWeekend ? Theme.amber : Theme.ember)
+        let points = Array(store.regularity.midpoints.enumerated()).map {
+            RhythmWidgetPoint(index: $0.offset, point: $0.element)
         }
-        .frame(height: 180)
-        .chartYAxisLabel("sleep midpoint (h)")
-        .chartXAxis { AxisMarks(values: .automatic(desiredCount: 4)) }
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 12) {
+                LegendDot(color: Theme.cool, label: "Weeknight")
+                LegendDot(color: Theme.amber, label: "Weekend")
+                Spacer()
+                if let spread = store.regularity.midpointStdevMin {
+                    Text("±\(Int(spread))m drift")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(Theme.secondaryText)
+                }
+            }
+            Chart {
+                ForEach(points) { p in
+                    PointMark(
+                        x: .value("Night", p.index),
+                        y: .value("Midpoint", p.hours)
+                    )
+                    .foregroundStyle(p.point.isWeekend ? Theme.amber : Theme.cool)
+                    .symbolSize(p.point.isWeekend ? 70 : 48)
+                }
+                if let midpoint = store.regularity.avgMidpoint, let hour = hourValue(midpoint) {
+                    RuleMark(y: .value("Typical", hour))
+                        .foregroundStyle(Color.white.opacity(0.22))
+                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
+                }
+            }
+            .frame(height: 190)
+            .chartYAxisLabel("midpoint")
+            .chartXAxis {
+                AxisMarks(values: rhythmAxisValues(count: points.count)) { value in
+                    AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5))
+                        .foregroundStyle(Color.white.opacity(0.10))
+                    AxisValueLabel {
+                        if let index = value.as(Int.self), let point = points.first(where: { $0.index == index }) {
+                            Text(rhythmAxisLabel(for: point, total: points.count))
+                                .font(.caption2)
+                                .foregroundStyle(Theme.secondaryText)
+                        }
+                    }
+                }
+            }
+            .chartYAxis {
+                AxisMarks(values: .automatic(desiredCount: 4)) { value in
+                    AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5))
+                        .foregroundStyle(Color.white.opacity(0.10))
+                    AxisValueLabel {
+                        if let hour = value.as(Double.self) {
+                            Text(clockHour(hour))
+                                .font(.caption2)
+                                .foregroundStyle(Theme.secondaryText)
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // MARK: model-supplied content
@@ -216,8 +266,8 @@ struct CoachWidgetView: View {
                 VStack(spacing: 2) {
                     Text(item.value).font(.system(.title2, design: .rounded).weight(.bold))
                         .foregroundStyle(i == 0 ? Theme.ember : .primary)
-                    Text(item.label).font(.caption).foregroundStyle(.secondary)
-                    if let c = item.caption { Text(c).font(.caption2).foregroundStyle(.secondary) }
+                    Text(item.label).font(.caption).foregroundStyle(Theme.secondaryText)
+                    if let c = item.caption { Text(c).font(.caption2).foregroundStyle(Theme.secondaryText) }
                 }.frame(maxWidth: .infinity)
             }
         }
@@ -246,6 +296,49 @@ struct CoachWidgetView: View {
                     Text(step).font(.footnote).fixedSize(horizontal: false, vertical: true)
                 }
             }
+        }
+    }
+
+    private func rhythmAxisValues(count: Int) -> [Int] {
+        guard count > 1 else { return [0] }
+        let step = count > 21 ? 7 : max(1, count / 4)
+        var values = Array(stride(from: 0, to: count, by: step))
+        if values.last != count - 1 { values.append(count - 1) }
+        return values
+    }
+
+    private func rhythmAxisLabel(for point: RhythmWidgetPoint, total: Int) -> String {
+        if point.index == total - 1 { return "last" }
+        return shortDate(point.point.day)
+    }
+
+    private func hourValue(_ hhmm: String) -> Double? {
+        let parts = hhmm.split(separator: ":").compactMap { Double($0) }
+        guard parts.count >= 2 else { return nil }
+        return parts[0] + parts[1] / 60
+    }
+
+    private func clockHour(_ hour: Double) -> String {
+        let total = Int((hour * 60).rounded()) % 1440
+        return String(format: "%02d:%02d", total / 60, total % 60)
+    }
+}
+
+private struct RhythmWidgetPoint: Identifiable {
+    let index: Int
+    let point: SleepScience.RegularityReport.MidpointPoint
+    var id: String { point.id }
+    var hours: Double { Double(point.minOfDay) / 60 }
+}
+
+private struct LegendDot: View {
+    let color: Color
+    let label: String
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Circle().fill(color).frame(width: 7, height: 7)
+            Text(label).font(.caption2.weight(.semibold)).foregroundStyle(Theme.secondaryText)
         }
     }
 }

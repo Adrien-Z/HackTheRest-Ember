@@ -21,6 +21,16 @@ struct DailyEnergyDay {
     let hrvBaseline: Double?
 }
 
+/// Deduplicated daily movement totals returned by HealthKit statistics queries.
+/// These are kept separate from the hourly energy chart because they form the
+/// durable Rest Journey scoring input.
+struct JourneyActivityDay {
+    let date: Date
+    let steps: Double
+    let activeEnergyKcal: Double
+    let exerciseMinutes: Double
+}
+
 /// Apple Health integration. Reads sleep analysis (plus overnight heart rate and
 /// HRV) and turns it into the `NightSample`s that drive EMBER's charts and
 /// prescriptions instead of hand-logged data. Guarded so the project still
@@ -44,6 +54,7 @@ final class HealthManager: ObservableObject {
         if let rhr = HKObjectType.quantityType(forIdentifier: .restingHeartRate) { types.insert(rhr) }
         if let activeEnergy = HKObjectType.quantityType(forIdentifier: .activeEnergyBurned) { types.insert(activeEnergy) }
         if let steps = HKObjectType.quantityType(forIdentifier: .stepCount) { types.insert(steps) }
+        if let exercise = HKObjectType.quantityType(forIdentifier: .appleExerciseTime) { types.insert(exercise) }
         if let wt = HKObjectType.quantityType(forIdentifier: .appleSleepingWristTemperature) { types.insert(wt) }
         return types
     }
@@ -181,6 +192,35 @@ final class HealthManager: ObservableObject {
             hrvBaseline: median(hrvValues))
     }
 
+    /// Fetch daily cumulative movement totals for the recent scoring window.
+    /// `HKStatisticsCollectionQuery` applies HealthKit's source deduplication,
+    /// avoiding inflated totals when both an iPhone and Apple Watch record steps.
+    func fetchJourneyActivity(daysBack: Int = 45) async -> [JourneyActivityDay] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        guard let start = calendar.date(byAdding: .day, value: -(max(1, daysBack) - 1), to: today) else {
+            return []
+        }
+        let end = Date()
+
+        async let stepTotals = dailyCumulativeTotals(
+            .stepCount, unit: .count(), start: start, end: end, calendar: calendar)
+        async let energyTotals = dailyCumulativeTotals(
+            .activeEnergyBurned, unit: .kilocalorie(), start: start, end: end, calendar: calendar)
+        async let exerciseTotals = dailyCumulativeTotals(
+            .appleExerciseTime, unit: .minute(), start: start, end: end, calendar: calendar)
+        let (steps, energy, exercise) = await (stepTotals, energyTotals, exerciseTotals)
+
+        let days = Set(steps.keys).union(energy.keys).union(exercise.keys)
+        return days.sorted().map {
+            JourneyActivityDay(
+                date: $0,
+                steps: steps[$0] ?? 0,
+                activeEnergyKcal: energy[$0] ?? 0,
+                exerciseMinutes: exercise[$0] ?? 0)
+        }
+    }
+
     // MARK: - Helpers
 
     /// "Asleep" values differ by iOS version — accept core/deep/REM/unspecified asleep.
@@ -235,6 +275,36 @@ final class HealthManager: ObservableObject {
         }
     }
 
+    private func dailyCumulativeTotals(
+        _ id: HKQuantityTypeIdentifier,
+        unit: HKUnit,
+        start: Date,
+        end: Date,
+        calendar: Calendar
+    ) async -> [Date: Double] {
+        guard let type = HKObjectType.quantityType(forIdentifier: id) else { return [:] }
+        let interval = DateComponents(day: 1)
+        return await withCheckedContinuation { continuation in
+            let query = HKStatisticsCollectionQuery(
+                quantityType: type,
+                quantitySamplePredicate: HKQuery.predicateForSamples(
+                    withStart: start, end: end, options: []),
+                options: .cumulativeSum,
+                anchorDate: calendar.startOfDay(for: start),
+                intervalComponents: interval)
+            query.initialResultsHandler = { _, collection, _ in
+                var totals: [Date: Double] = [:]
+                collection?.enumerateStatistics(from: start, to: end) { statistics, _ in
+                    guard let sum = statistics.sumQuantity() else { return }
+                    totals[calendar.startOfDay(for: statistics.startDate)] =
+                        sum.doubleValue(for: unit)
+                }
+                continuation.resume(returning: totals)
+            }
+            self.store.execute(query)
+        }
+    }
+
     private func median(_ values: [Double]) -> Double? {
         guard !values.isEmpty else { return nil }
         let sorted = values.sorted()
@@ -248,5 +318,6 @@ final class HealthManager: ObservableObject {
     func fetchLastNight() async {}
     func fetchNights(daysBack: Int = 60) async -> [NightSample] { [] }
     func fetchTodayEnergy() async -> DailyEnergyDay? { nil }
+    func fetchJourneyActivity(daysBack: Int = 45) async -> [JourneyActivityDay] { [] }
     #endif
 }

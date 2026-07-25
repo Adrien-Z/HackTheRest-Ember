@@ -9,12 +9,16 @@ struct SettingsView: View {
     @EnvironmentObject var calendar: CalendarService
     @EnvironmentObject var wakeAlarm: WakeAlarmService
     @EnvironmentObject var sleepClimate: SleepClimateService
+    @EnvironmentObject private var auth: AuthViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var apiKeyDraft = ""
 
     private var modeBinding: Binding<DataSourceMode> {
         Binding(get: { store.mode },
-                set: { new in Task { await store.setMode(new, health: health, calendar: calendar) } })
+                set: { new in
+                    Haptics.tick()
+                    Task { await store.setMode(new, health: health, calendar: calendar) }
+                })
     }
 
     var body: some View {
@@ -39,6 +43,7 @@ struct SettingsView: View {
                         Label("Show sample agenda events", systemImage: "calendar.badge.plus")
                     }
                     .tint(Theme.ember)
+                    .onChange(of: store.demoEventsEnabled) { _ in Haptics.tick() }
                 } header: {
                     Text("Demo")
                 } footer: {
@@ -70,7 +75,7 @@ struct SettingsView: View {
                         if store.healthAuthorized && !store.liveHasData {
                             Label("No sleep data found in Apple Health for the last 60 days.",
                                   systemImage: "exclamationmark.triangle")
-                                .font(.footnote).foregroundStyle(.secondary)
+                                .font(.footnote).foregroundStyle(Theme.secondaryText)
                         }
                     }
 
@@ -80,15 +85,16 @@ struct SettingsView: View {
                     }
                 }
                 Section {
-                    Label("Sleep Climate uses approximate location and forecast data from Open-Meteo. No Apple WeatherKit entitlement or API key is required for the demo build.", systemImage: "cloud.sun.fill")
+                    Label("Sleep Climate uses approximate location to factor overnight heat and humidity into coaching when it is relevant.", systemImage: "cloud.sun.fill")
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.secondaryText)
                 }
 
                 if WakeAlarmService.isSupported {
                     Section {
                         Toggle("Auto-adjust for early events", isOn: $wakeAlarm.autoAdaptEnabled)
                             .tint(Theme.ember)
+                            .onChange(of: wakeAlarm.autoAdaptEnabled) { _ in Haptics.tick() }
                     } header: {
                         Text("Wake Alarm")
                     } footer: {
@@ -104,7 +110,7 @@ struct SettingsView: View {
                             Image(systemName: "checkmark.circle.fill").foregroundStyle(Theme.mint)
                         }
                     }
-                    SecureField(store.aiConfigured ? "OpenRouter key (saved)" : "OpenRouter API key", text: $apiKeyDraft)
+                    SecureField(store.aiConfigured ? "AI access key saved" : "AI access key", text: $apiKeyDraft)
                         .textContentType(.password)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
@@ -116,9 +122,11 @@ struct SettingsView: View {
                         .textInputAutocapitalization(.never)
                     if store.aiConfigured {
                         Button("Re-categorize calendar now") {
+                            Haptics.light()
                             Task { await store.categorizeCalendar(calendar: calendar) }
                         }
-                        Button("Clear key", role: .destructive) {
+                        Button("Remove AI access", role: .destructive) {
+                            Haptics.light()
                             store.setAPIKey(""); apiKeyDraft = ""
                         }
                     }
@@ -129,13 +137,31 @@ struct SettingsView: View {
                 } header: {
                     Text("Agenda intelligence")
                 } footer: {
-                    Text("Your calendar event text is sent to the AI provider to sort events into sleep-relevant categories. The key is stored in the device Keychain — fine for personal use; a shipping app should proxy through a backend.")
+                    Text("Calendar event text is used to sort events into sleep-relevant categories and personalize recommendations.")
                 }
 
                 Section {
-                    Label("The Pod is social data with no on-device source, so it always shows sample content.",
+                    Label("Pod content is illustrative until social sync is connected.",
                           systemImage: "person.3.fill")
-                        .font(.footnote).foregroundStyle(.secondary)
+                        .font(.footnote).foregroundStyle(Theme.secondaryText)
+                }
+
+                Section {
+                    LabeledContent("Display name", value: auth.displayName)
+                    LabeledContent("Email", value: auth.email)
+
+                    Button("Sign Out", role: .destructive) {
+                        Haptics.light()
+                        Task {
+                            await auth.signOut()
+                            dismiss()
+                        }
+                    }
+                    .disabled(auth.isLoading)
+                } header: {
+                    Text("Account")
+                } footer: {
+                    Text("Sign in again to continue using Ember.")
                 }
             }
             .navigationTitle("Settings")
@@ -143,6 +169,7 @@ struct SettingsView: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
+                        Haptics.light()
                         if !apiKeyDraft.trimmingCharacters(in: .whitespaces).isEmpty {
                             store.setAPIKey(apiKeyDraft)
                             apiKeyDraft = ""
@@ -164,7 +191,10 @@ struct SettingsView: View {
             if connected {
                 Image(systemName: "checkmark.circle.fill").foregroundStyle(Theme.mint)
             } else {
-                Button("Connect") { Task { await action() } }
+                Button("Connect") {
+                    Haptics.light()
+                    Task { await action() }
+                }
                     .buttonStyle(.borderedProminent).tint(tint).controlSize(.small)
             }
         }

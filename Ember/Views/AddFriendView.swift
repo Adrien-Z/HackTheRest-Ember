@@ -15,7 +15,7 @@ struct AddFriendView: View {
                             .font(.system(size: 30, weight: .bold, design: .rounded))
                         Text("Enter the exact email connected to their BlueBox account. We won't reveal whether that email has an account.")
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.secondaryText)
 
                         TextField("friend@example.com", text: $email)
                             .focused($emailFieldFocused)
@@ -37,8 +37,12 @@ struct AddFriendView: View {
                         }
 
                         Button {
+                            Haptics.light()
                             Task {
-                                if await viewModel.sendFriendRequest(email: email) { email = "" }
+                                if await viewModel.sendFriendRequest(email: email) {
+                                    Haptics.success()
+                                    email = ""
+                                }
                             }
                         } label: {
                             HStack(spacing: 10) {

@@ -37,8 +37,11 @@ final class DataStore: ObservableObject {
                                       avgMidpoint: nil, nights: 0, midpoints: [])
     @Published var pod: Pod                    // always sample data
     @Published var boxSpace: BoxSpaceSnapshot
+    @Published private(set) var restJourney: RestJourneyProfile
     @Published var boxSpaceLoading = false
     @Published var boxSpaceError: String? = nil
+    @Published private(set) var selectingSkinID: String? = nil
+    @Published private(set) var completedPointEvents: Set<String> = []
     @Published var chat: [ChatMessage] = []
     /// Set by other screens ("Ask the coach") so CoachView can auto-send on appear.
     @Published var pendingCoachQuestion: String? = nil
@@ -74,6 +77,8 @@ final class DataStore: ObservableObject {
     @Published var aiError: String? = nil
 
     private let seed: SeedBundle
+    private let communityService = BoxCommunityService()
+    private var communityRefreshInProgress = false
 
     private enum Keys {
         static let mode = "ember.dataSourceMode"
@@ -85,6 +90,7 @@ final class DataStore: ObservableObject {
         static let calendarCache = "ember.calendarCategorizations"
         static let calendarOverrides = "ember.calendarOverrides"   // eventId → category
         static let demoEvents = "ember.demoAgendaEvents"
+        static let restJourney = "ember.restJourney.v1"
     }
 
     init() {
@@ -100,10 +106,13 @@ final class DataStore: ObservableObject {
         aiConfigured = Keychain.load(Keys.apiKeyAccount)?.isEmpty == false
         user = bundleSeed.user
         pod = bundleSeed.pod
-        boxSpace = .sample
+        boxSpace = .initial(
+            displayName: d.string(forKey: Keys.name) ?? bundleSeed.user.name)
+        restJourney = Self.loadRestJourney()
         chat = [ChatMessage(role: .coach,
             content: "Hi \(displayName) — I'm your rest coach. Ask me why any prescription changed, or tap a suggested question below.")]
         if mode == .sample { applySample() }
+        applyLocalJourneyToBoxSpace()
     }
 
     /// Sample data may still be missing from the bundle in unusual build setups;
@@ -161,11 +170,11 @@ final class DataStore: ObservableObject {
         boxSpace.currentUser = BoxSpacePerson(
             id: boxSpace.currentUser.id,
             name: trimmedName,
-            monthlyScore: boxSpace.currentUser.monthlyScore,
+            monthlyScore: restJourney.points,
             rank: boxSpace.currentUser.rank,
             isFriend: boxSpace.currentUser.isFriend,
             isCurrentUser: boxSpace.currentUser.isCurrentUser,
-            decorationID: boxSpace.currentUser.decorationID
+            decorationID: restJourney.skinID
         )
     }
 
@@ -186,32 +195,73 @@ final class DataStore: ObservableObject {
     var hasAPIKey: Bool { Keychain.load(Keys.apiKeyAccount)?.isEmpty == false }
 
     func refreshBoxSpace() async {
-        guard let rawURL = Bundle.main.object(forInfoDictionaryKey: "BOX_SPACE_API_URL") as? String,
-              let url = URL(string: rawURL), !rawURL.isEmpty else { return }
+        guard !communityRefreshInProgress else { return }
+        communityRefreshInProgress = true
         boxSpaceLoading = true
         boxSpaceError = nil
-        defer { boxSpaceLoading = false }
+        defer {
+            boxSpaceLoading = false
+            communityRefreshInProgress = false
+        }
         do {
-            var request = URLRequest(url: url)
-            request.setValue("application/json", forHTTPHeaderField: "Accept")
-            let (data, response) = try await URLSession.shared.data(for: request)
-            guard let http = response as? HTTPURLResponse,
-                  (200...299).contains(http.statusCode) else {
-                throw URLError(.badServerResponse)
-            }
-            boxSpace = try JSONDecoder().decode(BoxSpaceSnapshot.self, from: data)
-            applyAuthenticatedDisplayName(displayName)
+            async let mine = communityService.loadMyBoxSpace()
+            async let ranking = communityService.loadMonthlyLeaderboard()
+            let (myBox, leaderboard) = try await (mine, ranking)
+            applyCommunitySnapshot(myBox, leaderboard: leaderboard)
         } catch {
-            boxSpaceError = error.localizedDescription
+            #if DEBUG
+            debugPrint("Box Space sync failed:", error)
+            #endif
+            boxSpaceError = friendlyCommunityError(error)
         }
     }
 
-    func selectBoxDecoration(_ decorationID: String?) {
-        if let decorationID {
-            guard let decoration = boxSpace.decorations.first(where: { $0.id == decorationID }),
-                  boxSpace.currentUser.monthlyScore >= decoration.requiredScore else { return }
+    func selectBoxDecoration(_ decorationID: String) async {
+        guard selectingSkinID == nil,
+              let decoration = boxSpace.decorations.first(where: { $0.id == decorationID }),
+              restJourney.points >= decoration.requiredScore else { return }
+        let previous = restJourney.skinID
+        selectingSkinID = decorationID
+        restJourney.skinID = decorationID
+        persistRestJourney()
+        applyLocalJourneyToBoxSpace()
+        defer { selectingSkinID = nil }
+
+        do {
+            let response = try await communityService.setMonthlySkin(id: decorationID)
+            restJourney.skinID = response.skinId
+            persistRestJourney()
+            await refreshBoxSpace()
+        } catch {
+            restJourney.skinID = previous
+            persistRestJourney()
+            applyLocalJourneyToBoxSpace()
+            boxSpaceError = friendlyCommunityError(error)
         }
-        boxSpace.currentUser.decorationID = decorationID
+    }
+
+    func completeWindDown() async {
+        await claim(
+            event: "wind_down_completed",
+            sourceKey: Self.utc8DayKey(Date()))
+        await refreshBoxSpace()
+    }
+
+    /// Refreshes the local, idempotent point ledger from real Apple Health
+    /// movement and sleep data. Existing days are replaced, not incremented.
+    func refreshRestJourney(health: HealthManager, nights suppliedNights: [NightSample]? = nil) async {
+        guard health.authorized else { return }
+        async let activity = health.fetchJourneyActivity()
+        let nights: [NightSample]
+        if let suppliedNights {
+            nights = suppliedNights
+        } else {
+            nights = await health.fetchNights(daysBack: 45)
+        }
+        let activityDays = await activity
+        recalculateRestJourney(activity: activityDays, nights: nights)
+        await syncEligibleCommunityClaims(activity: activityDays, nights: nights)
+        await refreshBoxSpace()
     }
 
     private var llmClient: LLMClient? {
@@ -225,10 +275,12 @@ final class DataStore: ObservableObject {
         switch mode {
         case .sample:
             applySample()
+            await refreshRestJourney(health: health)
         case .live:
             isLoading = true
-            let nights = await health.fetchNights()
-            let energyDay = await health.fetchTodayEnergy()
+            async let fetchedNights = health.fetchNights()
+            async let fetchedEnergyDay = health.fetchTodayEnergy()
+            let (nights, energyDay) = await (fetchedNights, fetchedEnergyDay)
             recentHealthNights = nights
             todayEnergyDay = energyDay
             healthAuthorized = health.authorized
@@ -250,6 +302,7 @@ final class DataStore: ObservableObject {
             regularity = SleepScience.report(logs: built.sleepLogs)
             pod = seed.pod        // pod is always sample
             await categorizeCalendar(calendar: calendar)
+            await refreshRestJourney(health: health, nights: nights)
             isLoading = false
         }
     }
@@ -259,6 +312,21 @@ final class DataStore: ObservableObject {
     func refreshTodayEnergy(health: HealthManager) async {
         guard mode == .live else { return }
         todayEnergyDay = await health.fetchTodayEnergy()
+    }
+
+    var todayRestPointDay: RestPointDay? {
+        restJourney.dailyScores[Self.localDayKey(Date())]
+    }
+
+    var selectedBoxDecoration: BoxDecoration? {
+        boxSpace.decorations.first { $0.id == restJourney.skinID }
+            ?? boxSpace.decorations.first { $0.id == "classic-blue" }
+    }
+
+    var nextLockedDecoration: BoxDecoration? {
+        boxSpace.decorations
+            .filter { $0.requiredScore > restJourney.points }
+            .min { $0.requiredScore < $1.requiredScore }
     }
 
     /// Live mode only: fetch raw calendar events and let the LLM categorize any
@@ -404,6 +472,10 @@ final class DataStore: ObservableObject {
         if let dev = wristTempDeviationC, abs(dev) >= 0.3 {
             parts.append("wrist temperature ran \(dev > 0 ? "+" : "")\(String(format: "%.1f", dev))°C vs baseline (a relative wrist skin measure, not core temperature — can rise with illness, alcohol, or menstrual phase)")
         }
+        if let climate = sleepClimate, climate.risk != .low {
+            let humidity = climate.maxHumidity.map { ", humidity up to \(Int(($0 * 100).rounded()))%" } ?? ""
+            parts.append("tonight's local sleep climate is \(climate.risk.label.lowercased()): \(Int(climate.overnightLowC))-\(Int(climate.overnightHighC))°C\(humidity); use this only for sleep-friction advice, not as a circadian phase shift")
+        }
         if let debt = sleepDebtMin(), debt >= 30 { parts.append("carrying roughly \(fmtDur(debt)) of sleep debt this week") }
         return parts.joined(separator: "; ") + "."
     }
@@ -442,6 +514,261 @@ final class DataStore: ObservableObject {
         if let data = try? JSONEncoder().encode(cache) {
             UserDefaults.standard.set(data, forKey: Keys.calendarCache)
         }
+    }
+
+    // MARK: - Local Rest Journey
+
+    private static func loadRestJourney() -> RestJourneyProfile {
+        guard let data = UserDefaults.standard.data(forKey: Keys.restJourney),
+              let profile = try? JSONDecoder().decode(RestJourneyProfile.self, from: data)
+        else { return .empty }
+        return profile
+    }
+
+    private func persistRestJourney() {
+        guard let data = try? JSONEncoder().encode(restJourney) else { return }
+        UserDefaults.standard.set(data, forKey: Keys.restJourney)
+    }
+
+    private func applyLocalJourneyToBoxSpace() {
+        boxSpace.currentUser = BoxSpacePerson(
+            id: boxSpace.currentUser.id,
+            name: displayName,
+            monthlyScore: restJourney.points,
+            rank: boxSpace.currentUser.rank,
+            isFriend: boxSpace.currentUser.isFriend,
+            isCurrentUser: boxSpace.currentUser.isCurrentUser,
+            decorationID: restJourney.skinID)
+    }
+
+    private func recalculateRestJourney(
+        activity: [JourneyActivityDay],
+        nights: [NightSample]
+    ) {
+        let activityByDay = Dictionary(uniqueKeysWithValues: activity.map {
+            (Self.localDayKey($0.date), $0)
+        })
+        let sleepByDay = Dictionary(
+            nights.map { ($0.date, $0.tstMin) },
+            uniquingKeysWith: { _, newest in newest })
+        let affectedDays = Set(activityByDay.keys).union(sleepByDay.keys)
+
+        for day in affectedDays {
+            let movement = activityByDay[day]
+            let score = Self.makeRestPointDay(
+                id: day,
+                steps: Int((movement?.steps ?? 0).rounded()),
+                activeEnergyKcal: Int((movement?.activeEnergyKcal ?? 0).rounded()),
+                exerciseMinutes: Int((movement?.exerciseMinutes ?? 0).rounded()),
+                sleepMinutes: sleepByDay[day])
+            restJourney.dailyScores[day] = score
+        }
+        persistRestJourney()
+        applyLocalJourneyToBoxSpace()
+    }
+
+    private func applyCommunitySnapshot(
+        _ myBox: MyBoxSpaceRecord,
+        leaderboard: [MonthlyLeaderboardRecord]
+    ) {
+        restJourney.points = myBox.points
+        restJourney.skinID = myBox.skinId
+        persistRestJourney()
+
+        let friends = leaderboard
+            .filter { !$0.isCurrentUser }
+            .map {
+                BoxSpacePerson(
+                    id: $0.userId.uuidString,
+                    name: $0.displayName,
+                    monthlyScore: $0.points,
+                    rank: $0.rankNumber,
+                    isFriend: true,
+                    isCurrentUser: false,
+                    decorationID: $0.skinId)
+            }
+        boxSpace = BoxSpaceSnapshot(
+            monthLabel: Self.monthLabel(myBox.monthStart),
+            resetsAt: myBox.resetsAt,
+            currentUser: BoxSpacePerson(
+                id: myBox.userId.uuidString,
+                name: myBox.displayName,
+                monthlyScore: myBox.points,
+                rank: myBox.rankNumber,
+                isFriend: true,
+                isCurrentUser: true,
+                decorationID: myBox.skinId),
+            people: friends + [
+                BoxSpacePerson(
+                    id: "empty-box-\(myBox.monthStart)", name: "", monthlyScore: 0, rank: 0,
+                    isFriend: false, isCurrentUser: false, decorationID: nil)
+            ],
+            decorations: BoxSpaceSnapshot.localDecorations)
+        applyAuthenticatedDisplayName(myBox.displayName)
+    }
+
+    private func syncEligibleCommunityClaims(
+        activity: [JourneyActivityDay],
+        nights: [NightSample]
+    ) async {
+        let today = Self.utc8DayKey(Date())
+        if !activity.isEmpty || !nights.isEmpty {
+            await claim(event: "daily_check_in", sourceKey: today)
+        }
+
+        guard let latest = nights.last else { return }
+        if latest.tstMin >= 420, latest.sePct >= 80 {
+            await claim(event: "rested_well", sourceKey: latest.date)
+        }
+        if nights.count >= 3,
+           let deviation = regularity.midpointStdevMin,
+           deviation <= 45 {
+            await claim(event: "rhythm_kept", sourceKey: latest.date)
+        }
+
+        let consecutive = Self.currentSleepStreak(nights)
+        if consecutive >= 10 {
+            await claim(event: "ten_days_rest", sourceKey: "milestone:ten_days_rest")
+        }
+        if consecutive >= 7,
+           let deviation = regularity.midpointStdevMin,
+           deviation <= 45 {
+            await claim(event: "rhythm_keeper", sourceKey: "milestone:rhythm_keeper")
+        }
+    }
+
+    private func claim(event: String, sourceKey: String) async {
+        do {
+            let response = try await communityService.awardPoints(
+                eventType: event,
+                sourceKey: sourceKey)
+            if response.status == "awarded" || response.status == "duplicate" {
+                completedPointEvents.insert(event)
+                restJourney.points = response.points
+                restJourney.skinID = response.skinId
+                persistRestJourney()
+                applyLocalJourneyToBoxSpace()
+            }
+        } catch {
+            #if DEBUG
+            debugPrint("Point claim failed:", event, error)
+            #endif
+        }
+    }
+
+    private static func currentSleepStreak(_ nights: [NightSample]) -> Int {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 8 * 3600)!
+        let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = calendar.timeZone
+        formatter.dateFormat = "yyyy-MM-dd"
+        let dates = Set(nights.filter { $0.tstMin >= 300 }.compactMap { formatter.date(from: $0.date) })
+            .sorted()
+        guard let latest = dates.last else { return 0 }
+        let age = calendar.dateComponents(
+            [.day], from: latest, to: calendar.startOfDay(for: Date())).day ?? 99
+        guard age <= 1 else { return 0 }
+        var streak = 1
+        var cursor = latest
+        while let previous = calendar.date(byAdding: .day, value: -1, to: cursor),
+              dates.contains(previous) {
+            streak += 1
+            cursor = previous
+        }
+        return streak
+    }
+
+    private static func utc8DayKey(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 8 * 3600)
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
+    }
+
+    private static func monthLabel(_ monthStart: String) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 8 * 3600)
+        formatter.dateFormat = "yyyy-MM-dd"
+        guard let date = formatter.date(from: monthStart) else { return "" }
+        return date.formatted(.dateTime.month(.wide))
+    }
+
+    private func friendlyCommunityError(_ error: Error) -> String {
+        let text = error.localizedDescription.lowercased()
+        if text.contains("jwt") || text.contains("session") || text.contains("unauthorized") {
+            return "Your session has expired. Please sign in again."
+        }
+        if text.contains("network") || text.contains("internet") || text.contains("offline") {
+            return "Box Space could not sync. Check your connection and try again."
+        }
+        if text.contains("function") && text.contains("not found") {
+            return "Box Space is not available on this server version."
+        }
+        return "Box Space could not sync right now."
+    }
+
+    private static func makeRestPointDay(
+        id: String,
+        steps: Int,
+        activeEnergyKcal: Int,
+        exerciseMinutes: Int,
+        sleepMinutes: Int?
+    ) -> RestPointDay {
+        // Max 100/day. Integer bands keep the score stable as HealthKit samples
+        // trickle in and make every awarded point easy to explain.
+        let stepPoints = min(30, max(0, steps / 1_000 * 3))
+        let energyPoints = min(20, max(0, activeEnergyKcal / 50 * 2))
+        let exercisePoints = min(20, max(0, exerciseMinutes / 10 * 5))
+        let sleepPoints: Int
+        switch sleepMinutes ?? 0 {
+        case 420...: sleepPoints = 30
+        case 360..<420: sleepPoints = 20
+        case 300..<360: sleepPoints = 10
+        default: sleepPoints = 0
+        }
+
+        let sleepDetail = sleepMinutes.map {
+            let hours = $0 / 60
+            let minutes = $0 % 60
+            return minutes == 0 ? "\(hours)h from Apple Health" : "\(hours)h \(minutes)m from Apple Health"
+        } ?? "No sleep record yet"
+        return RestPointDay(
+            id: id,
+            steps: steps,
+            activeEnergyKcal: activeEnergyKcal,
+            exerciseMinutes: exerciseMinutes,
+            sleepMinutes: sleepMinutes,
+            components: [
+                RestPointComponent(
+                    id: "sleep", title: "Rested sleep", detail: sleepDetail,
+                    points: sleepPoints, maximumPoints: 30),
+                RestPointComponent(
+                    id: "steps", title: "Daily steps", detail: "\(steps.formatted()) steps",
+                    points: stepPoints, maximumPoints: 30),
+                RestPointComponent(
+                    id: "active_energy", title: "Active energy",
+                    detail: "\(activeEnergyKcal.formatted()) active kcal",
+                    points: energyPoints, maximumPoints: 20),
+                RestPointComponent(
+                    id: "exercise", title: "Exercise time",
+                    detail: "\(exerciseMinutes.formatted()) Apple Exercise min",
+                    points: exercisePoints, maximumPoints: 20)
+            ])
+    }
+
+    private static func localDayKey(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = .current
+        formatter.timeZone = .current
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
     }
 
     /// Streaming coach reply: appends an empty coach message and fills it token by
@@ -499,14 +826,94 @@ final class DataStore: ObservableObject {
         regularity = SleepScience.report(logs: seed.sleepLogs)
         pod = seed.pod
         liveHasData = false
-        healthLastNightTST = nil
-        lastNightHR = nil
-        lastNightHRV = nil
-        lastNightWristTempC = nil
-        wristTempBaselineC = nil
-        recentHealthNights = []
-        todayEnergyDay = nil
+        recentHealthNights = Self.sampleHealthNights(from: seed.sleepLogs)
+        todayEnergyDay = Self.sampleEnergyDay(from: recentHealthNights)
+        let latest = recentHealthNights.last
+        healthLastNightTST = latest?.tstMin
+        lastNightHR = latest?.avgHRBpm
+        lastNightHRV = latest?.hrvMs
+        lastNightWristTempC = latest?.wristTempC
+        let temps = recentHealthNights.compactMap(\.wristTempC)
+        wristTempBaselineC = temps.count >= 3 ? (temps.reduce(0,+) / Double(temps.count) * 10).rounded() / 10 : nil
         aiError = nil
+    }
+
+    private static func sampleHealthNights(from logs: [SleepLog], calendar: Calendar = .current) -> [NightSample] {
+        let dayFormatter = DateFormatter()
+        dayFormatter.calendar = calendar
+        dayFormatter.timeZone = calendar.timeZone
+        dayFormatter.dateFormat = "yyyy-MM-dd"
+
+        return logs.enumerated().compactMap { index, log in
+            guard let wakeDay = dayFormatter.date(from: log.date),
+                  let lightsOut = sampleDate(day: wakeDay, hhmm: log.lightsOut, wrapsToPreviousDay: true, calendar: calendar),
+                  let wake = sampleDate(day: wakeDay, hhmm: log.wakeTime, wrapsToPreviousDay: false, calendar: calendar)
+            else { return nil }
+
+            let onset = lightsOut.addingTimeInterval((log.solMin ?? 0) * 60)
+            let tibMin = max(1, Int(wake.timeIntervalSince(lightsOut) / 60))
+            let wasoMin = max(0, tibMin - Int((log.solMin ?? 0).rounded()) - log.tstMin)
+            let hrv = 51 + Double((index * 7) % 13) - max(0, (log.solMin ?? 0) - 20) * 0.16
+            let hr = 58 + Double((index * 5) % 7) + Double(wasoMin) * 0.03
+            let wrist = 36.35 + Double((index % 5) - 2) * 0.06
+
+            return NightSample(
+                date: log.date,
+                lightsOut: lightsOut,
+                sleepOnset: onset,
+                finalWake: wake,
+                solMin: log.solMin ?? 0,
+                tstMin: log.tstMin,
+                wasoMin: wasoMin,
+                tibMin: tibMin,
+                sePct: (Double(log.tstMin) / Double(tibMin) * 100).rounded(toPlaces: 1),
+                timeZone: calendar.timeZone,
+                avgHRBpm: hr.rounded(),
+                hrvMs: max(30, hrv).rounded(),
+                wristTempC: (wrist * 10).rounded() / 10)
+        }
+    }
+
+    private static func sampleDate(day: Date, hhmm: String, wrapsToPreviousDay: Bool, calendar: Calendar) -> Date? {
+        let parts = hhmm.split(separator: ":").compactMap { Int($0) }
+        guard parts.count >= 2 else { return nil }
+        let baseDay = wrapsToPreviousDay && parts[0] >= 12
+            ? calendar.date(byAdding: .day, value: -1, to: day) ?? day
+            : day
+        return calendar.date(bySettingHour: parts[0], minute: parts[1], second: 0, of: baseDay)
+    }
+
+    private static func sampleEnergyDay(from nights: [NightSample], calendar: Calendar = .current) -> DailyEnergyDay? {
+        guard let latest = nights.last else { return nil }
+        let start = calendar.startOfDay(for: Date())
+        let hour = calendar.component(.hour, from: Date())
+        let buckets = (0...max(hour, 8)).compactMap { offset -> DailyEnergyInput? in
+            guard let time = calendar.date(byAdding: .hour, value: offset, to: start) else { return nil }
+            let asleep = offset < 6 ? 52.0 : 0
+            let commuteLoad = offset == 8 ? 260.0 : 0
+            let workoutLoad = offset == 17 ? 620.0 : 0
+            let steps = asleep > 0 ? 0 : 70 + Double((offset * 83) % 420) + commuteLoad + workoutLoad
+            let active = asleep > 0 ? 0 : 2 + Double((offset * 5) % 22) + workoutLoad / 55
+            let hr = asleep > 0 ? 56 + Double(offset % 2) : 63 + Double((offset * 3) % 14) + workoutLoad / 160
+            let hrv = asleep > 0 ? latest.hrvMs.map { $0 + 4 } : latest.hrvMs.map { max(30, $0 - Double(offset % 5)) }
+            return DailyEnergyInput(
+                time: time,
+                averageHeartRate: hr,
+                averageHRV: hrv,
+                activeEnergyKcal: active,
+                steps: steps,
+                asleepMinutes: asleep)
+        }
+        let hrvBaseline = median(nights.compactMap(\.hrvMs))
+        let hrBaseline = median(nights.compactMap(\.avgHRBpm))
+        return DailyEnergyDay(buckets: buckets, restingHeartRateBaseline: hrBaseline, hrvBaseline: hrvBaseline)
+    }
+
+    private static func median(_ values: [Double]) -> Double? {
+        guard !values.isEmpty else { return nil }
+        let sorted = values.sorted()
+        let middle = sorted.count / 2
+        return sorted.count.isMultiple(of: 2) ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle]
     }
 
     /// Last night's sleeping wrist temperature relative to the recent baseline

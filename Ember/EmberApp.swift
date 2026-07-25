@@ -30,7 +30,14 @@ struct EmberApp: App {
                 await store.refreshBoxSpace()
             }
             .onChange(of: scenePhase) { phase in
-                if phase == .background { EmberApp.scheduleBackgroundRefresh() }
+                if phase == .background {
+                    EmberApp.scheduleBackgroundRefresh()
+                } else if phase == .active, auth.isAuthenticated {
+                    Task {
+                        await store.refreshTodayEnergy(health: health)
+                        await store.refreshRestJourney(health: health)
+                    }
+                }
             }
         }
         .backgroundTask(.appRefresh(EmberApp.refreshTaskID)) {

@@ -451,9 +451,9 @@ private struct BoxMapFloor: View {
 }
 
 private struct BoxWorldLayout {
-    static let ringSpacing: CGFloat = 160
-    private static let horizontalEdgeInset: CGFloat = 66
-    private static let verticalEdgeInset: CGFloat = 82
+    static let ringSpacing: CGFloat = 150
+    private static let horizontalEdgeInset: CGFloat = 74
+    private static let verticalEdgeInset: CGFloat = 96
 
     struct Item: Identifiable, Equatable {
         let person: BoxSpacePerson
@@ -485,13 +485,9 @@ private struct BoxWorldLayout {
                 continue
             }
             let location = Self.ringAndSlot(for: index - 1)
-            let seed = person.id.unicodeScalars.reduce(0) { ($0 &* 31) &+ Int($1.value) }
-            let angleJitter = Double((seed % 15) - 7) * .pi / 180
-            let radialJitter = CGFloat(((seed / 17) % 19) - 9)
             let angle = -.pi / 2
                 + Double(location.slot) * (2 * .pi / Double(location.capacity))
-                + angleJitter
-            let radius = CGFloat(location.ring) * Self.ringSpacing + radialJitter
+            let radius = CGFloat(location.ring) * Self.ringSpacing
             generated.append(Item(
                 person: person,
                 point: CGPoint(
@@ -536,12 +532,14 @@ private struct BoxResident: View {
             if person.isFriend {
                 Text(person.isCurrentUser ? "You" : person.name)
                     .font(.caption.weight(.semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
                 Text("\(person.monthlyScore.formatted()) pts")
                     .font(.caption2)
                     .foregroundStyle(Theme.secondaryText)
             }
         }
-        .frame(width: 94)
+        .frame(width: 112)
         .padding(.vertical, 6)
         .background {
             if person.isCurrentUser {

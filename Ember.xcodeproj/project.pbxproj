@@ -29,6 +29,7 @@
 		77499C61D5A7A51062740001 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3E89E76FECB2B71061F10F9 /* Theme.swift */; };
 		78B9CA4A2393CF8AB9B1E469 /* EmberApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC635EBE2AC3C4079688D51C /* EmberApp.swift */; };
 		7AA585CC3013A02600B57C71 /* SleepClimateService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AA585CB3013A02600B57C71 /* SleepClimateService.swift */; };
+		7AA585CE30149B7A00B57C71 /* RestLabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AA585CD30149B7A00B57C71 /* RestLabView.swift */; };
 		7AF06D8BC56E638C308699E3 /* RestAlgorithms.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CC808B43660BBB46A7C3565 /* RestAlgorithms.swift */; };
 		7D78F2E708DC62068AC25272 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CCAECECB01C03E7C4363DCA5 /* Assets.xcassets */; };
 		8F95790C1EFABD19ED1EB2D2 /* CalendarService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1985CE025CBEEA6696E50716 /* CalendarService.swift */; };
@@ -90,6 +91,7 @@
 		6EEBF58E1C4C7BCAE8368EB9 /* SupabaseManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseManager.swift; sourceTree = "<group>"; };
 		738C57AD4865B9D8A9B2012D /* Ember.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Ember.entitlements; sourceTree = "<group>"; };
 		7AA585CB3013A02600B57C71 /* SleepClimateService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepClimateService.swift; sourceTree = "<group>"; };
+		7AA585CD30149B7A00B57C71 /* RestLabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestLabView.swift; sourceTree = "<group>"; };
 		7FB44B3689CD07DBC9882119 /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
 		8D4CFD1D722793AEE11EDC60 /* SleepScience.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepScience.swift; sourceTree = "<group>"; };
 		8E98492F0332B6F0910FD160 /* RootTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootTabView.swift; sourceTree = "<group>"; };
@@ -305,6 +307,7 @@
 				FFAC02C2AC29DAA6CE71E814 /* SplashView.swift */,
 				D040811E025425FE3D31FEBA /* ThermalView.swift */,
 				216E155063217A1DBDE1DAB0 /* Components */,
+				7AA585CD30149B7A00B57C71 /* RestLabView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -426,6 +429,7 @@
 				96C48726FEA71DF974E1876E /* CoachWidgets.swift in Sources */,
 				0138F8D037CE413B632B3DD7 /* Components.swift in Sources */,
 				D6AEB02A011B1DA89B0D199F /* DataStore.swift in Sources */,
+				7AA585CE30149B7A00B57C71 /* RestLabView.swift in Sources */,
 				FD5D75647ED8FB20D6A201CA /* DayPlan.swift in Sources */,
 				78B9CA4A2393CF8AB9B1E469 /* EmberApp.swift in Sources */,
 				4070F51276CA68CB1DBE7FE6 /* Formatters.swift in Sources */,

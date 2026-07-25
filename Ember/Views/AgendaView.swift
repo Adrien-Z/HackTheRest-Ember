@@ -308,7 +308,13 @@ private struct DayCanvas: View {
     // Where to auto-scroll: current time today, else the evening warm-up.
     private var focusAnchor: some View {
         let target: Date = cal.isDateInToday(day) ? Date() : (plan?.warmingStart ?? origin.addingTimeInterval(15*3600))
-        return Color.clear.frame(width: 1, height: 1).id("focus").offset(y: y(target))
+        let targetY = min(max(0, y(target)), totalHeight)
+        return VStack(spacing: 0) {
+            Color.clear.frame(height: targetY)
+            Color.clear.frame(width: 1, height: 1).id("focus")
+            Spacer(minLength: 0)
+        }
+        .allowsHitTesting(false)
     }
 
     private func hourGrid(width: CGFloat) -> some View {

@@ -241,19 +241,65 @@ private struct SleepScoreTrendCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            SectionHeader(title: "7-night arcade", subtitle: "Tap or drag a bar.")
-            Chart(points) { point in
-                BarMark(x: .value("Night", point.index), y: .value("Score", point.value))
-                    .foregroundStyle(barColor(point.value).opacity(selected == point.index ? 1 : 0.72))
-                    .cornerRadius(5)
-                PointMark(x: .value("Night", point.index), y: .value("Score", point.value))
-                    .foregroundStyle(barColor(point.value))
-                    .symbolSize(selected == point.index ? 90 : 35)
+            SectionHeader(title: "7-night score", subtitle: selectedLabel)
+            Chart {
+                RuleMark(y: .value("Strong", 80))
+                    .foregroundStyle(Theme.mint.opacity(0.45))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 4]))
+                    .annotation(position: .top, alignment: .trailing) {
+                        Text("strong")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(Theme.mint)
+                    }
+                RuleMark(y: .value("Fair", 65))
+                    .foregroundStyle(Theme.amber.opacity(0.38))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 4]))
+                    .annotation(position: .top, alignment: .trailing) {
+                        Text("fair")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(Theme.amber)
+                    }
+                ForEach(points) { point in
+                    BarMark(x: .value("Night", point.index), y: .value("Score", point.value))
+                        .foregroundStyle(barColor(point.value).opacity(selected == nil || selected == point.index ? 1 : 0.38))
+                        .cornerRadius(5)
+                    PointMark(x: .value("Night", point.index), y: .value("Score", point.value))
+                        .foregroundStyle(barColor(point.value))
+                        .symbolSize(selected == point.index ? 110 : 32)
+                    if selected == point.index {
+                        RuleMark(x: .value("Selected", point.index))
+                            .foregroundStyle(Color.white.opacity(0.24))
+                    }
+                }
             }
-            .chartXAxis(.hidden)
-            .chartYAxis(.hidden)
+            .chartXAxis {
+                AxisMarks(values: points.map(\.index)) { value in
+                    AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5))
+                        .foregroundStyle(Color.white.opacity(0.08))
+                    AxisValueLabel {
+                        if let index = value.as(Int.self) {
+                            Text(index == points.last?.index ? "last" : "\(index + 1)")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+            .chartYAxis {
+                AxisMarks(values: [0, 50, 80, 100]) { value in
+                    AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5))
+                        .foregroundStyle(Color.white.opacity(0.10))
+                    AxisValueLabel {
+                        if let score = value.as(Int.self) {
+                            Text("\(score)")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
             .chartYScale(domain: 0...100)
-            .frame(height: 170)
+            .frame(height: 190)
             .chartOverlay { proxy in
                 GeometryReader { geo in
                     Rectangle().fill(.clear).contentShape(Rectangle())
@@ -264,7 +310,7 @@ private struct SleepScoreTrendCard: View {
                                 let idx = min(max(Int(raw.rounded()), 0), max(0, points.count - 1))
                                 if idx != selected { selected = idx; Haptics.tick() }
                             }
-                            .onEnded { _ in selected = nil })
+                        )
                 }
             }
             .chartReveal()
@@ -274,6 +320,14 @@ private struct SleepScoreTrendCard: View {
 
     private func barColor(_ score: Int) -> Color {
         score >= 80 ? Theme.mint : score >= 65 ? Theme.amber : Theme.ember
+    }
+
+    private var selectedLabel: String {
+        guard let selected, let point = points.first(where: { $0.index == selected }) else {
+            return "0-100 scale · 80+ strong · drag to inspect."
+        }
+        let label = point.index == points.last?.index ? "Last night" : "Night \(point.index + 1)"
+        return "\(label): \(point.value)/100"
     }
 }
 

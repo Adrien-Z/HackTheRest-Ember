@@ -4,6 +4,7 @@ struct CoachView: View {
     @EnvironmentObject var store: DataStore
     @State private var draft: String = ""
     @State private var thinking = false
+    @State private var shouldFollowStreaming = true
     /// Throttle streaming haptics so they feel like a gentle typing pulse, not a buzz.
     @State private var lastStreamHaptic = Date.distantPast
 
@@ -48,13 +49,21 @@ struct CoachView: View {
                                     Spacer()
                                 }.padding(.horizontal).id("thinking")
                             }
+                            Color.clear.frame(height: 1).id("coachBottom")
                         }.padding().lockHorizontal()
                     }
+                    .simultaneousGesture(
+                        DragGesture(minimumDistance: 8)
+                            .onChanged { _ in
+                                if thinking { shouldFollowStreaming = false }
+                            }
+                    )
                     .onChange(of: store.chat.count) { _ in
-                        if let last = store.chat.last { withAnimation { proxy.scrollTo(last.id, anchor: .bottom) } }
+                        guard shouldFollowStreaming else { return }
+                        withAnimation { proxy.scrollTo("coachBottom", anchor: .bottom) }
                     }
                     .onChange(of: store.chat.last?.content) { _ in
-                        if let last = store.chat.last { proxy.scrollTo(last.id, anchor: .bottom) }
+                        if shouldFollowStreaming { proxy.scrollTo("coachBottom", anchor: .bottom) }
                         streamHaptic()
                     }
                 }
@@ -114,6 +123,7 @@ struct CoachView: View {
         let t = text.trimmingCharacters(in: .whitespaces)
         guard !t.isEmpty, !thinking else { return }
         Haptics.light()
+        shouldFollowStreaming = true
         store.chat.append(ChatMessage(role: .user, content: t))
         draft = ""
         thinking = true

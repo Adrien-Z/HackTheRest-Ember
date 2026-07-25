@@ -1,5 +1,53 @@
 import SwiftUI
 
+struct SkinRevealPreview: View {
+    let decoration: BoxDecoration?
+    let size: CGSize
+    let revealToken: Int
+
+    @State private var scale: CGFloat = 1
+    @State private var rotation: Double = 0
+    @State private var showSparkles = false
+
+    var body: some View {
+        ZStack {
+            BoxSkinImageView(decoration: decoration, size: size)
+                .scaleEffect(scale)
+                .rotationEffect(.degrees(rotation))
+
+            SkinRevealSparkle(isVisible: showSparkles)
+        }
+        .onChange(of: revealToken) { _ in
+            playRevealAnimation()
+        }
+    }
+
+    private func playRevealAnimation() {
+        scale = 0.9
+        rotation = -2
+        showSparkles = false
+
+        withAnimation(.spring(response: 0.24, dampingFraction: 0.58)) {
+            scale = 1.08
+            rotation = 2
+            showSparkles = true
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+            withAnimation(.spring(response: 0.38, dampingFraction: 0.72)) {
+                scale = 1
+                rotation = 0
+            }
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.48) {
+            withAnimation(.easeOut(duration: 0.22)) {
+                showSparkles = false
+            }
+        }
+    }
+}
+
 struct SkinRevealSparkle: View {
     let isVisible: Bool
 

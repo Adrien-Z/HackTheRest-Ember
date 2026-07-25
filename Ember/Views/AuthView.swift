@@ -6,10 +6,21 @@ struct AuthView: View {
     @State private var isRegistering = false
     @State private var email = ""
     @State private var password = ""
+    @State private var mascotIndex = 0
+    @State private var mascotRevealToken = 0
     @FocusState private var focusedField: Field?
+
+    private static let welcomeMascots = BoxSpaceSnapshot.localDecorations.filter {
+        $0.requiredScore == 500
+    }
 
     private enum Field: Hashable {
         case displayName, email, password
+    }
+
+    private var activeMascot: BoxDecoration? {
+        guard !Self.welcomeMascots.isEmpty else { return nil }
+        return Self.welcomeMascots[mascotIndex % Self.welcomeMascots.count]
     }
 
     var body: some View {
@@ -19,11 +30,14 @@ struct AuthView: View {
             ScrollView {
                 VStack(spacing: 20) {
                     VStack(spacing: 10) {
-                        Image(systemName: "shippingbox.fill")
-                            .font(.system(size: 42, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .frame(width: 88, height: 88)
-                            .background(Theme.ember, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                        SkinRevealPreview(
+                            decoration: activeMascot,
+                            size: CGSize(width: 158, height: 145),
+                            revealToken: mascotRevealToken
+                        )
+                        .frame(width: 210, height: 166)
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel("\(activeMascot?.name ?? "Ember") mascot")
 
                         Text(isRegistering ? "Join Ember" : "Welcome back")
                             .font(.system(size: 30, weight: .bold, design: .rounded))
@@ -120,6 +134,20 @@ struct AuthView: View {
             .scrollDismissesKeyboard(.interactively)
         }
         .preferredColorScheme(.dark)
+        .task {
+            mascotRevealToken += 1
+
+            while !Task.isCancelled {
+                do {
+                    try await Task.sleep(nanoseconds: 2_800_000_000)
+                } catch {
+                    return
+                }
+                guard !Task.isCancelled, !Self.welcomeMascots.isEmpty else { return }
+                mascotIndex = (mascotIndex + 1) % Self.welcomeMascots.count
+                mascotRevealToken += 1
+            }
+        }
     }
 
     private func inputField(

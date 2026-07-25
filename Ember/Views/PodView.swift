@@ -723,9 +723,7 @@ private struct BoxProfileSheet: View {
 
 private struct BoxDecorationStudio: View {
     @EnvironmentObject private var store: DataStore
-    @State private var previewScale: CGFloat = 1
-    @State private var previewRotation: Double = 0
-    @State private var showSkinSparkles = false
+    @State private var skinRevealToken = 0
 
     private var selectedDecoration: BoxDecoration? {
         store.boxSpace.decorations.first {
@@ -745,16 +743,11 @@ private struct BoxDecorationStudio: View {
             ScrollView {
                 VStack(spacing: 22) {
                     VStack(spacing: 16) {
-                        ZStack {
-                            BoxSkinImageView(
-                                decoration: selectedDecoration,
-                                size: CGSize(width: 218, height: 200)
-                            )
-                            .scaleEffect(previewScale)
-                            .rotationEffect(.degrees(previewRotation))
-
-                            SkinRevealSparkle(isVisible: showSkinSparkles)
-                        }
+                        SkinRevealPreview(
+                            decoration: selectedDecoration,
+                            size: CGSize(width: 218, height: 200),
+                            revealToken: skinRevealToken
+                        )
                         .frame(width: 238, height: 210)
                         Text(selectedDecoration?.name ?? "Simple Blue Box").font(.headline)
                         Text("\(store.restJourney.points.formatted()) total Rest Points")
@@ -846,28 +839,7 @@ private struct BoxDecorationStudio: View {
     }
 
     private func playEquipAnimation() {
-        previewScale = 0.9
-        previewRotation = -2
-        showSkinSparkles = false
-
-        withAnimation(.spring(response: 0.24, dampingFraction: 0.58)) {
-            previewScale = 1.08
-            previewRotation = 2
-            showSkinSparkles = true
-        }
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
-            withAnimation(.spring(response: 0.38, dampingFraction: 0.72)) {
-                previewScale = 1
-                previewRotation = 0
-            }
-        }
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.48) {
-            withAnimation(.easeOut(duration: 0.22)) {
-                showSkinSparkles = false
-            }
-        }
+        skinRevealToken += 1
     }
 }
 

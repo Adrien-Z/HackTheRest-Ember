@@ -80,7 +80,10 @@ struct OnboardingView: View {
             }
 
             if page > 0 && page < lastPage {
-                Button("Back") { withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) { page -= 1 } }
+                Button("Back") {
+                    Haptics.tick()
+                    withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) { page -= 1 }
+                }
                     .font(.subheadline).foregroundStyle(Theme.secondaryText)
             }
         }

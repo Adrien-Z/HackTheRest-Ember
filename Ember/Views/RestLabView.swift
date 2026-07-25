@@ -53,6 +53,7 @@ struct RestLabView: View {
                         tint: Theme.ember)
                 }
                 .buttonStyle(.plain)
+                .simultaneousGesture(TapGesture().onEnded { Haptics.light() })
 
                 NavigationLink { CBTIView() } label: {
                     RestLabWideCard(
@@ -63,6 +64,7 @@ struct RestLabView: View {
                         tint: Theme.cool)
                 }
                 .buttonStyle(.plain)
+                .simultaneousGesture(TapGesture().onEnded { Haptics.light() })
             }
         }
     }
@@ -79,6 +81,7 @@ struct RestLabView: View {
                         tint: Theme.ember)
                 }
                 .buttonStyle(.plain)
+                .simultaneousGesture(TapGesture().onEnded { Haptics.light() })
 
                 NavigationLink { BreathingTrainingView() } label: {
                     RestLabSmallCard(
@@ -88,6 +91,7 @@ struct RestLabView: View {
                         tint: Theme.mint)
                 }
                 .buttonStyle(.plain)
+                .simultaneousGesture(TapGesture().onEnded { Haptics.light() })
 
                 NavigationLink { WhiteNoiseView() } label: {
                     RestLabSmallCard(
@@ -97,6 +101,7 @@ struct RestLabView: View {
                         tint: Theme.cool)
                 }
                 .buttonStyle(.plain)
+                .simultaneousGesture(TapGesture().onEnded { Haptics.light() })
             }
         }
     }

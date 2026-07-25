@@ -37,8 +37,12 @@ struct AddFriendView: View {
                         }
 
                         Button {
+                            Haptics.light()
                             Task {
-                                if await viewModel.sendFriendRequest(email: email) { email = "" }
+                                if await viewModel.sendFriendRequest(email: email) {
+                                    Haptics.success()
+                                    email = ""
+                                }
                             }
                         } label: {
                             HStack(spacing: 10) {

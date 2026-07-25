@@ -14,6 +14,7 @@ struct AccountView: View {
 
                 Section {
                     Button("Sign Out", role: .destructive) {
+                        Haptics.light()
                         Task {
                             await auth.signOut()
                             dismiss()
@@ -28,7 +29,10 @@ struct AccountView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
+                    Button("Done") {
+                        Haptics.light()
+                        dismiss()
+                    }
                 }
             }
         }

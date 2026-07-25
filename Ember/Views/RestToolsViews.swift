@@ -55,7 +55,10 @@ struct WhiteNoiseView: View {
                 }
                 .padding(16).emberCard(0)
 
-                Button { player.toggle() } label: {
+                Button {
+                    Haptics.light()
+                    player.toggle()
+                } label: {
                     Label(player.isPlaying ? "Stop \(selectedSound.title)" : "Play \(selectedSound.title)",
                           systemImage: player.isPlaying ? "stop.fill" : "play.fill")
                         .font(.headline).frame(maxWidth: .infinity).frame(height: 54)
@@ -230,7 +233,11 @@ struct BreathingTrainingView: View {
                         Text("Inhale for 4, hold for 4, then exhale slowly for 6.")
                             .font(.subheadline).foregroundStyle(Theme.secondaryText).multilineTextAlignment(.center)
                     }
-                    Button("Restart") { cycleStartedAt = Date() }.buttonStyle(.borderedProminent).tint(Theme.mint)
+                    Button("Restart") {
+                        Haptics.light()
+                        cycleStartedAt = Date()
+                    }
+                    .buttonStyle(.borderedProminent).tint(Theme.mint)
                     Spacer()
                 }
                 .padding(24)

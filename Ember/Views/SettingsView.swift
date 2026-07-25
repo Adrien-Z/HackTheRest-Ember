@@ -15,7 +15,10 @@ struct SettingsView: View {
 
     private var modeBinding: Binding<DataSourceMode> {
         Binding(get: { store.mode },
-                set: { new in Task { await store.setMode(new, health: health, calendar: calendar) } })
+                set: { new in
+                    Haptics.tick()
+                    Task { await store.setMode(new, health: health, calendar: calendar) }
+                })
     }
 
     var body: some View {
@@ -40,6 +43,7 @@ struct SettingsView: View {
                         Label("Show sample agenda events", systemImage: "calendar.badge.plus")
                     }
                     .tint(Theme.ember)
+                    .onChange(of: store.demoEventsEnabled) { _ in Haptics.tick() }
                 } header: {
                     Text("Demo")
                 } footer: {
@@ -90,6 +94,7 @@ struct SettingsView: View {
                     Section {
                         Toggle("Auto-adjust for early events", isOn: $wakeAlarm.autoAdaptEnabled)
                             .tint(Theme.ember)
+                            .onChange(of: wakeAlarm.autoAdaptEnabled) { _ in Haptics.tick() }
                     } header: {
                         Text("Wake Alarm")
                     } footer: {
@@ -117,9 +122,11 @@ struct SettingsView: View {
                         .textInputAutocapitalization(.never)
                     if store.aiConfigured {
                         Button("Re-categorize calendar now") {
+                            Haptics.light()
                             Task { await store.categorizeCalendar(calendar: calendar) }
                         }
                         Button("Remove AI access", role: .destructive) {
+                            Haptics.light()
                             store.setAPIKey(""); apiKeyDraft = ""
                         }
                     }
@@ -144,6 +151,7 @@ struct SettingsView: View {
                     LabeledContent("Email", value: auth.email)
 
                     Button("Sign Out", role: .destructive) {
+                        Haptics.light()
                         Task {
                             await auth.signOut()
                             dismiss()
@@ -161,6 +169,7 @@ struct SettingsView: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
+                        Haptics.light()
                         if !apiKeyDraft.trimmingCharacters(in: .whitespaces).isEmpty {
                             store.setAPIKey(apiKeyDraft)
                             apiKeyDraft = ""
@@ -182,7 +191,10 @@ struct SettingsView: View {
             if connected {
                 Image(systemName: "checkmark.circle.fill").foregroundStyle(Theme.mint)
             } else {
-                Button("Connect") { Task { await action() } }
+                Button("Connect") {
+                    Haptics.light()
+                    Task { await action() }
+                }
                     .buttonStyle(.borderedProminent).tint(tint).controlSize(.small)
             }
         }

@@ -91,6 +91,7 @@ struct AuthView: View {
                     }
 
                     Button {
+                        Haptics.light()
                         Task {
                             if isRegistering {
                                 await auth.signUp(email: email, password: password, displayName: auth.registrationDisplayName)
@@ -114,6 +115,7 @@ struct AuthView: View {
                     .disabled(auth.isLoading)
 
                     Button {
+                        Haptics.tick()
                         withAnimation(.easeInOut(duration: 0.2)) {
                             isRegistering.toggle()
                             auth.errorMessage = nil

@@ -57,13 +57,18 @@ struct FriendRequestsView: View {
             }
             HStack {
                 Button("Accept") {
+                    Haptics.light()
                     Task {
                         await viewModel.acceptRequest(request)
                         await store.refreshBoxSpace()
+                        Haptics.success()
                     }
                 }
                     .buttonStyle(.borderedProminent).tint(Theme.boxBlue)
-                Button("Reject", role: .destructive) { Task { await viewModel.rejectRequest(request) } }
+                Button("Reject", role: .destructive) {
+                    Haptics.light()
+                    Task { await viewModel.rejectRequest(request) }
+                }
                     .buttonStyle(.bordered)
             }
             .disabled(isResponding)

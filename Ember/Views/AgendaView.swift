@@ -39,7 +39,10 @@ struct AgendaView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button { showInfo = true } label: { Image(systemName: "info.circle") }
+                Button {
+                    Haptics.light()
+                    showInfo = true
+                } label: { Image(systemName: "info.circle") }
             }
         }
         .sheet(isPresented: $showInfo) { AgendaInfoSheet().presentationDetents([.medium, .large]) }
@@ -232,6 +235,7 @@ private struct PlanBanner: View {
                     Button(action: onReset) {
                         Image(systemName: "arrow.counterclockwise")
                     }
+                    .simultaneousGesture(TapGesture().onEnded { Haptics.light() })
                     .buttonStyle(.plain)
                     .foregroundStyle(Theme.secondaryText)
                     .frame(width: 36, height: 32)
@@ -710,11 +714,13 @@ private struct EventDetailSheet: View {
                         Text("Your correction sticks and won't be re-analyzed.").font(.caption2).foregroundStyle(Theme.secondaryText)
                     }
                     Button {
+                        Haptics.light()
                         Task {
                             let start = event.start.addingTimeInterval(-90 * 60)
                             reminderSet = await wakeAlarm.addReminder(
                                 at: start, title: "Wind down for \(event.title)",
                                 body: "EMBER: start easing toward sleep so you're rested for \(event.title).")
+                            if reminderSet { Haptics.success() }
                         }
                     } label: {
                         Label(reminderSet ? "Reminder set" : "Remind me to wind down",
@@ -727,7 +733,7 @@ private struct EventDetailSheet: View {
                 .padding()
             }
             .navigationTitle("Event").navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { Haptics.light(); dismiss() } } }
         }
     }
 
@@ -773,7 +779,7 @@ private struct AgendaInfoSheet: View {
                 .padding()
             }
             .navigationTitle("Reading your day").navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Got it") { dismiss() } } }
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Got it") { Haptics.light(); dismiss() } } }
         }
     }
     private func row(_ icon: String, _ tint: Color, _ title: String, _ body: String) -> some View {

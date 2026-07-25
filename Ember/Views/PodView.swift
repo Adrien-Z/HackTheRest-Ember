@@ -102,6 +102,7 @@ struct BoxSpaceView: View {
 
     private var scoreCard: some View {
         Button {
+            Haptics.light()
             withAnimation(.easeInOut(duration: 0.2)) {
                 showRestJourney.toggle()
             }
@@ -169,8 +170,12 @@ struct BoxSpaceView: View {
                 }
             }
             .buttonStyle(BoxSocialButtonStyle())
+            .simultaneousGesture(TapGesture().onEnded { Haptics.light() })
 
-            Button { showAddFriend = true } label: {
+            Button {
+                Haptics.light()
+                showAddFriend = true
+            } label: {
                 Image(systemName: "person.badge.plus")
                     .frame(width: 34, height: 34)
             }
@@ -185,6 +190,7 @@ struct BoxSpaceView: View {
     }
 
     private func closeRestJourney() {
+        Haptics.light()
         withAnimation(.easeInOut(duration: 0.2)) {
             showRestJourney = false
         }
@@ -364,7 +370,10 @@ private struct BoxWorldLayer: View, Equatable {
                     decoration: decorations.first { $0.id == item.person.decorationID }
                 )
                 .contentShape(Rectangle())
-                .onTapGesture { selectedPerson = item.person }
+                .onTapGesture {
+                    Haptics.light()
+                    selectedPerson = item.person
+                }
                 .position(item.point)
                 .zIndex(item.point.y)
                 .accessibilityAddTraits(.isButton)
@@ -694,7 +703,10 @@ private struct BoxProfileSheet: View {
                         .font(.subheadline).foregroundStyle(Theme.secondaryText)
                 }
                 if let onDecorate {
-                    Button(action: onDecorate) {
+                    Button {
+                        Haptics.light()
+                        onDecorate()
+                    } label: {
                         Label("Decorate my box", systemImage: "paintbrush.fill")
                             .font(.subheadline.weight(.bold))
                             .frame(maxWidth: .infinity)
@@ -786,8 +798,11 @@ private struct BoxDecorationStudio: View {
         return Button {
             let changedSkin = store.restJourney.skinID != decoration.id
             if changedSkin {
+                Haptics.success()
                 playEquipAnimation()
                 Task { await store.selectBoxDecoration(decoration.id) }
+            } else {
+                Haptics.tick()
             }
         } label: {
             VStack(spacing: 10) {

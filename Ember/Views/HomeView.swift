@@ -56,7 +56,10 @@ struct HomeView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button { showSettings = true } label: { Image(systemName: "gearshape") }
+                    Button {
+                        Haptics.light()
+                        showSettings = true
+                    } label: { Image(systemName: "gearshape") }
                 }
             }
             .sheet(isPresented: $showSettings) {
@@ -144,16 +147,21 @@ struct HomeView: View {
                 Spacer()
                 if t != tonightWakeTime {
                     Button("Move to \(tonightWakeTime)") {
+                        Haptics.light()
                         Task { await wakeAlarm.setWakeAlarm(at: tonightWakeTime) }
                     }
                     .buttonStyle(.borderedProminent).tint(Theme.ember).controlSize(.small)
                 }
-                Button("Remove") { wakeAlarm.cancelWakeAlarm() }
+                Button("Remove") {
+                    Haptics.light()
+                    wakeAlarm.cancelWakeAlarm()
+                }
                     .buttonStyle(.bordered).controlSize(.small)
             } else {
                 Text("Wake alarm").font(.footnote).foregroundStyle(Theme.secondaryText)
                 Spacer()
                 Button("Set for \(tonightWakeTime)") {
+                    Haptics.light()
                     Task { await wakeAlarm.setWakeAlarm(at: tonightWakeTime) }
                 }
                 .buttonStyle(.borderedProminent).tint(Theme.ember).controlSize(.small)
@@ -173,6 +181,7 @@ struct HomeView: View {
                 }
                 .buttonStyle(.plain)
                 .padding(.horizontal, 6)
+                .simultaneousGesture(TapGesture().onEnded { Haptics.light() })
                 .tag(0)
                 .accessibilityHint("Opens your detailed Sleep Score")
                 NavigationLink {
@@ -182,6 +191,7 @@ struct HomeView: View {
                 }
                 .buttonStyle(.plain)
                 .padding(.horizontal, 6)
+                .simultaneousGesture(TapGesture().onEnded { Haptics.light() })
                 .tag(1)
                 .accessibilityHint("Opens your detailed Body Battery")
                 NavigationLink {
@@ -191,6 +201,7 @@ struct HomeView: View {
                 }
                 .buttonStyle(.plain)
                 .padding(.horizontal, 6)
+                .simultaneousGesture(TapGesture().onEnded { Haptics.light() })
                 .tag(2)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
@@ -339,7 +350,10 @@ struct HomeView: View {
                         .font(.footnote).foregroundStyle(Theme.secondaryText)
                 }
                 Spacer()
-                Button("Settings") { showSettings = true }
+                Button("Settings") {
+                    Haptics.light()
+                    showSettings = true
+                }
                     .buttonStyle(.bordered).controlSize(.small)
             }
             .emberCard(14)
@@ -352,6 +366,7 @@ struct HomeView: View {
                 }
                 Spacer()
                 Button("Connect") {
+                    Haptics.light()
                     Task { await health.requestAuthorization(); await store.refresh(health: health, calendar: calendar) }
                 }
                 .buttonStyle(.borderedProminent).tint(Theme.ember).controlSize(.small)

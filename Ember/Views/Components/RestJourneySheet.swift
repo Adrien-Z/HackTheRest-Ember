@@ -478,6 +478,7 @@ private struct JourneyMomentRow: View {
     var body: some View {
         Button {
             guard !isComplete else { return }
+            Haptics.light()
             action?()
         } label: {
             HStack(spacing: 11) {

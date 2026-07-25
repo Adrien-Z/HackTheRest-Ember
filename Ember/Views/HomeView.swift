@@ -7,6 +7,7 @@ struct HomeView: View {
     @EnvironmentObject var calendar: CalendarService
     @EnvironmentObject var wakeAlarm: WakeAlarmService
     @EnvironmentObject var sleepClimate: SleepClimateService
+    @ObservedObject private var weatherManager = WeatherManager.shared
     @State private var showSettings = false
     @State private var showCoach = false
     @State private var insightPage = 0
@@ -84,6 +85,7 @@ struct HomeView: View {
                 }
             }
     }
+    
 
     private var greeting: some View {
         HStack {
@@ -98,33 +100,23 @@ struct HomeView: View {
     private var tonightCard: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Label("Tonight's plan", systemImage: "moon.stars.fill").font(.headline)
+                Label("Daily Rhythm", systemImage: "waveform.path.ecg").font(.headline)
                 Spacer()
-            }
-            HStack(spacing: 0) {
-                MetricStat(value: tonightWarmTime, label: "start warming", color: Theme.ember)
-                Divider().frame(height: 40).overlay(Color.white.opacity(0.1))
-                MetricStat(value: tonightBedTime, label: "lights out")
-                Divider().frame(height: 40).overlay(Color.white.opacity(0.1))
-                MetricStat(value: tonightWakeTime, label: "wake")
-            }
-            if let plan = effectiveTonightPlan {
-                Text(tonightPlanSummary(plan))
-                    .font(.footnote).foregroundStyle(Theme.secondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
-                Button {
-                    Haptics.light()
-                    showCoach = true
-                } label: {
-                    Label("Ask Rest Coach", systemImage: "sparkles")
-                        .font(.caption.weight(.semibold))
-                        .padding(.horizontal, 11)
-                        .padding(.vertical, 7)
-                        .background(Theme.ember.opacity(0.26), in: Capsule())
+                if weatherManager.isUpdating {
+                    HStack(spacing: 5) {
+                        ProgressView()
+                            .tint(Theme.secondaryText)
+                            .scaleEffect(0.62)
+                        Text("Updating")
+                            .font(.caption2.weight(.medium))
+                            .foregroundStyle(Theme.secondaryText.opacity(0.82))
+                    }
+                    .transition(.opacity)
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(.white)
             }
+            DailyRhythmView()
+                .frame(maxWidth: .infinity)
+
             if WakeAlarmService.isSupported {
                 Divider().overlay(Color.white.opacity(0.08))
                 wakeAlarmRow

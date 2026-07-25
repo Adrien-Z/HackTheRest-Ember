@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct RestJourneySheet: View {
+    @EnvironmentObject private var store: DataStore
     let expandedHeight: CGFloat?
     @State private var fabricOpacity = 0.0
     @State private var fabricScaleY = 0.02
@@ -62,6 +63,13 @@ struct RestJourneySheet: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .opacity(contentVisible ? 1 : 0)
+
+                    // Keep the fabric's top and bottom edge above the scrolling
+                    // cards, so items dissolve into the sheet instead of hitting
+                    // a hard clipped boundary.
+                    RestJourneyContentEdgeFog(opacity: fabricOpacity)
+                        .opacity(contentVisible ? 1 : 0)
+                        .allowsHitTesting(false)
                 }
                 .frame(width: proxy.size.width, height: targetHeight, alignment: .top)
                 .clipped()
@@ -106,7 +114,7 @@ struct RestJourneySheet: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 14) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Alex's Rest Journey")
+                Text("\(store.displayName)'s Rest Journey")
                     .font(.title2.weight(.bold))
                 Text("July 2026")
                     .font(.subheadline.weight(.medium))
@@ -171,6 +179,43 @@ struct RestJourneySheet: View {
                 }
             }
         }
+    }
+}
+
+private struct RestJourneyContentEdgeFog: View {
+    let opacity: Double
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .overlay(Color(red: 0.025, green: 0.045, blue: 0.085).opacity(0.72))
+                .compositingGroup()
+                .mask(
+                    LinearGradient(
+                        colors: [.black.opacity(0.94), .clear],
+                        startPoint: .top,
+                        endPoint: .bottom)
+                )
+                .frame(height: 58)
+                .blur(radius: 0.6)
+
+            Spacer(minLength: 0)
+
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .overlay(Color(red: 0.015, green: 0.030, blue: 0.065).opacity(0.82))
+                .compositingGroup()
+                .mask(
+                    LinearGradient(
+                        colors: [.clear, .black.opacity(0.96)],
+                        startPoint: .top,
+                        endPoint: .bottom)
+                )
+                .frame(height: 86)
+                .blur(radius: 0.8)
+        }
+        .opacity(opacity * 0.9)
     }
 }
 
@@ -461,6 +506,7 @@ private struct JourneyMilestone: Identifiable {
 struct RestJourneySheet_Previews: PreviewProvider {
     static var previews: some View {
         RestJourneySheet()
+            .environmentObject(DataStore())
             .preferredColorScheme(.dark)
     }
 }

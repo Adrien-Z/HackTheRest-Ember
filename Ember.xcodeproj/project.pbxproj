@@ -101,7 +101,7 @@
 		A7E71F4A54D24B0DB64F0001 /* RestToolsViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestToolsViews.swift; sourceTree = "<group>"; };
 		A7E71F4A54D24B0DB64F0003 /* HealthInsightDetailViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthInsightDetailViews.swift; sourceTree = "<group>"; };
 		A7E71F4A54D24B0DB64F0005 /* BoxSkinImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoxSkinImageView.swift; sourceTree = "<group>"; };
-		A7E71F4A54D24B0DB64F0007 /* BoxSkins */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Assets.xcassets/BoxSkins; sourceTree = "<group>"; };
+		A7E71F4A54D24B0DB64F0007 /* Assets.xcassets/BoxSkins */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Assets.xcassets/BoxSkins; sourceTree = "<group>"; };
 		A7E71F4A54D24B0DB64F0008 /* SkinRevealSparkle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkinRevealSparkle.swift; sourceTree = "<group>"; };
 		A9C90DC46AFD2014FEED1D85 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		B62730A81455B32AE9014A11 /* CircadianModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CircadianModel.swift; sourceTree = "<group>"; };
@@ -179,7 +179,7 @@
 			isa = PBXGroup;
 			children = (
 				CCAECECB01C03E7C4363DCA5 /* Assets.xcassets */,
-				A7E71F4A54D24B0DB64F0007 /* BoxSkins */,
+				A7E71F4A54D24B0DB64F0007 /* Assets.xcassets/BoxSkins */,
 				738C57AD4865B9D8A9B2012D /* Ember.entitlements */,
 				DC635EBE2AC3C4079688D51C /* EmberApp.swift */,
 				9B5E3461D20AC34B06E3EDF9 /* Info.plist */,
@@ -207,13 +207,6 @@
 				0E772F5F4704359879D51C50 /* seed.json */,
 			);
 			path = Resources;
-			sourceTree = "<group>";
-		};
-		7AA585C930139EBF00B57C71 /* Weather */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Weather;
 			sourceTree = "<group>";
 		};
 		89F2CD6832BE436BE4DCFB1C /* Data */ = {
@@ -259,7 +252,6 @@
 			children = (
 				56E6B0F7A59E63C82AB86141 /* Ember */,
 				233CA52765D6C49205F221FF /* Products */,
-				7AA585C930139EBF00B57C71 /* Weather */,
 			);
 			sourceTree = "<group>";
 		};

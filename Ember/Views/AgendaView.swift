@@ -154,15 +154,28 @@ private struct DayStrip: View {
 private struct PlanBanner: View {
     let plan: DayPlan
     let onReset: () -> Void
+    @EnvironmentObject private var store: DataStore
+
     private var color: Color {
         switch plan.level { case .low: return Theme.mint; case .moderate: return Theme.amber; case .high: return Theme.ember }
     }
+
+    private var selectedDecoration: BoxDecoration? {
+        store.boxSpace.decorations.first {
+            $0.id == store.boxSpace.currentUser.decorationID
+        }
+    }
+
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            // The box mascot "wakes up" (blue) for a good night and dims when the
-            // night is squeezed — an at-a-glance, on-brand read of risk.
-            BlueBoxMascot(isActive: plan.level != .high, isCurrentUser: false)
-                .scaleEffect(0.6).frame(width: 46, height: 52)
+            // Use the user's selected Box Space skin everywhere; a squeezed
+            // night still dims it as an at-a-glance risk signal.
+            BoxSkinImageView(
+                decoration: selectedDecoration,
+                size: CGSize(width: 46, height: 52)
+            )
+                .saturation(plan.level == .high ? 0.25 : 1)
+                .opacity(plan.level == .high ? 0.62 : 1)
                 .animation(.spring(response: 0.5, dampingFraction: 0.6), value: plan.level)
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
@@ -716,4 +729,3 @@ private struct AgendaInfoSheet: View {
         }
     }
 }
-

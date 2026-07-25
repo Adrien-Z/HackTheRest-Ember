@@ -2,6 +2,16 @@
 
 [English](README.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md)
 
+[**EMBER公式サイトを見る →**](https://ember-sleep.vercel.app/)
+
+![Swift](https://img.shields.io/badge/Swift-5-F05138?logo=swift&logoColor=white)
+![SwiftUI](https://img.shields.io/badge/SwiftUI-iOS-0D96F6?logo=swift&logoColor=white)
+![HealthKit](https://img.shields.io/badge/HealthKit-Read--only-FF2D55?logo=apple&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-Backend-3FCF8E?logo=supabase&logoColor=white)
+![OpenRouter AI](https://img.shields.io/badge/OpenRouter-AI-6C5CE7)
+![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)
+![Vercel](https://img.shields.io/badge/Vercel-Deployed-000000?logo=vercel&logoColor=white)
+
 ![EMBER — 睡眠は身につけられるスキル](promotional-materials/poster-01-sleep-is-a-skill.png)
 
 **睡眠は身につけられるスキル。EMBERがそのコーチになります。**
@@ -114,6 +124,8 @@ EMBERの設定画面でOpenRouter API Keyを入力します。KeyはiOS Keychain
 ルールベースのRest Coachを利用できます。
 
 ## 公式サイトを起動する
+
+公開サイト：[https://ember-sleep.vercel.app/](https://ember-sleep.vercel.app/)
 
 ```bash
 cd official-website

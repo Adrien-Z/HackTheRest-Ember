@@ -2,6 +2,16 @@
 
 [English](README.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md)
 
+[**访问 EMBER 官方网站 →**](https://ember-sleep.vercel.app/)
+
+![Swift](https://img.shields.io/badge/Swift-5-F05138?logo=swift&logoColor=white)
+![SwiftUI](https://img.shields.io/badge/SwiftUI-iOS-0D96F6?logo=swift&logoColor=white)
+![HealthKit](https://img.shields.io/badge/HealthKit-Read--only-FF2D55?logo=apple&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-Backend-3FCF8E?logo=supabase&logoColor=white)
+![OpenRouter AI](https://img.shields.io/badge/OpenRouter-AI-6C5CE7)
+![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)
+![Vercel](https://img.shields.io/badge/Vercel-Deployed-000000?logo=vercel&logoColor=white)
+
 ![EMBER — 睡眠是一项可以练习的技能](promotional-materials/poster-01-sleep-is-a-skill.png)
 
 **睡眠是一项可以练习的技能，而 EMBER 是你的教练。**
@@ -112,6 +122,8 @@ xcodegen generate
 内置规则版 Rest Coach。
 
 ## 运行官方网站
+
+线上版本：[https://ember-sleep.vercel.app/](https://ember-sleep.vercel.app/)
 
 ```bash
 cd official-website

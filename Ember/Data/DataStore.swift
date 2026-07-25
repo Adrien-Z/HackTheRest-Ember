@@ -43,11 +43,13 @@ final class DataStore: ObservableObject {
     @Published var boxSpaceError: String? = nil
     @Published private(set) var selectingSkinID: String? = nil
     @Published private(set) var completedPointEvents: Set<String> = []
+    @Published private(set) var claimedBlueBoxRewardIDs: Set<String> = []
     @Published var chat: [ChatMessage] = []
     /// Set by other screens ("Ask the coach") so CoachView can auto-send on appear.
     @Published var pendingCoachQuestion: String? = nil
     /// Separate anxiety/brain-dump thread for Rest Lab.
     @Published var mindChat: [ChatMessage] = []
+    @Published var mindReminderItems: [String] = []
 
     // Live Apple Health readout (nil until authorized + fetched)
     @Published var healthLastNightTST: Int? = nil
@@ -94,7 +96,9 @@ final class DataStore: ObservableObject {
         static let calendarOverrides = "ember.calendarOverrides"   // eventId → category
         static let demoEvents = "ember.demoAgendaEvents"
         static let restJourney = "ember.restJourney.v1"
+        static let blueBoxRewards = "ember.blueBoxRewards.claimed.v1"
         static let mindChat = "ember.mindDump.chat.v1"
+        static let mindReminderItems = "ember.mindDump.reminderItems.v1"
         static let mindReminder = "ember.mindDump.tomorrowReminder"
     }
 
@@ -114,12 +118,14 @@ final class DataStore: ObservableObject {
         boxSpace = .initial(
             displayName: d.string(forKey: Keys.name) ?? bundleSeed.user.name)
         restJourney = Self.loadRestJourney()
+        claimedBlueBoxRewardIDs = Set(d.stringArray(forKey: Keys.blueBoxRewards) ?? [])
         chat = [ChatMessage(role: .coach,
             content: "Hi \(displayName) — I'm your rest coach. Ask me why any prescription changed, or tap a suggested question below.")]
         mindChat = Self.loadMindChat()
         if mindChat.isEmpty {
             mindChat = [Self.mindDumpOpeningMessage]
         }
+        mindReminderItems = Self.loadMindReminderItems()
         if mode == .sample { applySample() }
         applyLocalJourneyToBoxSpace()
     }
@@ -247,6 +253,18 @@ final class DataStore: ObservableObject {
             applyLocalJourneyToBoxSpace()
             boxSpaceError = friendlyCommunityError(error)
         }
+    }
+
+    func claimBlueBoxReward(id: String, cost: Int) -> Bool {
+        guard cost > 0,
+              restJourney.points >= cost,
+              !claimedBlueBoxRewardIDs.contains(id) else { return false }
+        restJourney.points -= cost
+        claimedBlueBoxRewardIDs.insert(id)
+        persistRestJourney()
+        persistClaimedBlueBoxRewards()
+        applyLocalJourneyToBoxSpace()
+        return true
     }
 
     func completeWindDown() async {
@@ -539,6 +557,10 @@ final class DataStore: ObservableObject {
         UserDefaults.standard.set(data, forKey: Keys.restJourney)
     }
 
+    private func persistClaimedBlueBoxRewards() {
+        UserDefaults.standard.set(Array(claimedBlueBoxRewardIDs).sorted(), forKey: Keys.blueBoxRewards)
+    }
+
     private func applyLocalJourneyToBoxSpace() {
         boxSpace.currentUser = BoxSpacePerson(
             id: boxSpace.currentUser.id,
@@ -820,6 +842,7 @@ final class DataStore: ObservableObject {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         mindChat.append(ChatMessage(role: .user, content: trimmed))
+        updateMindReminderItems(from: trimmed)
         persistMindChat()
         await scheduleMindDumpReminder()
         await streamMindDumpReply(history: mindChat)
@@ -827,7 +850,20 @@ final class DataStore: ObservableObject {
 
     func resetMindDump() {
         mindChat = [Self.mindDumpOpeningMessage]
+        mindReminderItems = []
         persistMindChat()
+        persistMindReminderItems()
+    }
+
+    private func updateMindReminderItems(from text: String) {
+        let extracted = Self.extractMindReminderItems(from: text)
+        guard !extracted.isEmpty else { return }
+        var merged = mindReminderItems
+        for item in extracted where !merged.contains(where: { $0.caseInsensitiveCompare(item) == .orderedSame }) {
+            merged.append(item)
+        }
+        mindReminderItems = Array(merged.suffix(4))
+        persistMindReminderItems()
     }
 
     private func streamMindDumpReply(history: [ChatMessage]) async {
@@ -888,7 +924,11 @@ final class DataStore: ObservableObject {
 
         let content = UNMutableNotificationContent()
         content.title = "Revisit last night's brain dump"
-        content.body = "Take one minute to sort what still needs action and what can stay parked."
+        if mindReminderItems.isEmpty {
+            content.body = "Take one minute to sort what still needs action and what can stay parked."
+        } else {
+            content.body = "Check: " + mindReminderItems.prefix(2).joined(separator: " · ")
+        }
         content.sound = .default
         let request = UNNotificationRequest(
             identifier: Keys.mindReminder,
@@ -905,6 +945,10 @@ final class DataStore: ObservableObject {
         UserDefaults.standard.set(data, forKey: Keys.mindChat)
     }
 
+    private func persistMindReminderItems() {
+        UserDefaults.standard.set(mindReminderItems, forKey: Keys.mindReminderItems)
+    }
+
     private static func loadMindChat() -> [ChatMessage] {
         guard let data = UserDefaults.standard.data(forKey: Keys.mindChat),
               let payload = try? JSONDecoder().decode([PersistedChatMessage].self, from: data) else { return [] }
@@ -913,6 +957,10 @@ final class DataStore: ObservableObject {
             guard !content.isEmpty else { return nil }
             return ChatMessage(role: item.role == "user" ? .user : .coach, content: content)
         }
+    }
+
+    private static func loadMindReminderItems() -> [String] {
+        UserDefaults.standard.stringArray(forKey: Keys.mindReminderItems) ?? []
     }
 
     private static var mindDumpOpeningMessage: ChatMessage {
@@ -927,6 +975,24 @@ final class DataStore: ObservableObject {
             return "Got it. Put the worry outside your head for now: one thing you can do tomorrow, one thing that can wait, then let the rest stay parked here."
         }
         return "I saved it for tomorrow. For tonight, choose one tiny next action if there is one; everything else can stay in this dump until morning."
+    }
+
+    private static func extractMindReminderItems(from text: String) -> [String] {
+        let separators = CharacterSet(charactersIn: "\n.!?;")
+        let actionHints = ["need to", "have to", "must", "should", "remember", "remind", "call", "email", "text", "send", "finish", "book", "pay", "buy", "ask", "reply", "prepare"]
+
+        let items = text
+            .components(separatedBy: separators)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .compactMap { raw -> String? in
+                let lower = raw.lowercased()
+                guard actionHints.contains(where: { lower.contains($0) }) else { return nil }
+                let cleaned = raw.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+                guard cleaned.count >= 6 else { return nil }
+                return String(cleaned.prefix(80))
+            }
+        return Array(items.prefix(3))
     }
 
     private struct PersistedChatMessage: Codable {

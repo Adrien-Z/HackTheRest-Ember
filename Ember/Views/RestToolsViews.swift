@@ -1,4 +1,5 @@
 import AVFoundation
+import Speech
 import SwiftUI
 
 struct WhiteNoiseView: View {
@@ -213,7 +214,12 @@ struct BreathingTrainingView: View {
     @State private var pausedAt: Date? = nil
     @State private var accumulatedPause: TimeInterval = 0
     @State private var lastPhase: CyclicSighPhase.ID? = nil
+    @State private var lastSecond = -1
     @State private var completedCycles = 0
+    @State private var hasStarted = false
+    @State private var isCompleted = false
+    @State private var showInfo = false
+    @State private var celebrationPulse = false
 
     private let targetSeconds: TimeInterval = 5 * 60
 
@@ -233,7 +239,7 @@ struct BreathingTrainingView: View {
 
                 VStack(spacing: 18) {
                     header(progress: progress, elapsed: elapsed)
-                    Spacer(minLength: 8)
+                    Spacer(minLength: 2)
                     ZStack {
                         breathingHalo(phase: phase)
                         VStack(spacing: 16) {
@@ -279,19 +285,37 @@ struct BreathingTrainingView: View {
                     .onChange(of: phase.id) { newPhase in
                         phaseHaptic(newPhase)
                     }
+                    .onChange(of: Int(elapsed.rounded(.down))) { second in
+                        secondHaptic(second: second, elapsed: elapsed)
+                    }
 
                     phaseTrack(phase: phase)
                     controls
-                    ScienceNote(
-                        text: "Cyclic sighing uses a full inhale, a small top-up inhale, then a longer relaxed exhale. Keep it easy; stop if you feel dizzy.",
-                        icon: "wind")
                     Spacer(minLength: 0)
                 }
                 .padding(24)
+                .padding(.top, 28)
+            }
+            if isCompleted {
+                completionOverlay
             }
         }
         .navigationTitle("Cyclic Sigh")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Haptics.light()
+                    showInfo = true
+                } label: {
+                    Image(systemName: "info.circle")
+                }
+            }
+        }
+        .sheet(isPresented: $showInfo) {
+            BreathingInfoSheet()
+                .presentationDetents([.height(280), .medium])
+        }
     }
 
     private func header(progress: Double, elapsed: TimeInterval) -> some View {
@@ -299,7 +323,7 @@ struct BreathingTrainingView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Downshift")
                     .font(.title2.weight(.bold))
-                Text("5 min · \(completedCycles) sighs")
+                Text(statusText)
                     .font(.footnote)
                     .foregroundStyle(Theme.secondaryText)
             }
@@ -372,10 +396,9 @@ struct BreathingTrainingView: View {
         HStack(spacing: 10) {
             Button {
                 Haptics.light()
-                togglePause()
+                primaryAction()
             } label: {
-                Label(pausedAt == nil ? "Pause" : "Resume",
-                      systemImage: pausedAt == nil ? "pause.fill" : "play.fill")
+                Label(primaryTitle, systemImage: primaryIcon)
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .frame(height: 52)
@@ -398,8 +421,30 @@ struct BreathingTrainingView: View {
     }
 
     private func effectiveElapsed(at date: Date) -> TimeInterval {
+        guard hasStarted else { return 0 }
+        if isCompleted { return targetSeconds }
         let referenceDate = pausedAt ?? date
         return max(0, referenceDate.timeIntervalSince(startedAt) - accumulatedPause)
+    }
+
+    private func primaryAction() {
+        if !hasStarted || isCompleted {
+            start()
+        } else {
+            togglePause()
+        }
+    }
+
+    private func start() {
+        startedAt = Date()
+        pausedAt = nil
+        accumulatedPause = 0
+        lastPhase = nil
+        lastSecond = -1
+        completedCycles = 0
+        hasStarted = true
+        isCompleted = false
+        celebrationPulse = false
     }
 
     private func togglePause() {
@@ -416,22 +461,42 @@ struct BreathingTrainingView: View {
         pausedAt = nil
         accumulatedPause = 0
         lastPhase = nil
+        lastSecond = -1
         completedCycles = 0
+        hasStarted = false
+        isCompleted = false
+        celebrationPulse = false
     }
 
     private func phaseHaptic(_ newPhase: CyclicSighPhase.ID) {
+        guard hasStarted, !isCompleted, pausedAt == nil else { return }
         guard newPhase != lastPhase else { return }
         if lastPhase == .exhale, newPhase == .inhale {
             completedCycles += 1
         }
         lastPhase = newPhase
-        switch newPhase {
-        case .inhale:
-            Haptics.light()
-        case .topUp:
+        Haptics.medium()
+    }
+
+    private func secondHaptic(second: Int, elapsed: TimeInterval) {
+        guard hasStarted, !isCompleted, pausedAt == nil else { return }
+        guard second != lastSecond else { return }
+        lastSecond = second
+        if elapsed >= targetSeconds {
+            complete()
+        } else if second > 0 {
             Haptics.tick()
-        case .exhale:
-            Haptics.stream()
+        }
+    }
+
+    private func complete() {
+        guard !isCompleted else { return }
+        isCompleted = true
+        pausedAt = nil
+        completedCycles = max(completedCycles, Int(targetSeconds / 8))
+        Haptics.success()
+        withAnimation(.spring(response: 0.55, dampingFraction: 0.62)) {
+            celebrationPulse = true
         }
     }
 
@@ -439,11 +504,102 @@ struct BreathingTrainingView: View {
         let remaining = max(0, Int((targetSeconds - elapsed).rounded(.up)))
         return String(format: "%d:%02d", remaining / 60, remaining % 60)
     }
+
+    private var statusText: String {
+        if isCompleted { return "complete · \(completedCycles) sighs" }
+        if !hasStarted { return "5 min · ready" }
+        return "5 min · \(completedCycles) sighs"
+    }
+
+    private var primaryTitle: String {
+        if isCompleted { return "Again" }
+        if !hasStarted { return "Start" }
+        return pausedAt == nil ? "Pause" : "Resume"
+    }
+
+    private var primaryIcon: String {
+        if isCompleted { return "arrow.clockwise" }
+        if !hasStarted { return "play.fill" }
+        return pausedAt == nil ? "pause.fill" : "play.fill"
+    }
+
+    private var completionOverlay: some View {
+        ZStack {
+            Color.black.opacity(0.24).ignoresSafeArea()
+            VStack(spacing: 14) {
+                ZStack {
+                    ForEach(0..<3, id: \.self) { index in
+                        Circle()
+                            .stroke(Theme.mint.opacity(0.34 - Double(index) * 0.08), lineWidth: 2)
+                            .frame(width: 132 + CGFloat(index * 42), height: 132 + CGFloat(index * 42))
+                            .scaleEffect(celebrationPulse ? 1.08 : 0.82)
+                            .opacity(celebrationPulse ? 0 : 1)
+                            .animation(.easeOut(duration: 1.25).delay(Double(index) * 0.16), value: celebrationPulse)
+                    }
+                    BoxSkinImageView(decoration: selectedDecoration, size: CGSize(width: 96, height: 96))
+                        .scaleEffect(celebrationPulse ? 1.06 : 0.92)
+                }
+                Text("Downshift complete")
+                    .font(.title2.weight(.heavy))
+                Text("\(completedCycles) calm sighs")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.secondaryText)
+                Button {
+                    Haptics.light()
+                    isCompleted = false
+                    reset()
+                } label: {
+                    Label("Done", systemImage: "checkmark")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Theme.mint)
+            }
+            .padding(20)
+            .emberCard(18)
+            .padding(30)
+        }
+    }
+}
+
+private struct BreathingInfoSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 16) {
+                Label("Full inhale", systemImage: "arrow.down.to.line.compact")
+                Label("Small top-up inhale", systemImage: "plus")
+                Label("Long relaxed exhale", systemImage: "arrow.up")
+                Text("Keep it easy. Stop if you feel dizzy.")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.secondaryText)
+                    .padding(.top, 4)
+                Spacer()
+            }
+            .font(.headline)
+            .padding()
+            .navigationTitle("Cyclic sighing")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        Haptics.light()
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
 }
 
 struct MindDumpCoachView: View {
     @EnvironmentObject private var store: DataStore
+    @StateObject private var speech = SpeechTranscriber()
     @State private var draft = ""
+    @State private var dictationPrefix = ""
     @State private var thinking = false
     @State private var lastStreamHaptic = Date.distantPast
 
@@ -460,12 +616,17 @@ struct MindDumpCoachView: View {
                 ScrollViewReader { proxy in
                     ScrollView {
                         VStack(spacing: 12) {
-                            hero
-                            ForEach(store.mindChat) { message in
+                            if shouldShowHero {
+                                hero
+                            }
+                            if !store.mindReminderItems.isEmpty {
+                                tomorrowReminderCard
+                            }
+                            ForEach(mindMessages) { message in
                                 MindDumpBubble(message: message, decoration: selectedDecoration)
                                     .id(message.id)
                             }
-                            if thinking && (store.mindChat.last?.content.isEmpty ?? false) {
+                            if thinking && isWaitingForMindReply {
                                 HStack(spacing: 8) {
                                     ProgressView().tint(Theme.amber)
                                     Text("Sorting…")
@@ -481,12 +642,12 @@ struct MindDumpCoachView: View {
                         .padding()
                         .lockHorizontal()
                     }
-                    .onChange(of: store.mindChat.count) { _ in
+                    .onChange(of: mindMessages.count) { _ in
                         withAnimation(.easeOut(duration: 0.22)) {
                             proxy.scrollTo("mindBottom", anchor: .bottom)
                         }
                     }
-                    .onChange(of: store.mindChat.last?.content) { _ in
+                    .onChange(of: mindMessages.last?.content) { _ in
                         proxy.scrollTo("mindBottom", anchor: .bottom)
                         streamHaptic()
                     }
@@ -496,6 +657,19 @@ struct MindDumpCoachView: View {
         }
         .navigationTitle("Mind Dump")
         .navigationBarTitleDisplayMode(.inline)
+        .onChange(of: speech.transcript) { transcript in
+            guard speech.isRecording else { return }
+            if dictationPrefix.isEmpty {
+                draft = transcript
+            } else if transcript.isEmpty {
+                draft = dictationPrefix
+            } else {
+                draft = "\(dictationPrefix) \(transcript)"
+            }
+        }
+        .onDisappear {
+            speech.stop()
+        }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -507,6 +681,20 @@ struct MindDumpCoachView: View {
                 .accessibilityLabel("Reset mind dump")
             }
         }
+    }
+
+    private var shouldShowHero: Bool {
+        mindMessages.contains { message in
+            message.role == .user
+        }
+    }
+
+    private var mindMessages: [ChatMessage] {
+        store.mindChat
+    }
+
+    private var isWaitingForMindReply: Bool {
+        thinking && (mindMessages.last?.content.isEmpty ?? false)
     }
 
     private var hero: some View {
@@ -525,30 +713,109 @@ struct MindDumpCoachView: View {
         .emberCard(12)
     }
 
-    private var inputBar: some View {
-        HStack(spacing: 10) {
-            TextField("What's on your mind?", text: $draft, axis: .vertical)
-                .lineLimit(1...4)
-                .textFieldStyle(.plain)
-                .padding(12)
-                .background(Theme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-            Button {
-                Task { await send() }
-            } label: {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(.title2)
+    private var tomorrowReminderCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "bell.badge.fill")
                     .foregroundStyle(Theme.amber)
+                Text("Tomorrow reminder")
+                    .font(.subheadline.weight(.bold))
+                Spacer()
+                Text("09:30")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(Theme.secondaryText)
             }
-            .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || thinking)
+            ForEach(store.mindReminderItems, id: \.self) { item in
+                HStack(alignment: .top, spacing: 9) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(Theme.mint)
+                        .padding(.top, 2)
+                    Text(item)
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.primary.opacity(0.94))
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(Color.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            }
+        }
+        .emberCard(12)
+    }
+
+    private var inputBar: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                ZStack(alignment: .topLeading) {
+                    TextEditor(text: $draft)
+                        .scrollContentBackground(.hidden)
+                        .frame(minHeight: 48, maxHeight: 112)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 6)
+                    if draft.isEmpty {
+                        Text("What's on your mind?")
+                            .foregroundStyle(Theme.tertiaryText)
+                            .padding(.horizontal, 13)
+                            .padding(.vertical, 14)
+                            .allowsHitTesting(false)
+                    }
+                }
+                .background(Theme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                Button {
+                    Task { await toggleDictation() }
+                } label: {
+                    Image(systemName: speech.isRecording ? "stop.circle.fill" : "mic.circle.fill")
+                        .font(.title2)
+                        .foregroundStyle(speech.isRecording ? Theme.mint : Theme.secondaryText)
+                        .frame(width: 34, height: 34)
+                        .background(speech.isRecording ? Theme.mint.opacity(0.16) : Color.white.opacity(0.06), in: Circle())
+                }
+                .disabled(thinking)
+                .accessibilityLabel(speech.isRecording ? "Stop dictation" : "Start dictation")
+
+                Button {
+                    Task { await send() }
+                } label: {
+                    Image(systemName: "arrow.up.circle.fill")
+                        .font(.title2)
+                        .foregroundStyle(Theme.amber)
+                }
+                .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || thinking)
+            }
+            if speech.isRecording || speech.errorMessage != nil {
+                HStack(spacing: 7) {
+                    Image(systemName: speech.isRecording ? "waveform" : "exclamationmark.triangle.fill")
+                        .foregroundStyle(speech.isRecording ? Theme.mint : Theme.amber)
+                    Text(speech.errorMessage ?? "Listening… tap stop, then edit or send.")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Theme.secondaryText)
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, 6)
+            }
         }
         .padding()
+    }
+
+    private func toggleDictation() async {
+        Haptics.light()
+        if speech.isRecording {
+            speech.stop()
+        } else {
+            dictationPrefix = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+            await speech.start()
+        }
     }
 
     private func send() async {
         let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, !thinking else { return }
         Haptics.light()
+        speech.stop()
         draft = ""
+        dictationPrefix = ""
         thinking = true
         await store.sendMindDumpMessage(text)
         thinking = false
@@ -559,6 +826,112 @@ struct MindDumpCoachView: View {
         guard thinking, Date().timeIntervalSince(lastStreamHaptic) > 0.12 else { return }
         lastStreamHaptic = Date()
         Haptics.stream()
+    }
+}
+
+@MainActor
+private final class SpeechTranscriber: NSObject, ObservableObject {
+    @Published var transcript = ""
+    @Published var isRecording = false
+    @Published var errorMessage: String?
+
+    private let audioEngine = AVAudioEngine()
+    private let recognizer = SFSpeechRecognizer(locale: .current)
+    private var request: SFSpeechAudioBufferRecognitionRequest?
+    private var task: SFSpeechRecognitionTask?
+
+    func start() async {
+        guard !isRecording else { return }
+        errorMessage = nil
+        transcript = ""
+
+        let authorized = await requestPermissions()
+        guard authorized else {
+            errorMessage = "Speech or microphone access is off."
+            return
+        }
+        guard let recognizer, recognizer.isAvailable else {
+            errorMessage = "Speech recognition is unavailable right now."
+            return
+        }
+
+        do {
+            try beginRecognition(with: recognizer)
+            isRecording = true
+            Haptics.medium()
+        } catch {
+            stop()
+            errorMessage = "Could not start listening."
+        }
+    }
+
+    func stop() {
+        guard isRecording || audioEngine.isRunning || task != nil else { return }
+        audioEngine.inputNode.removeTap(onBus: 0)
+        audioEngine.stop()
+        request?.endAudio()
+        task?.cancel()
+        request = nil
+        task = nil
+        isRecording = false
+        Haptics.light()
+    }
+
+    private func requestPermissions() async -> Bool {
+        let speechAllowed = await requestSpeechAuthorization()
+        guard speechAllowed else { return false }
+        return await requestMicrophoneAuthorization()
+    }
+
+    private func requestSpeechAuthorization() async -> Bool {
+        await withCheckedContinuation { continuation in
+            SFSpeechRecognizer.requestAuthorization { status in
+                continuation.resume(returning: status == .authorized)
+            }
+        }
+    }
+
+    private func requestMicrophoneAuthorization() async -> Bool {
+        await withCheckedContinuation { continuation in
+            AVAudioSession.sharedInstance().requestRecordPermission { allowed in
+                continuation.resume(returning: allowed)
+            }
+        }
+    }
+
+    private func beginRecognition(with recognizer: SFSpeechRecognizer) throws {
+        task?.cancel()
+        task = nil
+
+        let session = AVAudioSession.sharedInstance()
+        try session.setCategory(.record, mode: .measurement, options: [.duckOthers])
+        try session.setActive(true, options: .notifyOthersOnDeactivation)
+
+        let request = SFSpeechAudioBufferRecognitionRequest()
+        request.shouldReportPartialResults = true
+        self.request = request
+
+        let inputNode = audioEngine.inputNode
+        let format = inputNode.outputFormat(forBus: 0)
+        inputNode.removeTap(onBus: 0)
+        inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak request] buffer, _ in
+            request?.append(buffer)
+        }
+
+        audioEngine.prepare()
+        try audioEngine.start()
+
+        task = recognizer.recognitionTask(with: request) { [weak self] result, error in
+            Task { @MainActor in
+                guard let self else { return }
+                if let result {
+                    self.transcript = result.bestTranscription.formattedString
+                }
+                if error != nil || result?.isFinal == true {
+                    self.stop()
+                }
+            }
+        }
     }
 }
 
@@ -576,20 +949,32 @@ private struct MindDumpBubble: View {
             } else {
                 Spacer(minLength: 40)
             }
-            Text(message.content)
-                .font(.subheadline)
-                .foregroundStyle(message.role == .user ? .white : .primary.opacity(0.94))
-                .padding(12)
-                .background(
-                    message.role == .user ? Theme.ember.opacity(0.9) : Theme.card.opacity(0.96),
-                    in: RoundedRectangle(cornerRadius: 16, style: .continuous)
-                )
-                .frame(maxWidth: 290, alignment: message.role == .user ? .trailing : .leading)
-                .fixedSize(horizontal: false, vertical: true)
+            bubbleText
+                    .font(.subheadline)
+                    .foregroundStyle(message.role == .user ? .white : .primary.opacity(0.94))
+                    .padding(12)
+                    .background(
+                        message.role == .user ? Theme.ember.opacity(0.9) : Theme.card.opacity(0.96),
+                        in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    )
+                    .frame(maxWidth: 290, alignment: message.role == .user ? .trailing : .leading)
+                    .fixedSize(horizontal: false, vertical: true)
             if message.role == .coach {
                 Spacer(minLength: 0)
             }
         }
+    }
+
+    @ViewBuilder private var bubbleText: some View {
+        if message.role == .coach {
+            Text(markdownContent)
+        } else {
+            Text(message.content)
+        }
+    }
+
+    private var markdownContent: AttributedString {
+        (try? AttributedString(markdown: message.content, options: AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(message.content)
     }
 }
 

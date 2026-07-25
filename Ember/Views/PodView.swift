@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 struct BoxSpaceView: View {
     @EnvironmentObject private var store: DataStore
@@ -9,6 +12,7 @@ struct BoxSpaceView: View {
     @State private var showRestJourney = false
     @StateObject private var friendsViewModel = FriendsViewModel()
     @State private var showAddFriend = false
+    @State private var showRewardsShop = false
 
     private var snapshot: BoxSpaceSnapshot { store.boxSpace }
     private var everyone: [BoxSpacePerson] {
@@ -91,6 +95,12 @@ struct BoxSpaceView: View {
             NavigationStack {
                 AddFriendView(viewModel: friendsViewModel)
             }
+        }
+        .sheet(isPresented: $showRewardsShop) {
+            RewardsShopSheet()
+                .environmentObject(store)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
         }
         .task {
             async let friends: Void = friendsViewModel.refreshAll()
@@ -183,6 +193,21 @@ struct BoxSpaceView: View {
             }
             .buttonStyle(BoxSocialButtonStyle())
             .accessibilityLabel("Add Friend")
+
+            Spacer(minLength: 0)
+
+            Button {
+                Haptics.light()
+                showRewardsShop = true
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "gift.fill")
+                        .font(.system(size: 12, weight: .semibold))
+                    Text("Rewards")
+                }
+            }
+            .buttonStyle(BoxSocialButtonStyle())
+            .accessibilityLabel("Open Blue Box rewards")
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -678,6 +703,233 @@ private struct BoxSocialButtonStyle: ButtonStyle {
             .overlay(Capsule().strokeBorder(Color.white.opacity(0.14), lineWidth: 0.75))
             .opacity(configuration.isPressed ? 0.68 : 1)
     }
+}
+
+// MARK: - Rewards shop
+
+private struct RewardsShopSheet: View {
+    @EnvironmentObject private var store: DataStore
+    @Environment(\.dismiss) private var dismiss
+    @State private var copiedRewardID: String?
+
+    private let rewards = BlueBoxReward.sample
+    private var availablePoints: Int { store.restJourney.points }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    hero
+                    VStack(spacing: 10) {
+                        ForEach(rewards) { reward in
+                            rewardRow(reward)
+                        }
+                    }
+                }
+                .padding()
+            }
+            .navigationTitle("Rewards")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        Haptics.light()
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+
+    private var hero: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(Theme.boxBlue.opacity(0.16))
+                    .frame(width: 72, height: 72)
+                Image(systemName: "gift.fill")
+                    .font(.system(size: 30, weight: .bold))
+                    .foregroundStyle(Theme.boxBlue)
+            }
+            VStack(alignment: .leading, spacing: 5) {
+                Text("\(availablePoints.formatted()) pts available")
+                    .font(.title3.weight(.heavy))
+                    .monospacedDigit()
+                Text("Earn points to unlock skins and redeem Blue Box perks.")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .emberCard()
+    }
+
+    private func rewardRow(_ reward: BlueBoxReward) -> some View {
+        let unlocked = availablePoints >= reward.cost
+        let claimed = store.claimedBlueBoxRewardIDs.contains(reward.id)
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(reward.tint.opacity(unlocked ? 0.18 : 0.08))
+                        .frame(width: 54, height: 54)
+                    Image(systemName: reward.icon)
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(unlocked ? reward.tint : Theme.tertiaryText)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 7) {
+                        Text(reward.title)
+                            .font(.headline)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.82)
+                        Text("\(reward.cost.formatted()) pts")
+                            .font(.caption2.weight(.black))
+                            .foregroundStyle(unlocked ? reward.tint : Theme.tertiaryText)
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 4)
+                            .background(Color.white.opacity(0.08), in: Capsule())
+                    }
+                    Text(reward.subtitle)
+                        .font(.footnote)
+                        .foregroundStyle(Theme.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+            }
+
+            if claimed {
+                claimedCard(reward)
+            } else {
+                Button {
+                    claim(reward)
+                } label: {
+                    Label(
+                        unlocked ? reward.actionTitle : "\(reward.cost - availablePoints) pts to go",
+                        systemImage: unlocked ? "ticket.fill" : "lock.fill"
+                    )
+                    .font(.subheadline.weight(.bold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 11)
+                    .foregroundStyle(unlocked ? .white : Theme.secondaryText)
+                    .background(
+                        unlocked ? AnyShapeStyle(Theme.boxGradient) : AnyShapeStyle(Color.white.opacity(0.08)),
+                        in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    )
+                }
+                .buttonStyle(.plain)
+                .disabled(!unlocked)
+            }
+        }
+        .padding(14)
+        .background(Theme.card.opacity(0.96), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(unlocked ? reward.tint.opacity(0.22) : Color.white.opacity(0.10), lineWidth: 1)
+        )
+    }
+
+    private func claimedCard(_ reward: BlueBoxReward) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "checkmark.seal.fill")
+                .foregroundStyle(Theme.mint)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Claimed")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(Theme.mint)
+                Text(reward.fulfillment)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.primary.opacity(0.92))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+            }
+            Spacer(minLength: 0)
+            if let code = reward.code {
+                Button {
+                    copy(code, rewardID: reward.id)
+                } label: {
+                    Image(systemName: copiedRewardID == reward.id ? "checkmark" : "doc.on.doc")
+                        .font(.subheadline.weight(.bold))
+                        .frame(width: 32, height: 32)
+                        .background(Color.white.opacity(0.08), in: Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Copy reward code")
+            }
+        }
+        .padding(12)
+        .background(Theme.mint.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private func claim(_ reward: BlueBoxReward) {
+        if store.claimBlueBoxReward(id: reward.id, cost: reward.cost) {
+            Haptics.success()
+        }
+    }
+
+    private func copy(_ code: String, rewardID: String) {
+        #if canImport(UIKit)
+        UIPasteboard.general.string = code
+        #endif
+        copiedRewardID = rewardID
+        Haptics.light()
+    }
+}
+
+private struct BlueBoxReward: Identifiable {
+    let id: String
+    let title: String
+    let subtitle: String
+    let cost: Int
+    let icon: String
+    let tint: Color
+    let actionTitle: String
+    let fulfillment: String
+    let code: String?
+
+    static let sample: [BlueBoxReward] = [
+        BlueBoxReward(
+            id: "n2-pillow",
+            title: "N2 pillow coupon",
+            subtitle: "A softer landing for nights when your routine is on track.",
+            cost: 250,
+            icon: "bed.double.fill",
+            tint: Theme.mint,
+            actionTitle: "Reveal code",
+            fulfillment: "Code: N2-EMBER-15",
+            code: "N2-EMBER-15"),
+        BlueBoxReward(
+            id: "z1-discount",
+            title: "Z1 mattress discount",
+            subtitle: "Use a strong rest month toward a bigger Blue Box upgrade.",
+            cost: 600,
+            icon: "tag.fill",
+            tint: Theme.boxBlue,
+            actionTitle: "Reveal code",
+            fulfillment: "Code: Z1-SLEEP-10",
+            code: "Z1-SLEEP-10"),
+        BlueBoxReward(
+            id: "topper-credit",
+            title: "Topper upgrade credit",
+            subtitle: "A comfort boost inspired by Blue Box topper-style bedding.",
+            cost: 900,
+            icon: "rectangle.stack.fill",
+            tint: Theme.amber,
+            actionTitle: "Send to email",
+            fulfillment: "Sent to your account email",
+            code: nil),
+        BlueBoxReward(
+            id: "routine-kit",
+            title: "Warmth ritual kit",
+            subtitle: "A foot-bath and wind-down perk for protecting bedtime.",
+            cost: 1400,
+            icon: "thermometer.sun.fill",
+            tint: Theme.cool,
+            actionTitle: "Reserve kit",
+            fulfillment: "Reserved under your profile",
+            code: nil)
+    ]
 }
 
 

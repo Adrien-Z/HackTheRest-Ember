@@ -9,6 +9,7 @@ enum Haptics {
     #if canImport(UIKit)
     private static let selection = UISelectionFeedbackGenerator()
     private static let impactLight = UIImpactFeedbackGenerator(style: .light)
+    private static let impactMedium = UIImpactFeedbackGenerator(style: .medium)
     private static let impactSoft = UIImpactFeedbackGenerator(style: .soft)
     private static let notify = UINotificationFeedbackGenerator()
     #endif
@@ -33,6 +34,14 @@ enum Haptics {
         #if canImport(UIKit)
         impactLight.impactOccurred()
         impactLight.prepare()
+        #endif
+    }
+
+    /// A firmer tap — phase changes, mode changes, larger state transitions.
+    static func medium() {
+        #if canImport(UIKit)
+        impactMedium.impactOccurred()
+        impactMedium.prepare()
         #endif
     }
 

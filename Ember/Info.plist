@@ -24,6 +24,10 @@
 	<string>Ember does not write to Apple Health.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Ember uses your approximate location to check tonight's heat and humidity risk for sleep. It does not track your location in the background.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Ember uses the microphone so you can speak a mind dump and review it before sending.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Ember uses speech recognition to turn your spoken mind dump into editable text.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>

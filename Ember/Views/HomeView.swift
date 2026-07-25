@@ -7,10 +7,10 @@ struct HomeView: View {
     @EnvironmentObject var calendar: CalendarService
     @EnvironmentObject var wakeAlarm: WakeAlarmService
     @EnvironmentObject var sleepClimate: SleepClimateService
+    @ObservedObject private var weatherManager = WeatherManager.shared
     @State private var showSettings = false
     @State private var showCoach = false
     @State private var insightPage = 0
-    @StateObject private var locationManager = LocationManager.shared
 
     private var effectiveTonightPlan: DayPlan? {
         if let plan = store.tonightPlan, Calendar.current.isDateInToday(plan.day) {
@@ -83,9 +83,6 @@ struct HomeView: View {
                     await store.refreshTodayEnergy(health: health)
                 }
             }
-            .task {
-                locationManager.requestLocation()
-            }
     }
     
 
@@ -104,6 +101,17 @@ struct HomeView: View {
             HStack {
                 Label("Daily Rhythm", systemImage: "waveform.path.ecg").font(.headline)
                 Spacer()
+                if weatherManager.isUpdating {
+                    HStack(spacing: 5) {
+                        ProgressView()
+                            .tint(Theme.secondaryText)
+                            .scaleEffect(0.62)
+                        Text("Updating")
+                            .font(.caption2.weight(.medium))
+                            .foregroundStyle(Theme.secondaryText.opacity(0.82))
+                    }
+                    .transition(.opacity)
+                }
             }
             DailyRhythmView()
                 .frame(maxWidth: .infinity)

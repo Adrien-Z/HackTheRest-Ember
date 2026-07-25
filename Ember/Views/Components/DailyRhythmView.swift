@@ -14,41 +14,51 @@ struct DailyRhythmView: View {
     private let sleepHour = 23.0
     private let wakeHour = 7.0
 
-    private var weatherRhythmData: WeatherRhythmData? {
-        weatherManager.rhythmData
-    }
-
-    private var sunriseHour: Double {
-        weatherRhythmData?.sunriseHour ?? fallbackSunriseHour
-    }
-
-    private var sunsetHour: Double {
-        weatherRhythmData?.sunsetHour ?? fallbackSunsetHour
-    }
-
     var body: some View {
         GeometryReader { proxy in
-            let geometry = RhythmGeometry(
-                size: proxy.size,
-                sunriseHour: sunriseHour,
-                sunsetHour: sunsetHour)
-
             ZStack {
-                RhythmSkyBackground(geometry: geometry)
-                RhythmCurveCanvas(geometry: geometry)
-                RhythmMarkerLayer(
-                    geometry: geometry,
-                    sunriseHour: sunriseHour,
-                    sunsetHour: sunsetHour,
-                    sleepHour: sleepHour,
-                    wakeHour: wakeHour)
+                if let rhythmData = weatherManager.rhythmData {
+                    let sunriseHour = rhythmData.sunriseHour
+                    let sunsetHour = rhythmData.sunsetHour
+                    let geometry = RhythmGeometry(
+                        size: proxy.size,
+                        sunriseHour: sunriseHour,
+                        sunsetHour: sunsetHour)
+
+                    RhythmSkyBackground(geometry: geometry)
+                    RhythmCurveCanvas(geometry: geometry)
+                    RhythmMarkerLayer(
+                        geometry: geometry,
+                        sunriseHour: sunriseHour,
+                        sunsetHour: sunsetHour,
+                        sleepHour: sleepHour,
+                        wakeHour: wakeHour)
+                } else {
+                    let geometry = RhythmGeometry(
+                        size: proxy.size,
+                        sunriseHour: fallbackSunriseHour,
+                        sunsetHour: fallbackSunsetHour)
+
+                    RhythmSkyBackground(geometry: geometry)
+                    RhythmLoadingState()
+                }
             }
             .frame(width: proxy.size.width, height: proxy.size.height)
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         }
         .frame(height: 260)
-        .task {
-            await weatherManager.refreshWeather()
+    }
+}
+
+private struct RhythmLoadingState: View {
+    var body: some View {
+        VStack(spacing: 8) {
+            ProgressView()
+                .tint(Color.white.opacity(0.72))
+                .scaleEffect(0.82)
+            Text("Loading rhythm")
+                .font(.system(size: 11, weight: .medium, design: .rounded))
+                .foregroundStyle(Color.white.opacity(0.58))
         }
     }
 }
@@ -58,7 +68,7 @@ private struct RhythmGeometry {
     let sunriseHour: Double
     let sunsetHour: Double
 
-    var horizonY: CGFloat { size.height * 0.58 }
+    var horizonY: CGFloat { size.height * 0.52 }
     var amplitude: CGFloat { size.height * 0.30 }
     var dayDuration: Double { max(0.1, sunsetHour - sunriseHour) }
     var nightDuration: Double { max(0.1, 24 - dayDuration) }

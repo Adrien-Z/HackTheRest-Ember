@@ -28,6 +28,7 @@ final class LocationManager: NSObject, ObservableObject {
 
     private let manager = CLLocationManager()
     private var locationContinuations: [UUID: CheckedContinuation<CLLocation, Error>] = [:]
+    private var isRequestInFlight = false
 
     @Published var location: CLLocation?
 
@@ -39,7 +40,12 @@ final class LocationManager: NSObject, ObservableObject {
     }
 
     func requestLocation() {
-        print("📍 Location requested")
+        guard !isRequestInFlight else {
+            return
+        }
+
+        isRequestInFlight = true
+        print("📍 location request started")
         manager.requestWhenInUseAuthorization()
         manager.requestLocation()
     }
@@ -65,6 +71,7 @@ final class LocationManager: NSObject, ObservableObject {
     private func resumeLocationContinuations(with result: Result<CLLocation, Error>) {
         let continuations = locationContinuations
         locationContinuations.removeAll()
+        isRequestInFlight = false
 
         for continuation in continuations.values {
             switch result {
@@ -96,7 +103,7 @@ extension LocationManager: CLLocationManagerDelegate {
         }
 
         location = latestLocation
-        print("📍 Location received")
+        print("📍 location received")
         print("Latitude:", latestLocation.coordinate.latitude)
         print("Longitude:", latestLocation.coordinate.longitude)
 

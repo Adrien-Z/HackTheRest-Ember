@@ -31,51 +31,84 @@ enum WeatherManagerError: LocalizedError {
 final class WeatherManager: ObservableObject {
     static let shared = WeatherManager()
 
-    @Published private(set) var rhythmData = WeatherRhythmData.fallback
+    @Published private(set) var rhythmData: WeatherRhythmData?
     @Published private(set) var isLoading = false
+    @Published private(set) var isUpdating = false
     @Published private(set) var errorMessage: String?
 
     private let openMeteoService: OpenMeteoService
     private let locationManager: LocationManager
+    private let cacheStore: CachedRhythmStore
+    private var cachedSnapshot: CachedRhythmSnapshot?
 
     private init(
         openMeteoService: OpenMeteoService = .shared,
-        locationManager: LocationManager = .shared
+        locationManager: LocationManager = .shared,
+        cacheStore: CachedRhythmStore = .shared
     ) {
         self.openMeteoService = openMeteoService
         self.locationManager = locationManager
+        self.cacheStore = cacheStore
+
+        if let snapshot = cacheStore.load() {
+            cachedSnapshot = snapshot
+            rhythmData = snapshot.rhythmData
+        }
+
+        Task {
+            await refreshWeather()
+        }
     }
 
     func currentRhythm() -> WeatherRhythmData {
-        rhythmData
+        rhythmData ?? .fallback
     }
 
     func refreshWeather() async {
+        guard !isUpdating else {
+            return
+        }
+
         print("🌤 refreshWeather called")
 
-        isLoading = true
+        isLoading = rhythmData == nil
+        isUpdating = true
         errorMessage = nil
 
-        defer { isLoading = false }
+        defer {
+            isLoading = false
+            isUpdating = false
+        }
 
         do {
-            rhythmData = try await fetchRhythmData()
+            let updatedRhythm = try await fetchRhythmData()
+            rhythmData = updatedRhythm.data
+            cacheStore.save(
+                rhythmData: updatedRhythm.data,
+                latitude: updatedRhythm.location.coordinate.latitude,
+                longitude: updatedRhythm.location.coordinate.longitude
+            )
+            cachedSnapshot = cacheStore.load()
             print(
                     "🌅 Updated sunrise:",
-                    rhythmData.sunriseHour,
+                    updatedRhythm.data.sunriseHour,
                     "🌇 sunset:",
-                    rhythmData.sunsetHour
+                    updatedRhythm.data.sunsetHour
             )
         } catch {
             print("❌ Weather error:", error.localizedDescription)
             errorMessage = error.localizedDescription
+            if rhythmData == nil {
+                rhythmData = .fallback
+            }
         }
     }
 
-    private func fetchRhythmData() async throws -> WeatherRhythmData {
+    private func fetchRhythmData() async throws -> (data: WeatherRhythmData, location: CLLocation) {
         let location = try await locationManager.currentLocation()
+        logCacheDistanceIfNeeded(for: location)
 
-        print("🌤 Weather fetch started")
+        print("🌤 weather fetch started")
         let weather = try await openMeteoService.fetchWeather(
             latitude: location.coordinate.latitude,
             longitude: location.coordinate.longitude
@@ -85,12 +118,27 @@ final class WeatherManager: ObservableObject {
         print("Sunrise:", weather.sunrise)
         print("Sunset:", weather.sunset)
 
-        return WeatherRhythmData(
+        let data = WeatherRhythmData(
             sunriseHour: Self.decimalHour(from: weather.sunrise),
             sunsetHour: Self.decimalHour(from: weather.sunset),
             condition: weather.condition,
             temperature: weather.temperature
         )
+
+        return (data, location)
+    }
+
+    private func logCacheDistanceIfNeeded(for location: CLLocation) {
+        guard let cachedSnapshot else {
+            return
+        }
+
+        let distance = cachedSnapshot.distance(from: location)
+        if distance < 10_000 {
+            print("🌤 Cached rhythm location is close; refreshing silently.")
+        } else {
+            print("🌤 Location changed significantly; refreshing rhythm data.")
+        }
     }
 
     private static func decimalHour(from date: Date) -> Double {

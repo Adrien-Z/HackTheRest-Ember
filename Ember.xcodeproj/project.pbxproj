@@ -57,6 +57,7 @@
 		CAAA6C153014F21300303B55 /* WeatherManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAAA6C143014F21100303B55 /* WeatherManager.swift */; };
 		CAAA6C173014F38500303B55 /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAAA6C163014F38400303B55 /* LocationManager.swift */; };
 		CAAA6C1A3014F90000303B55 /* OpenMeteoService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAAA6C193014F90000303B55 /* OpenMeteoService.swift */; };
+		CAAA6C1C3015A20000303B55 /* CachedRhythmStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAAA6C1B3015A20000303B55 /* CachedRhythmStore.swift */; };
 		CC61FB7EF004C844AB38D550 /* seed.json in Resources */ = {isa = PBXBuildFile; fileRef = 0E772F5F4704359879D51C50 /* seed.json */; };
 		D6AEB02A011B1DA89B0D199F /* DataStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69CD122E9F7624B5B3059A0D /* DataStore.swift */; };
 		DEBC6433C916466E3B845EA4 /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1071B7F3397AF5D791F5C9C /* AuthViewModel.swift */; };
@@ -118,6 +119,7 @@
 		CAAA6C143014F21100303B55 /* WeatherManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherManager.swift; sourceTree = "<group>"; };
 		CAAA6C163014F38400303B55 /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
 		CAAA6C193014F90000303B55 /* OpenMeteoService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenMeteoService.swift; sourceTree = "<group>"; };
+		CAAA6C1B3015A20000303B55 /* CachedRhythmStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CachedRhythmStore.swift; sourceTree = "<group>"; };
 		CB68B45CBF076764D83BC86A /* CoachWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachWidgets.swift; sourceTree = "<group>"; };
 		CCAECECB01C03E7C4363DCA5 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		CECC631C4BCF34EE70327532 /* FriendModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendModels.swift; sourceTree = "<group>"; };
@@ -326,6 +328,7 @@
 			children = (
 				CAAA6C163014F38400303B55 /* LocationManager.swift */,
 				CAAA6C143014F21100303B55 /* WeatherManager.swift */,
+				CAAA6C1B3015A20000303B55 /* CachedRhythmStore.swift */,
 				CAAA6C193014F90000303B55 /* OpenMeteoService.swift */,
 				29AAF313D28B06BACEA7BACC /* FriendService.swift */,
 				7AA585CB3013A02600B57C71 /* SleepClimateService.swift */,
@@ -444,6 +447,7 @@
 				7AA585CE30149B7A00B57C71 /* RestLabView.swift in Sources */,
 				FD5D75647ED8FB20D6A201CA /* DayPlan.swift in Sources */,
 				CAAA6C153014F21300303B55 /* WeatherManager.swift in Sources */,
+				CAAA6C1C3015A20000303B55 /* CachedRhythmStore.swift in Sources */,
 				78B9CA4A2393CF8AB9B1E469 /* EmberApp.swift in Sources */,
 				4070F51276CA68CB1DBE7FE6 /* Formatters.swift in Sources */,
 				AF50EF8EC0B514E38659EE81 /* FriendModels.swift in Sources */,

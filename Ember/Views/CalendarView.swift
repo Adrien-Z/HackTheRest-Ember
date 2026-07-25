@@ -27,7 +27,7 @@ struct CalendarView: View {
                         intro
                         if needsAIPrompt {
                             ScienceNote(text: store.aiError
-                                ?? "Connect an AI provider in Settings to auto-categorize your calendar into sleep-relevant events (travel, social jet lag, early starts).",
+                                ?? "Connect Agenda intelligence in Settings to sort calendar events into sleep-relevant patterns like travel, late nights, and early starts.",
                                 icon: "sparkles")
                         } else if store.calendarEvents.isEmpty {
                             ScienceNote(text: store.isSampleData

@@ -9,6 +9,7 @@ struct HomeView: View {
     @EnvironmentObject var sleepClimate: SleepClimateService
     @State private var showSettings = false
     @State private var showAccount = false
+    @State private var showCoach = false
     @State private var insightPage = 0
     @State private var quickToolPage = 0
 
@@ -47,7 +48,6 @@ struct HomeView: View {
                     VStack(spacing: 18) {
                         greeting
                         tonightCard
-                        sleepClimateCard
                         healthInsightCarousel
                         quickToolEntrances
                     }
@@ -79,6 +79,9 @@ struct HomeView: View {
             .sheet(isPresented: $showAccount) {
                 AccountView()
             }
+            .navigationDestination(isPresented: $showCoach) {
+                CoachView()
+            }
             .task {
                 await store.refreshTodayEnergy(health: health)
                 await sleepClimate.refreshIfAuthorized(store: store)
@@ -97,8 +100,6 @@ struct HomeView: View {
                 Text("Let's set up tonight's rest.").font(.subheadline).foregroundStyle(.secondary)
             }
             Spacer()
-            Tag(text: store.isSampleData ? "sample" : "live",
-                color: store.isSampleData ? Theme.amber : Theme.mint)
         }
     }
 
@@ -107,7 +108,6 @@ struct HomeView: View {
             HStack {
                 Label("Tonight's plan", systemImage: "moon.stars.fill").font(.headline)
                 Spacer()
-                if store.thermalConverged { Tag(text: "dialed in", color: Theme.mint) }
             }
             HStack(spacing: 0) {
                 MetricStat(value: tonightWarmTime, label: "start warming", color: Theme.ember)
@@ -116,9 +116,22 @@ struct HomeView: View {
                 Divider().frame(height: 40).overlay(Color.white.opacity(0.1))
                 MetricStat(value: tonightWakeTime, label: "wake")
             }
-            if let rx = store.currentThermalRx {
-                Text(warmingPlanSummary(rx: rx))
+            if let plan = effectiveTonightPlan {
+                Text(tonightPlanSummary(plan))
                     .font(.footnote).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button {
+                    Haptics.light()
+                    showCoach = true
+                } label: {
+                    Label("Ask Rest Coach", systemImage: "sparkles")
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 11)
+                        .padding(.vertical, 7)
+                        .background(Theme.ember.opacity(0.16), in: Capsule())
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Theme.ember)
             }
             if WakeAlarmService.isSupported {
                 Divider().overlay(Color.white.opacity(0.08))
@@ -132,67 +145,6 @@ struct HomeView: View {
         .background(
             RoundedRectangle(cornerRadius: 20).fill(Theme.ember.opacity(0.06))
         )
-    }
-
-    @ViewBuilder private var sleepClimateCard: some View {
-        if SleepClimateService.isSupported {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .top, spacing: 10) {
-                    Image(systemName: "thermometer.medium")
-                        .foregroundStyle(sleepClimateColor)
-                        .font(.title3)
-                        .frame(width: 28, height: 28)
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Text("Sleep climate").font(.headline)
-                            Spacer()
-                            if let snapshot = store.sleepClimate {
-                                Tag(text: snapshot.risk.label, color: sleepClimateColor)
-                            }
-                        }
-                        if let snapshot = store.sleepClimate {
-                            Text(snapshot.summary).font(.footnote).foregroundStyle(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                            Text(snapshot.guidance).font(.footnote)
-                                .fixedSize(horizontal: false, vertical: true)
-                            if let wrist = store.wristTempDeviationC, wrist >= 0.3, snapshot.risk != .low {
-                                Text("Your wrist temperature is also running +\(String(format: "%.1f", wrist))C vs baseline. That is a relative watch signal, not core temperature.")
-                                    .font(.caption2).foregroundStyle(.secondary)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                        } else {
-                            Text("Check tonight's heat and humidity before bed. Weather changes advice only; it does not move your body-clock curve.")
-                                .font(.footnote).foregroundStyle(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        if let error = sleepClimate.lastError {
-                            Text(error).font(.caption2).foregroundStyle(.orange)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                }
-                Button {
-                    Task { await sleepClimate.refresh(store: store) }
-                } label: {
-                    Label(store.sleepClimate == nil ? "Check tonight's forecast" : "Refresh forecast",
-                          systemImage: sleepClimate.isLoading ? "clock" : "location.fill")
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(Theme.ember)
-                .controlSize(.small)
-                .disabled(sleepClimate.isLoading)
-            }
-            .emberCard(14)
-        }
-    }
-
-    private var sleepClimateColor: Color {
-        switch store.sleepClimate?.risk {
-        case .low: return Theme.mint
-        case .moderate: return Theme.amber
-        case .high: return Theme.ember
-        case nil: return Theme.cool
-        }
     }
 
     /// Set / move / remove the AlarmKit wake alarm from the plan's wake time.
@@ -252,6 +204,7 @@ struct HomeView: View {
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
             .frame(height: 292)
+            .frame(maxWidth: .infinity)
 
             HStack(spacing: 7) {
                 ForEach(0..<3, id: \.self) { index in
@@ -270,8 +223,7 @@ struct HomeView: View {
     private var quickToolEntrances: some View {
         VStack(spacing: 10) {
             GeometryReader { proxy in
-                let pageInset: CGFloat = 8
-                let cardSide = (proxy.size.width - 14 - pageInset * 2) / 2
+                let cardSide = (proxy.size.width - 14) / 2
                 TabView(selection: $quickToolPage) {
                     HStack(spacing: 14) {
                         NavigationLink {
@@ -288,7 +240,6 @@ struct HomeView: View {
                         breathingToolCard(side: cardSide)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, pageInset)
                     .tag(0)
 
                     HStack(spacing: 14) {
@@ -306,7 +257,6 @@ struct HomeView: View {
                         Color.clear.frame(width: cardSide, height: cardSide)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, pageInset)
                     .tag(1)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
@@ -567,15 +517,27 @@ struct HomeView: View {
         }.emberCard(14)
     }
 
-    private func warmingPlanSummary(rx: ThermalPrescription) -> String {
-        guard let plan = effectiveTonightPlan else {
-            return "\(store.user.warmingMethod) · offset \(rx.prescribedOffsetMin) min before bed"
+    private func tonightPlanSummary(_ plan: DayPlan) -> String {
+        var first: String
+        if plan.sleepLossMin >= 15 {
+            let driver = plan.driverTitle.map { "\($0) " } ?? "Your calendar "
+            first = "\(driver)compresses your sleep window by about \(fmtDur(plan.sleepLossMin)), so tonight is about protecting the hours that remain."
+        } else if let driver = plan.driverTitle {
+            first = "\(driver) shapes tonight's timing, but your sleep window still looks intact."
+        } else {
+            first = "Your calendar leaves enough room for a full night."
         }
+
         let actualOffset = max(0, Int(plan.bed.timeIntervalSince(plan.warmingStart) / 60))
-        if actualOffset == rx.prescribedOffsetMin {
-            return "\(store.user.warmingMethod) · offset \(rx.prescribedOffsetMin) min before bed"
+        var second = "The warm-up is timed to support the temperature drop before bed."
+        if let climate = store.sleepClimate, climate.risk == .high {
+            second = "Because the night is hot and humid, pre-cool the room and keep the warming ritual short or optional."
+        } else if let climate = store.sleepClimate, climate.risk == .moderate {
+            second = "Because the night is warm, cool the room first and keep bedding light."
+        } else if let rx = store.currentThermalRx, actualOffset != rx.prescribedOffsetMin {
+            second = "The warm-up is shifted around your calendar while keeping it close to bedtime."
         }
-        return "\(store.user.warmingMethod) · tonight adjusted to \(actualOffset) min before bed around calendar events"
+        return "\(first) \(second)"
     }
 
     private func clock(_ date: Date) -> String {
@@ -612,18 +574,23 @@ private struct HealthInsightCard<Content: View>: View {
     @ViewBuilder let content: Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 13) {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title).font(.headline)
-                    Text(subtitle).font(.caption).foregroundStyle(.secondary)
+        ZStack(alignment: .topTrailing) {
+            InsightMascot(style: mascotStyle, tint: accent)
+                .offset(x: 2, y: 34)
+                .allowsHitTesting(false)
+            VStack(alignment: .leading, spacing: 13) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(title).font(.headline)
+                        Text(subtitle).font(.caption).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Image(systemName: icon)
+                        .foregroundStyle(accent)
+                        .font(.title3)
                 }
-                Spacer()
-                Image(systemName: icon)
-                    .foregroundStyle(accent)
-                    .font(.title3)
+                content
             }
-            content
         }
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -632,9 +599,6 @@ private struct HealthInsightCard<Content: View>: View {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .strokeBorder(accent.opacity(0.20), lineWidth: 0.8)
         )
-        // The pager places cards edge to edge by default; keep a visible gutter
-        // while swiping so the next card does not visually merge into this one.
-        .padding(.horizontal, 8)
         .padding(.vertical, 6)
     }
 
@@ -644,6 +608,77 @@ private struct HealthInsightCard<Content: View>: View {
         case "My Rhythm": return "waveform.path.ecg"
         default: return "bolt.heart.fill"
         }
+    }
+
+    private var mascotStyle: InsightMascot.Style {
+        switch title {
+        case "Sleep Score": return .blanket
+        case "My Rhythm": return .rhythm
+        default: return .battery
+        }
+    }
+}
+
+struct InsightMascot: View {
+    enum Style { case blanket, battery, rhythm }
+
+    let style: Style
+    let tint: Color
+    @State private var bob = false
+
+    var body: some View {
+        ZStack {
+            switch style {
+            case .blanket:
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(tint.opacity(0.20))
+                    .frame(width: 78, height: 42)
+                    .rotationEffect(.degrees(-6))
+                    .offset(y: 16)
+                BoxSkinImageView(decoration: nil, size: CGSize(width: 58, height: 58))
+                    .scaleEffect(0.92)
+                    .offset(y: -2)
+                Image(systemName: "moon.zzz.fill")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(tint)
+                    .offset(x: 28, y: -24)
+            case .battery:
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(tint.opacity(0.75), lineWidth: 2)
+                    .frame(width: 70, height: 34)
+                    .overlay(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(tint.opacity(0.55))
+                            .frame(width: 48, height: 22)
+                            .padding(.leading, 6)
+                    }
+                    .offset(y: 20)
+                BoxSkinImageView(decoration: nil, size: CGSize(width: 56, height: 56))
+                    .offset(y: -10)
+                Image(systemName: "bolt.fill")
+                    .font(.caption.weight(.heavy))
+                    .foregroundStyle(.white)
+                    .offset(x: 2, y: 19)
+            case .rhythm:
+                ForEach(0..<3, id: \.self) { index in
+                    Capsule()
+                        .fill((index == 1 ? Theme.amber : tint).opacity(0.42))
+                        .frame(width: 8, height: CGFloat(24 + index * 12))
+                        .offset(x: CGFloat(index - 1) * 18, y: CGFloat(index == 1 ? 6 : 16))
+                }
+                BoxSkinImageView(decoration: nil, size: CGSize(width: 54, height: 54))
+                    .offset(y: -12)
+                Image(systemName: "sparkles")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Theme.amber)
+                    .offset(x: 28, y: -22)
+            }
+        }
+        .frame(width: 92, height: 96)
+        .opacity(0.42)
+        .offset(y: bob ? -3 : 3)
+        .animation(.easeInOut(duration: 2.4).repeatForever(autoreverses: true), value: bob)
+        .onAppear { bob = true }
     }
 }
 

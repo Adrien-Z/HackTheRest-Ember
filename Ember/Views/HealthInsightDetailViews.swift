@@ -136,22 +136,31 @@ private struct InsightHero: View {
     let tint: Color
 
     var body: some View {
-        HStack(spacing: 18) {
-            AnimatedScoreRing(value: value, tint: tint)
-            VStack(alignment: .leading, spacing: 8) {
-                Label(title, systemImage: symbol)
-                    .font(.headline)
-                    .foregroundStyle(tint)
-                Text(caption)
-                    .font(.title3.weight(.bold))
-                    .fixedSize(horizontal: false, vertical: true)
-                Text("0-100")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
+        ZStack(alignment: .topTrailing) {
+            InsightMascot(style: mascotStyle, tint: tint)
+                .offset(x: 8, y: -12)
+                .allowsHitTesting(false)
+            HStack(spacing: 18) {
+                AnimatedScoreRing(value: value, tint: tint)
+                VStack(alignment: .leading, spacing: 8) {
+                    Label(title, systemImage: symbol)
+                        .font(.headline)
+                        .foregroundStyle(tint)
+                    Text(caption)
+                        .font(.title3.weight(.bold))
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text("0-100")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 0)
             }
-            Spacer(minLength: 0)
         }
         .emberCard()
+    }
+
+    private var mascotStyle: InsightMascot.Style {
+        title == "Day energy" ? .battery : .blanket
     }
 }
 

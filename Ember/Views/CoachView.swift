@@ -27,6 +27,12 @@ struct CoachView: View {
         return items
     }
 
+    private var selectedDecoration: BoxDecoration? {
+        store.boxSpace.decorations.first {
+            $0.id == store.boxSpace.currentUser.decorationID
+        }
+    }
+
     var body: some View {
         ZStack {
             NightBackground()
@@ -34,12 +40,19 @@ struct CoachView: View {
                 ScrollViewReader { proxy in
                     ScrollView {
                         VStack(spacing: 12) {
+                            if store.chat.isEmpty {
+                                coachEmptyState
+                            }
                             ForEach(store.chat) { msg in
                                 if msg.role == .user {
                                     ChatBubble(message: msg).id(msg.id)
                                 } else if !msg.content.isEmpty {
                                     // Coach replies may contain inline generative-UI widgets.
-                                    CoachMessageView(message: msg).id(msg.id)
+                                    HStack(alignment: .top, spacing: 9) {
+                                        coachAvatar
+                                        CoachMessageView(message: msg)
+                                    }
+                                    .id(msg.id)
                                 }
                             }
                             if thinking && (store.chat.last?.content.isEmpty ?? true) {
@@ -87,10 +100,47 @@ struct CoachView: View {
         return String(format: "%02d:%02d", c.hour ?? 0, c.minute ?? 0)
     }
 
+    private var coachEmptyState: some View {
+        VStack(spacing: 8) {
+            BoxSkinImageView(
+                decoration: selectedDecoration,
+                size: CGSize(width: 76, height: 76)
+            )
+            .padding(.top, 8)
+            Text("What should we adjust tonight?")
+                .font(.headline)
+            Text(emptyStateSubtitle)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 14)
+    }
+
+    private var emptyStateSubtitle: String {
+        if let climate = store.sleepClimate, climate.risk != .low {
+            return "Your plan, calendar, sleep data, and tonight's heat are ready."
+        }
+        return "Your plan, calendar, sleep data, and rhythm are ready."
+    }
+
+    private var coachAvatar: some View {
+        BoxSkinImageView(
+            decoration: selectedDecoration,
+            size: CGSize(width: 34, height: 34)
+        )
+        .padding(5)
+        .background(Theme.card.opacity(0.7), in: Circle())
+        .overlay(Circle().strokeBorder(Theme.ember.opacity(0.18), lineWidth: 0.8))
+        .accessibilityHidden(true)
+    }
+
     private var suggestionBar: some View {
         VStack(spacing: 6) {
             if !store.aiConfigured {
-                Text("Using the built-in coach. Add an AI key in Settings for richer, conversational answers.")
+                Text("Connect Agenda intelligence in Settings for richer, conversational answers.")
                     .font(.caption2).foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal)

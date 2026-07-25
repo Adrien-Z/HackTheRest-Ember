@@ -2,6 +2,7 @@ import SwiftUI
 
 struct FriendRequestsView: View {
     @ObservedObject var viewModel: FriendsViewModel
+    @EnvironmentObject private var store: DataStore
 
     var body: some View {
         List {
@@ -28,13 +29,24 @@ struct FriendRequestsView: View {
         let isResponding = viewModel.respondingRequestIDs.contains(request.id)
         return VStack(alignment: .leading, spacing: 11) {
             HStack(spacing: 10) {
-                FriendBoxAvatar(config: request.avatarConfig)
-                    .scaleEffect(0.78)
-                    .frame(width: 42, height: 38)
+                BoxSkinImageView(
+                    decoration: decoration(for: request.skinId),
+                    size: CGSize(width: 48, height: 44))
+                    .frame(width: 48, height: 44)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(request.displayName).font(.headline)
                     if let username = request.username, !username.isEmpty {
                         Text("@\(username)").font(.caption).foregroundStyle(.secondary)
+                    }
+                    if let points = request.points {
+                        HStack(spacing: 8) {
+                            Label("\(points.formatted()) pts", systemImage: "moon.stars.fill")
+                            if let streak = request.currentStreakDays {
+                                Label("\(streak)d", systemImage: "flame.fill")
+                            }
+                        }
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(Theme.boxBlue)
                     }
                     if let date = request.requestedAt?.friendRelativeDate {
                         Text(date).font(.caption2).foregroundStyle(.secondary)
@@ -44,7 +56,12 @@ struct FriendRequestsView: View {
                 if isResponding { ProgressView() }
             }
             HStack {
-                Button("Accept") { Task { await viewModel.acceptRequest(request) } }
+                Button("Accept") {
+                    Task {
+                        await viewModel.acceptRequest(request)
+                        await store.refreshBoxSpace()
+                    }
+                }
                     .buttonStyle(.borderedProminent).tint(Theme.boxBlue)
                 Button("Reject", role: .destructive) { Task { await viewModel.rejectRequest(request) } }
                     .buttonStyle(.bordered)
@@ -53,28 +70,13 @@ struct FriendRequestsView: View {
         }
         .padding(.vertical, 4)
     }
-}
 
-/// Shared compact mascot used by incoming friend-request rows.
-struct FriendBoxAvatar: View {
-    let config: AvatarConfig?
-
-    var body: some View {
-        ZStack(alignment: .topTrailing) {
-            BlueBoxMascot(isActive: true, isCurrentUser: false)
-            if config?.hat != nil {
-                Image(systemName: "moon.stars.fill")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(Theme.amber)
-                    .offset(x: 8, y: -7)
-            }
-            if config?.accessory != nil {
-                Image(systemName: "sparkles")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(Theme.cool)
-                    .offset(x: 11, y: 17)
-            }
+    private func decoration(for skinID: String?) -> BoxDecoration? {
+        guard let skinID else {
+            return BoxSpaceSnapshot.localDecorations.first { $0.id == "classic-blue" }
         }
+        return BoxSpaceSnapshot.localDecorations.first { $0.id == skinID }
+            ?? BoxSpaceSnapshot.localDecorations.first { $0.id == "classic-blue" }
     }
 }
 

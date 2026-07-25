@@ -107,6 +107,10 @@ struct IncomingFriendRequest: Decodable, Identifiable, Sendable {
     let displayName: String
     let avatarConfig: AvatarConfig?
     let requestedAt: String?
+    let monthStart: String?
+    let points: Int?
+    let currentStreakDays: Int?
+    let skinId: String?
 
     var id: UUID { requestId }
 
@@ -117,6 +121,10 @@ struct IncomingFriendRequest: Decodable, Identifiable, Sendable {
         case displayName = "display_name"
         case avatarConfig = "avatar_config"
         case requestedAt = "requested_at"
+        case monthStart = "month_start"
+        case points
+        case currentStreakDays = "current_streak_days"
+        case skinId = "skin_id"
     }
 }
 

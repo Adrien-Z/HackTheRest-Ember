@@ -321,6 +321,11 @@ private struct DayCanvas: View {
                 nowEnergyOrb(ribbonX: ribbonX)
                 focusAnchor
             }
+            // Keep drag measurements anchored to the timeline rather than to
+            // the moving handle. A local gesture coordinate space moves with
+            // the band and feeds its own offset back into the translation,
+            // which presents as stuttering or jumping under the finger.
+            .coordinateSpace(name: "agendaTimeline")
             .frame(width: geo.size.width, height: totalHeight)
         }
         .frame(height: totalHeight)
@@ -542,7 +547,7 @@ private struct DayCanvas: View {
     /// The visual drag follows the finger continuously; the shared plan is
     /// snapped and committed only on release to avoid relayout jitter mid-drag.
     private func bandDrag(base: Binding<DayPlan?>) -> some Gesture {
-        DragGesture(minimumDistance: 6)
+        DragGesture(minimumDistance: 1, coordinateSpace: .named("agendaTimeline"))
             .onChanged { value in
                 if base.wrappedValue == nil {
                     base.wrappedValue = plan
@@ -561,15 +566,20 @@ private struct DayCanvas: View {
                     var p = b
                     p.bed = shift(b.bed, step); p.wake = shift(b.wake, step)
                     p.warmingStart = shift(b.warmingStart, step); p.warmingEnd = shift(b.warmingEnd, step)
-                    var transaction = Transaction()
-                    transaction.disablesAnimations = true
-                    withTransaction(transaction) {
+                    // Animate only the tiny remainder between the finger's
+                    // continuous position and the nearest five-minute mark.
+                    // Updating the plan and clearing the live offset together
+                    // prevents a one-frame jump through the original position.
+                    withAnimation(.interactiveSpring(response: 0.22, dampingFraction: 0.86)) {
                         plan = p
+                        base.wrappedValue = nil
+                        dragTranslationY = 0
                     }
                     onPlanChange(p)
+                } else {
+                    base.wrappedValue = nil
+                    dragTranslationY = 0
                 }
-                base.wrappedValue = nil
-                dragTranslationY = 0
                 lastStep = 0
             }
     }

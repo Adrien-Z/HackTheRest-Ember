@@ -172,6 +172,7 @@ struct HomeView: View {
                     sleepScoreCard
                 }
                 .buttonStyle(.plain)
+                .padding(.horizontal, 6)
                 .tag(0)
                 .accessibilityHint("Opens your detailed Sleep Score")
                 NavigationLink {
@@ -180,6 +181,7 @@ struct HomeView: View {
                     bodyBatteryCard
                 }
                 .buttonStyle(.plain)
+                .padding(.horizontal, 6)
                 .tag(1)
                 .accessibilityHint("Opens your detailed Body Battery")
                 NavigationLink {
@@ -188,11 +190,13 @@ struct HomeView: View {
                     rhythmInsightCard
                 }
                 .buttonStyle(.plain)
+                .padding(.horizontal, 6)
                 .tag(2)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
             .frame(height: 292)
             .frame(maxWidth: .infinity)
+            .padding(.horizontal, -6)
 
             HStack(spacing: 7) {
                 ForEach(0..<3, id: \.self) { index in

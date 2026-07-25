@@ -498,16 +498,6 @@ private struct BoxResident: View {
                 color: person.isCurrentUser ? Theme.boxBlue.opacity(0.55) : Color.black.opacity(0.25),
                 radius: person.isCurrentUser ? 12 : 5,
                 y: 5)
-            .overlay(alignment: .topLeading) {
-                if person.isCurrentUser {
-                    Text("ME")
-                        .font(.system(size: 7, weight: .black, design: .rounded))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 5).padding(.vertical, 3)
-                        .background(Theme.boxBlueDeep, in: Capsule())
-                        .offset(x: -2, y: -9)
-                }
-            }
             if person.isFriend {
                 Text(person.isCurrentUser ? "You" : person.name)
                     .font(.caption.weight(.semibold))

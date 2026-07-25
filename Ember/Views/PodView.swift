@@ -43,19 +43,24 @@ struct BoxSpaceView: View {
             // it reads as a floating control instead of a hard canvas edge.
             .ignoresSafeArea(edges: [.top, .bottom])
 
+            if showRestJourney {
+                Color.clear
+                    .contentShape(Rectangle())
+                    .ignoresSafeArea()
+                    .onTapGesture { closeRestJourney() }
+            }
+
             VStack(spacing: 10) {
                 scoreCard
                 if showRestJourney {
                     GeometryReader { proxy in
-                        RestJourneySheet(expandedHeight: proxy.size.height) {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                showRestJourney = false
-                            }
-                        }
+                        RestJourneySheet(expandedHeight: proxy.size.height)
                     }
                 }
-               
-                socialActions
+                if !showRestJourney {
+                    socialActions
+                        .transition(.opacity)
+                }
 
                 Spacer()
 
@@ -143,13 +148,6 @@ struct BoxSpaceView: View {
     private var socialActions: some View {
         HStack(spacing: 8) {
             NavigationLink {
-                FriendsListView(viewModel: friendsViewModel)
-            } label: {
-                Label("Friends", systemImage: "person.2.fill")
-            }
-            .buttonStyle(BoxSocialButtonStyle())
-
-            NavigationLink {
                 FriendRequestsView(viewModel: friendsViewModel)
             } label: {
                 HStack(spacing: 6) {
@@ -180,6 +178,12 @@ struct BoxSpaceView: View {
 
     private var selectedDecoration: BoxDecoration? {
         snapshot.decorations.first { $0.id == snapshot.currentUser.decorationID }
+    }
+
+    private func closeRestJourney() {
+        withAnimation(.easeInOut(duration: 0.2)) {
+            showRestJourney = false
+        }
     }
 
     private var resetLabel: String {

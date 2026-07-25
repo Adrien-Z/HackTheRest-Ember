@@ -54,3 +54,47 @@ struct FriendRequestsView: View {
         .padding(.vertical, 4)
     }
 }
+
+/// Shared compact mascot used by incoming friend-request rows.
+struct FriendBoxAvatar: View {
+    let config: AvatarConfig?
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            BlueBoxMascot(isActive: true, isCurrentUser: false)
+            if config?.hat != nil {
+                Image(systemName: "moon.stars.fill")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(Theme.amber)
+                    .offset(x: 8, y: -7)
+            }
+            if config?.accessory != nil {
+                Image(systemName: "sparkles")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(Theme.cool)
+                    .offset(x: 11, y: 17)
+            }
+        }
+    }
+}
+
+struct FriendsEmptyState: View {
+    let title: String
+    let systemImage: String
+    let message: String
+
+    var body: some View {
+        VStack(spacing: 10) {
+            Image(systemName: systemImage)
+                .font(.system(size: 32, weight: .medium))
+                .foregroundStyle(Theme.boxBlue)
+            Text(title).font(.headline)
+            Text(message)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 42)
+    }
+}

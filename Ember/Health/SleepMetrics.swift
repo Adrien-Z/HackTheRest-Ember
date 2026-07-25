@@ -46,6 +46,9 @@ struct NightSample: Identifiable {
     var timeZone: TimeZone? = nil
     var avgHRBpm: Double? = nil  // mean heart rate during the in-bed window
     var hrvMs: Double? = nil     // mean HRV (SDNN) during the in-bed window
+    /// Apple Watch sleeping wrist temperature (°C, Series 8+/Ultra). A peripheral
+    /// skin measure — only meaningful as a night-to-night deviation, not as core.
+    var wristTempC: Double? = nil
 }
 
 enum SleepMetrics {

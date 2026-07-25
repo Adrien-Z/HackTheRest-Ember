@@ -18,9 +18,13 @@ final class AuthViewModel: ObservableObject {
         authStateTask = Task { [weak self] in
             for await (_, session) in SupabaseManager.client.auth.authStateChanges {
                 guard let self else { break }
-                isAuthenticated = session != nil
-                displayName = Self.displayName(from: session)
-                email = session?.user.email ?? ""
+                // With the new Supabase startup behavior the local session is
+                // delivered before refresh. Never treat an expired cached token
+                // as an authenticated session while refresh is still pending.
+                let validSession = session.flatMap { $0.isExpired ? nil : $0 }
+                isAuthenticated = validSession != nil
+                displayName = Self.displayName(from: validSession)
+                email = validSession?.user.email ?? ""
                 isLoading = false
             }
         }

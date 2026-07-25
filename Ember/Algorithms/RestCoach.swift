@@ -63,6 +63,17 @@ enum RestCoach {
       time protects performance.
     - Carney 2012 — Consensus Sleep Diary: standard definitions of SOL, WASO, TST, TIB, and \
       sleep efficiency (TST/TIB).
+    - Drake 2013 (JCSM) — 400 mg caffeine taken at bedtime, 3 h, or 6 h before bed \
+      disrupted sleep; avoid meaningful caffeine at least 6 h before bed.
+    - A 2023 systematic review/meta-analysis on caffeine and sleep — caffeine generally \
+      reduces total sleep time and sleep efficiency while increasing sleep-onset latency; \
+      dose, sensitivity, and timing matter.
+    - Tea caffeine varies substantially by leaves, serving size, and steep time; strong tea \
+      and milk tea should be treated as caffeine, while herbal or explicitly low-caffeine tea \
+      is a better bedtime ritual choice.
+    - Minor 2022 (One Earth) and a 2024 systematic review of ambient heat and sleep — warmer \
+      nights are generally associated with shorter or poorer sleep, especially through delayed \
+      sleep onset. Treat weather as a sleep-friction factor, not a medical diagnosis.
     """
 
     // MARK: - Context snapshot fed to the LLM
@@ -75,6 +86,9 @@ enum RestCoach {
 
         let u = store.user
         lines.append("PROFILE: name=\(u.name), target bed=\(u.targetBedTime), target wake=\(u.targetWakeTime), warming method=\(u.warmingMethod), phase=\(u.phase), current warming offset=\(u.currentOffsetMin) min, baseline SOL=\(String(format: "%.1f", u.baselineSolMin)) min, baseline avg TST=\(u.baselineAvgTstMin) min.")
+        if let plan = store.tonightPlan, Calendar.current.isDateInToday(plan.day) {
+            lines.append("TONIGHT'S ACTIVE PLAN: warm-up \(clock(plan.warmingStart)), lights-out \(clock(plan.bed)), wake \(clock(plan.wake)), sleep opportunity \(fmtDur(plan.sleepDurationMin)), risk=\(plan.level.label). This may differ from habitual targets because Agenda events or user drag edits changed tonight only.")
+        }
 
         if let rx = store.currentThermalRx {
             lines.append("THERMAL (warming) — current: offset \(rx.prescribedOffsetMin) min before bed via \(rx.warmingMethod), action=\(rx.action), converged=\(rx.converged). Rationale: \(rx.rationale)")
@@ -107,6 +121,13 @@ enum RestCoach {
         if let tst = store.healthLastNightTST { lines.append("Last night: \(fmtDur(tst)) asleep.") }
         if let hr = store.lastNightHR { lines.append("Overnight avg heart rate: \(Int(hr)) bpm.") }
         if let hrv = store.lastNightHRV { lines.append("Overnight HRV (SDNN): \(Int(hrv)) ms.") }
+        if let dev = store.wristTempDeviationC {
+            lines.append("Sleeping wrist temperature: \(dev > 0 ? "+" : "")\(String(format: "%.1f", dev))°C vs the user's baseline. NOTE: this is Apple Watch wrist skin temperature, a RELATIVE night-to-night signal — not core body temperature and not to scale. Elevations often reflect illness, alcohol, a warm room, or menstrual phase. Never present it as a precise or clinical temperature.")
+        }
+        if let climate = store.sleepClimate {
+            let humidity = climate.maxHumidity.map { ", max humidity \(Int(($0 * 100).rounded()))%" } ?? ""
+            lines.append("SLEEP CLIMATE: \(climate.risk.label), overnight \(Int(climate.overnightLowC))-\(Int(climate.overnightHighC))°C\(humidity). Guidance: \(climate.guidance) Weather can affect sleep onset/quality but should not be described as shifting circadian phase by itself.")
+        }
 
         if !store.adaptations.isEmpty {
             lines.append("UPCOMING CALENDAR ADAPTATIONS:")
@@ -136,8 +157,24 @@ enum RestCoach {
         // Thermal / warming
         if q.contains("warm") || q.contains("offset") || q.contains("bath") || q.contains("onset") {
             if let rx = store.currentThermalRx {
+                if let plan = store.tonightPlan, Calendar.current.isDateInToday(plan.day) {
+                    return "Tonight, start your \(store.user.warmingMethod) at \(clock(plan.warmingStart)) for lights-out around \(clock(plan.bed)). Your usual personalized offset is \(rx.prescribedOffsetMin) min before bed. \(rx.rationale) Warming the periphery pulls heat away from your core; the core-temperature drop is a physiological trigger for sleep onset."
+                }
                 return "Start your \(store.user.warmingMethod) about \(rx.prescribedOffsetMin) min before bed. \(rx.rationale) Warming the periphery pulls heat away from your core; the core-temperature drop is a physiological trigger for sleep onset."
             }
+        }
+        // Caffeine / tea
+        if q.contains("caffeine") || q.contains("coffee") || q.contains("tea") || q.contains("milk tea") || q.contains("oolong") || q.contains("pu'er") || q.contains("puer") {
+            let bedText: String
+            let cutoffText: String
+            if let plan = store.tonightPlan, Calendar.current.isDateInToday(plan.day) {
+                bedText = clock(plan.bed)
+                cutoffText = clock(plan.bed.addingTimeInterval(-8 * 60 * 60))
+            } else {
+                bedText = store.user.targetBedTime
+                cutoffText = offsetTime(from: store.user.targetBedTime, minusMinutes: 480)
+            }
+            return "For \(bedText) lights-out, a practical caffeine cutoff is around \(cutoffText). Treat coffee, energy drinks, strong tea, oolong, pu'er, black tea, green tea, and milk tea as caffeine unless you know the serving is low-caffeine. Tea varies a lot by leaves and steep time, so switch the late ritual to herbal tea, warm water, or an explicitly low-caffeine tea if you want the comfort without the sleep friction."
         }
         // Travel / jet lag
         if q.contains("flight") || q.contains("jet") || q.contains("travel") || q.contains("trip") {
@@ -157,6 +194,11 @@ enum RestCoach {
             return "\(hit) of \(store.pod.members.count) in \(store.pod.name) hit their goal this week. When everyone reaches \(store.pod.weeklyGoalNights) on-target nights, the pod unlocks a Blue Box reward. Your pod only sees a status ring — never your actual sleep times."
         }
         // Default
-        return "I can explain any part of your plan — your warming offset, your time-in-bed window, upcoming calendar adaptations, or your pod. Try one of the suggestions below."
+        return "I can explain any part of your plan — your warming offset, caffeine cutoff, time-in-bed window, upcoming calendar adaptations, or your pod. Try one of the suggestions below."
+    }
+
+    private static func clock(_ date: Date) -> String {
+        let c = Calendar.current.dateComponents([.hour, .minute], from: date)
+        return String(format: "%02d:%02d", c.hour ?? 0, c.minute ?? 0)
     }
 }

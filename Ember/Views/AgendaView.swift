@@ -21,7 +21,8 @@ struct AgendaView: View {
             NightBackground()
             VStack(spacing: 0) {
                 DayStrip(days: days, selectedDay: $selectedDay)
-                    .padding(.top, 4)
+                    .padding(.top, 10)
+                    .padding(.bottom, 12)
                 TabView(selection: $selectedDay) {
                     ForEach(days, id: \.self) { day in
                         DayPage(day: day).tag(day)
@@ -66,7 +67,8 @@ private struct DayPage: View {
                         wakeMin: minuteOfDay(store.user.targetWakeTime),
                         bedMin: minuteOfDay(store.user.targetBedTime),
                         onSelectEvent: { selectedEvent = $0 },
-                        onSelectMarker: { selectedMarker = $0 })
+                        onSelectMarker: { selectedMarker = $0 },
+                        onPlanChange: { store.updateTonightPlan($0) })
                     .padding(.horizontal, 12).padding(.bottom, 24)
                 }
                 .onAppear {
@@ -99,10 +101,12 @@ private struct DayPage: View {
     private func rebuild() {
         let offset = store.currentThermalRx?.prescribedOffsetMin ?? store.user.currentOffsetMin
         withAnimation(.snappy) {
-            plan = DayPlanner.build(
+            let rebuilt = DayPlanner.build(
                 nightOf: day, user: store.user,
                 warmingOffsetMin: offset, prepBufferMin: wakeAlarm.prepBufferMin,
                 events: store.agendaEvents.filter { !$0.isAllDay })
+            plan = rebuilt
+            store.updateTonightPlan(rebuilt)
         }
     }
     private func minuteOfDay(_ s: String) -> Int {
@@ -154,28 +158,57 @@ private struct PlanBanner: View {
         switch plan.level { case .low: return Theme.mint; case .moderate: return Theme.amber; case .high: return Theme.ember }
     }
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Label(plan.headline, systemImage: "sparkles").font(.subheadline.weight(.semibold))
-                Spacer()
-                Tag(text: plan.level.label, color: color)
+        HStack(alignment: .top, spacing: 12) {
+            // The box mascot "wakes up" (blue) for a good night and dims when the
+            // night is squeezed — an at-a-glance, on-brand read of risk.
+            BlueBoxMascot(isActive: plan.level != .high, isCurrentUser: false)
+                .scaleEffect(0.6).frame(width: 46, height: 52)
+                .animation(.spring(response: 0.5, dampingFraction: 0.6), value: plan.level)
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text(plan.headline).font(.subheadline.weight(.semibold))
+                    Spacer()
+                    Tag(text: plan.level.label, color: color)
+                }
+                Text(plan.detail).font(.caption).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 10) {
+                    PlanMetric(systemImage: "bed.double.fill", value: clock(plan.bed))
+                    PlanMetric(systemImage: "sunrise.fill", value: clock(plan.wake))
+                    PlanMetric(systemImage: "moon.zzz.fill", value: fmtDur(plan.sleepDurationMin))
+                    Spacer(minLength: 4)
+                    Button(action: onReset) {
+                        Image(systemName: "arrow.counterclockwise")
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 36, height: 32)
+                    .accessibilityLabel("Reset plan")
+                }
             }
-            Text(plan.detail).font(.caption).foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            HStack(spacing: 14) {
-                Label(clock(plan.bed), systemImage: "bed.double.fill").font(.caption2)
-                Label(clock(plan.wake), systemImage: "sunrise.fill").font(.caption2)
-                Label("\(fmtDur(plan.sleepDurationMin))", systemImage: "moon.zzz.fill").font(.caption2)
-                Spacer()
-                Button(action: onReset) {
-                    Label("Reset", systemImage: "arrow.counterclockwise").font(.caption2)
-                }.tint(.secondary)
-            }
-            .foregroundStyle(.secondary)
         }
         .emberCard(12)
     }
     private func clock(_ d: Date) -> String { d.formatted(.dateTime.hour().minute()) }
+}
+
+private struct PlanMetric: View {
+    let systemImage: String
+    let value: String
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Image(systemName: systemImage)
+                .frame(width: 15)
+            Text(value)
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+        }
+        .font(.caption2.weight(.semibold))
+        .foregroundStyle(.secondary)
+        .frame(width: 64, height: 28, alignment: .leading)
+    }
 }
 
 // MARK: - The timeline canvas
@@ -188,10 +221,13 @@ private struct DayCanvas: View {
     let bedMin: Int
     let onSelectEvent: (AgendaEvent) -> Void
     let onSelectMarker: (CircadianModel.Marker) -> Void
+    let onPlanChange: (DayPlan) -> Void
 
     @State private var sleepBase: DayPlan?
     @State private var warmBase: DayPlan?
     @State private var lastStep = 0
+    @State private var appeared = false     // spring-in for the plan bands
+    @State private var pulse = false        // "you are here" energy orb
 
     private let cal = Calendar.current
     private let hourHeight: CGFloat = 58
@@ -223,11 +259,37 @@ private struct DayCanvas: View {
                 eventBlocks(laneX: laneX, laneW: laneW)
                 nowLine(ribbonX: ribbonX)
                 energyMarkers(ribbonX: ribbonX)        // topmost → always tappable
+                nowEnergyOrb(ribbonX: ribbonX)
                 focusAnchor
             }
             .frame(width: geo.size.width, height: totalHeight)
         }
         .frame(height: totalHeight)
+        .onAppear {
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.15)) { appeared = true }
+            withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) { pulse = true }
+        }
+    }
+
+    /// A glowing dot on the energy ribbon at the current time — "you are here",
+    /// at your current predicted energy. Today only.
+    @ViewBuilder private func nowEnergyOrb(ribbonX: CGFloat) -> some View {
+        if cal.isDateInToday(day) {
+            let yy = y(Date())
+            if yy >= 0 && yy <= totalHeight {
+                let a = CircadianModel.alertness(atMinute: minuteOf(Date()), wakeMin: wakeMin, bedMin: bedMin)
+                let x = ribbonX + ribbonWidth * (1 - CGFloat(a))
+                ZStack {
+                    Circle().fill(Theme.amber.opacity(0.5)).frame(width: 22, height: 22)
+                        .scaleEffect(pulse ? 1.5 : 1).opacity(pulse ? 0 : 0.6)
+                    Circle().fill(Theme.amber).frame(width: 11, height: 11)
+                        .overlay(Circle().strokeBorder(.white.opacity(0.9), lineWidth: 1.5))
+                        .shadow(color: Theme.amber.opacity(0.8), radius: 6)
+                }
+                .offset(x: x - 11, y: yy - 11)
+                .allowsHitTesting(false)
+            }
+        }
     }
 
     // Where to auto-scroll: current time today, else the evening warm-up.
@@ -289,11 +351,17 @@ private struct DayCanvas: View {
             }
             .fill(LinearGradient(colors: [Theme.amber.opacity(0.30), Theme.ember.opacity(0.10)],
                                  startPoint: .top, endPoint: .bottom))
+            // Soft glow behind the curve for a luminous "energy" feel.
             Path { p in
                 guard let f = pts.first else { return }
                 p.move(to: f); for pt in pts.dropFirst() { p.addLine(to: pt) }
             }
-            .stroke(Theme.amber.opacity(0.6), lineWidth: 1.5)
+            .stroke(Theme.amber.opacity(0.5), lineWidth: 5).blur(radius: 6)
+            Path { p in
+                guard let f = pts.first else { return }
+                p.move(to: f); for pt in pts.dropFirst() { p.addLine(to: pt) }
+            }
+            .stroke(Theme.amber.opacity(0.85), lineWidth: 1.5)
             Text("ENERGY").font(.system(size: 8, weight: .bold)).foregroundStyle(.secondary)
                 .rotationEffect(.degrees(90)).fixedSize()
                 .offset(x: ribbonX + ribbonWidth - 8, y: 16)
@@ -348,9 +416,14 @@ private struct DayCanvas: View {
             let top = y(plan.bed), h = max(30, y(plan.wake) - y(plan.bed))
             band(color: Theme.ember, icon: "moon.stars.fill",
                  title: "Sleep · \(fmtDur(plan.sleepDurationMin))",
-                 subtitle: "\(clock(plan.bed))–\(clock(plan.wake))", width: laneW, height: h)
+                 subtitle: "\(clock(plan.bed))–\(clock(plan.wake))",
+                 width: laneW, height: h, lifted: sleepBase != nil)
+                .overlay(alignment: .trailing) {
+                    dragHandle(lifted: sleepBase != nil)
+                        .gesture(bandDrag(base: $sleepBase))
+                        .padding(.trailing, 8)
+                }
                 .offset(x: laneX, y: top)
-                .gesture(bandDrag(base: $sleepBase, shiftWarming: true))
         }
     }
 
@@ -358,47 +431,71 @@ private struct DayCanvas: View {
         if let plan {
             let top = y(plan.warmingStart), h = max(30, y(plan.warmingEnd) - y(plan.warmingStart))
             band(color: Theme.amber, icon: "thermometer.sun.fill",
-                 title: "Warm-up", subtitle: clock(plan.warmingStart), width: laneW, height: h)
+                 title: "Warm-up", subtitle: clock(plan.warmingStart),
+                 width: laneW, height: h, lifted: warmBase != nil)
+                .overlay(alignment: .trailing) {
+                    dragHandle(lifted: warmBase != nil)
+                        .gesture(bandDrag(base: $warmBase))
+                        .padding(.trailing, 8)
+                }
                 .offset(x: laneX, y: top)
-                .gesture(bandDrag(base: $warmBase, shiftWarming: false, warmingOnly: true))
         }
     }
 
     private func band(color: Color, icon: String, title: String, subtitle: String,
-                      width: CGFloat, height: CGFloat) -> some View {
+                      width: CGFloat, height: CGFloat, lifted: Bool) -> some View {
         HStack(spacing: 8) {
             Image(systemName: icon).font(.caption)
             VStack(alignment: .leading, spacing: 0) {
                 Text(title).font(.caption.weight(.bold))
                 if height > 42 { Text(subtitle).font(.caption2).opacity(0.85) }
             }
-            Spacer()
-            Image(systemName: "arrow.up.and.down").font(.caption2).opacity(0.6)
+            Spacer(minLength: 34)
         }
         .padding(.horizontal, 10)
         .frame(width: width, height: height, alignment: .topLeading).padding(.top, 4)
-        .background(color.opacity(0.22), in: RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(color.opacity(0.55), lineWidth: 1))
+        .background(color.opacity(lifted ? 0.34 : 0.22), in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(color.opacity(lifted ? 0.9 : 0.55), lineWidth: lifted ? 1.5 : 1))
         .foregroundStyle(.white)
+        .shadow(color: .black.opacity(lifted ? 0.4 : 0), radius: lifted ? 8 : 0, y: lifted ? 4 : 0)
+        .scaleEffect(lifted ? 1.03 : (appeared ? 1 : 0.94), anchor: .leading)
+        .opacity(appeared ? 1 : 0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: lifted)
     }
 
-    /// Shifts a block relative to the plan captured at drag-start, snapped to
-    /// 5-minute steps, ticking only when the step changes (no runaway).
-    private func bandDrag(base: Binding<DayPlan?>, shiftWarming: Bool, warmingOnly: Bool = false) -> some Gesture {
-        DragGesture(minimumDistance: 8)
-            .onChanged { g in
-                if base.wrappedValue == nil { base.wrappedValue = plan; lastStep = 0 }
-                guard let b = base.wrappedValue else { return }
-                let step = Int((g.translation.height / ppm / 5).rounded()) * 5
-                var p = b
-                if warmingOnly {
-                    p.warmingStart = shift(b.warmingStart, step); p.warmingEnd = shift(b.warmingEnd, step)
-                } else {
+    private func dragHandle(lifted: Bool) -> some View {
+        Image(systemName: lifted ? "hand.draw.fill" : "arrow.up.and.down")
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(.white.opacity(0.78))
+            .frame(width: 34, height: 34)
+            .background(Color.black.opacity(lifted ? 0.22 : 0.08), in: Circle())
+            .contentShape(Circle())
+            .accessibilityLabel("Move sleep plan")
+    }
+
+    /// Native-Calendar behavior: press-and-hold the handle to pick up a block, then drag to
+    /// move the WHOLE night (sleep + warm-up stay linked). A plain scroll never
+    /// engages, so scrolling the timeline never shifts times. Snapped to 5 min.
+    private func bandDrag(base: Binding<DayPlan?>) -> some Gesture {
+        LongPressGesture(minimumDuration: 0.3)
+            .sequenced(before: DragGesture(minimumDistance: 0))
+            .onChanged { value in
+                switch value {
+                case .first(true):
+                    break
+                case .second(true, let drag):
+                    if base.wrappedValue == nil { base.wrappedValue = plan; lastStep = 0; Haptics.light() }
+                    guard let b = base.wrappedValue, let drag else { return }
+                    let step = Int((drag.translation.height / ppm / 5).rounded()) * 5
+                    var p = b
                     p.bed = shift(b.bed, step); p.wake = shift(b.wake, step)
-                    if shiftWarming { p.warmingStart = shift(b.warmingStart, step); p.warmingEnd = shift(b.warmingEnd, step) }
+                    p.warmingStart = shift(b.warmingStart, step); p.warmingEnd = shift(b.warmingEnd, step)
+                    plan = p
+                    onPlanChange(p)
+                    if step != lastStep { Haptics.tick(); lastStep = step }
+                default:
+                    break
                 }
-                plan = p
-                if step != lastStep { Haptics.tick(); lastStep = step }
             }
             .onEnded { _ in base.wrappedValue = nil }
     }
@@ -411,23 +508,22 @@ private struct DayCanvas: View {
             let x = laneX + CGFloat(pos.col) * (colW + 4)
             let top = max(0, y(pos.event.start))
             let h = max(26, y(pos.event.end) - y(pos.event.start))
-            Button { Haptics.tick(); onSelectEvent(pos.event) } label: {
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(pos.event.title).font(.caption.weight(.semibold)).lineLimit(pos.cols > 2 ? 1 : 2)
-                    if h > 34 && pos.cols < 3 {
-                        Text("\(clock(pos.event.start))–\(clock(pos.event.end))").font(.caption2).foregroundStyle(.secondary)
-                    }
-                    Spacer(minLength: 0)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(pos.event.title).font(.caption.weight(.semibold)).lineLimit(pos.cols > 2 ? 1 : 2)
+                if h > 34 && pos.cols < 3 {
+                    Text("\(clock(pos.event.start))–\(clock(pos.event.end))").font(.caption2).foregroundStyle(.secondary)
                 }
-                .padding(.horizontal, 7).padding(.vertical, 4)
-                .frame(width: colW, height: h, alignment: .topLeading)
-                .background(eventColor(pos.event).opacity(0.18), in: RoundedRectangle(cornerRadius: 9))
-                .overlay(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 2).fill(eventColor(pos.event)).frame(width: 3).padding(.vertical, 3)
-                }
-                .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(eventColor(pos.event).opacity(0.4), lineWidth: 1))
+                Spacer(minLength: 0)
             }
-            .buttonStyle(.plain)
+            .padding(.horizontal, 7).padding(.vertical, 4)
+            .frame(width: colW, height: h, alignment: .topLeading)
+            .background(eventColor(pos.event).opacity(0.18), in: RoundedRectangle(cornerRadius: 9))
+            .overlay(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 2).fill(eventColor(pos.event)).frame(width: 3).padding(.vertical, 3)
+            }
+            .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(eventColor(pos.event).opacity(0.4), lineWidth: 1))
+            .contentShape(Rectangle())
+            .onTapGesture { Haptics.tick(); onSelectEvent(pos.event) }
             .offset(x: x, y: top)
         }
     }
@@ -596,7 +692,7 @@ private struct AgendaInfoSheet: View {
                     row("chart.line.uptrend.xyaxis", Theme.amber, "The energy ribbon",
                         "The wave on the right is your predicted circadian alertness through the day — anchored to your own sleep times. Wider (warmer) means higher energy.")
                     row("circle.grid.2x2.fill", Theme.cool, "Body-clock markers",
-                        "Tap a dot on the ribbon for the science behind each moment: morning peak, afternoon dip, evening wake-maintenance zone, wind-down, and your last-coffee cutoff.")
+                        "Tap a dot on the ribbon for the science behind each moment: morning peak, afternoon dip, evening wake-maintenance zone, wind-down, and your last caffeine cutoff for coffee, strong tea, milk tea, or energy drinks.")
                     row("moon.stars.fill", Theme.ember, "Your recommended night",
                         "The blue Sleep band and amber Warm-up band are EMBER's plan for the night. Drag either up or down to shift it — times snap to 5 minutes.")
                     row("calendar", .gray, "Your events",
@@ -620,3 +716,4 @@ private struct AgendaInfoSheet: View {
         }
     }
 }
+

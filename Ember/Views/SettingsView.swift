@@ -8,6 +8,7 @@ struct SettingsView: View {
     @EnvironmentObject var health: HealthManager
     @EnvironmentObject var calendar: CalendarService
     @EnvironmentObject var wakeAlarm: WakeAlarmService
+    @EnvironmentObject var sleepClimate: SleepClimateService
     @Environment(\.dismiss) private var dismiss
     @State private var apiKeyDraft = ""
 
@@ -33,6 +34,17 @@ struct SettingsView: View {
                          : "Showing bundled sample data so you can explore the app without granting any permissions.")
                 }
 
+                Section {
+                    Toggle(isOn: $store.demoEventsEnabled) {
+                        Label("Show sample agenda events", systemImage: "calendar.badge.plus")
+                    }
+                    .tint(Theme.ember)
+                } header: {
+                    Text("Demo")
+                } footer: {
+                    Text("Adds a few illustrative events (a late show, an early flight, a big presentation) anchored to today so you can see how the Agenda plans your sleep around them — no calendar access needed.")
+                }
+
                 if store.mode == .live {
                     Section("Connections") {
                         connectionRow(
@@ -47,6 +59,14 @@ struct SettingsView: View {
                             tint: Theme.ember,
                             connected: calendar.isAuthorized,
                             action: { await calendar.requestAccess(); await store.refresh(health: health, calendar: calendar) })
+                        if SleepClimateService.isSupported {
+                            connectionRow(
+                                title: "Sleep Climate",
+                                systemImage: "thermometer.medium",
+                                tint: Theme.cool,
+                                connected: store.sleepClimate != nil,
+                                action: { await sleepClimate.refresh(store: store) })
+                        }
                         if store.healthAuthorized && !store.liveHasData {
                             Label("No sleep data found in Apple Health for the last 60 days.",
                                   systemImage: "exclamationmark.triangle")
@@ -58,6 +78,11 @@ struct SettingsView: View {
                         TextField("Your name", text: $store.displayName)
                         TextField("Warming method", text: $store.warmingMethod)
                     }
+                }
+                Section {
+                    Label("Sleep Climate uses approximate location and forecast data from Open-Meteo. No Apple WeatherKit entitlement or API key is required for the demo build.", systemImage: "cloud.sun.fill")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 }
 
                 if WakeAlarmService.isSupported {

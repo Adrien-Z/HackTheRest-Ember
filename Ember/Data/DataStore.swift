@@ -20,6 +20,18 @@ final class DataStore: ObservableObject {
     @Published var adaptations: [Adaptation] = []
     /// Every event in the fetch window (neutral included), for the day timeline.
     @Published var agendaEvents: [AgendaEvent] = []
+    /// The user's currently adjusted plan for tonight, shared between Agenda and Today.
+    @Published var tonightPlan: DayPlan? = nil
+    /// When on, injects a set of illustrative events anchored to today so the
+    /// Agenda can be demoed without a real calendar. Toggled in Settings.
+    @Published var demoEventsEnabled: Bool {
+        didSet {
+            UserDefaults.standard.set(demoEventsEnabled, forKey: Keys.demoEvents)
+            applyAgenda()
+        }
+    }
+    /// The real (or seed-derived) events, before any demo events are mixed in.
+    private var baseAgenda: [AgendaEvent] = []
     @Published var regularity: SleepScience.RegularityReport =
         SleepScience.RegularityReport(sri: nil, socialJetlagMin: nil, midpointStdevMin: nil,
                                       avgMidpoint: nil, nights: 0, midpoints: [])
@@ -35,11 +47,15 @@ final class DataStore: ObservableObject {
     @Published var healthLastNightTST: Int? = nil
     @Published var lastNightHR: Double? = nil     // mean overnight heart rate (bpm)
     @Published var lastNightHRV: Double? = nil    // mean overnight HRV SDNN (ms)
+    @Published var lastNightWristTempC: Double? = nil   // Apple Watch sleeping wrist temp
+    @Published var wristTempBaselineC: Double? = nil    // mean of recent nights (baseline)
     /// Raw, locally-derived Apple Health nights used by Today health insights.
     @Published private(set) var recentHealthNights: [NightSample] = []
     /// Hourly Apple Health inputs used for the current-day energy estimate.
     @Published private(set) var todayEnergyDay: DailyEnergyDay? = nil
     @Published var healthAuthorized: Bool = false
+    /// Optional local forecast layer for heat/humidity sleep friction. Not diagnostic.
+    @Published var sleepClimate: SleepClimateSnapshot? = nil
 
     // Data-source state
     @Published private(set) var mode: DataSourceMode
@@ -68,6 +84,7 @@ final class DataStore: ObservableObject {
         static let apiKeyAccount = "openrouter.apiKey"   // Keychain account
         static let calendarCache = "ember.calendarCategorizations"
         static let calendarOverrides = "ember.calendarOverrides"   // eventId → category
+        static let demoEvents = "ember.demoAgendaEvents"
     }
 
     init() {
@@ -79,6 +96,7 @@ final class DataStore: ObservableObject {
         warmingMethod = d.string(forKey: Keys.warming) ?? bundleSeed.user.warmingMethod
         llmModel = d.string(forKey: Keys.llmModel) ?? LLMClient.defaultModel
         llmBaseURL = d.string(forKey: Keys.llmBaseURL) ?? LLMClient.defaultBaseURL
+        demoEventsEnabled = d.bool(forKey: Keys.demoEvents)
         aiConfigured = Keychain.load(Keys.apiKeyAccount)?.isEmpty == false
         user = bundleSeed.user
         pod = bundleSeed.pod
@@ -219,6 +237,9 @@ final class DataStore: ObservableObject {
             healthLastNightTST = latest?.tstMin
             lastNightHR = latest?.avgHRBpm
             lastNightHRV = latest?.hrvMs
+            lastNightWristTempC = latest?.wristTempC
+            let temps = nights.compactMap { $0.wristTempC }
+            wristTempBaselineC = temps.count >= 3 ? (temps.reduce(0,+) / Double(temps.count) * 10).rounded() / 10 : nil
             let built = LiveDataBuilder.build(nights: nights,
                                               name: displayName, warmingMethod: warmingMethod)
             user = built.user
@@ -255,7 +276,8 @@ final class DataStore: ObservableObject {
             overrides: loadCategoryOverrides(), healthContext: healthContextForAI())
         calendarEvents = output.result.events
         adaptations = output.result.adaptations
-        agendaEvents = output.agenda
+        baseAgenda = output.agenda
+        applyAgenda()
         // Don't wipe the cache when the fetch itself came back empty (e.g. access
         // not yet granted) — those categorizations may still be valid next run.
         if !raw.isEmpty { saveCalendarCache(output.cache) }
@@ -275,6 +297,99 @@ final class DataStore: ObservableObject {
 
     func categoryOverride(for eventId: String) -> String? { loadCategoryOverrides()[eventId] }
 
+    func updateTonightPlan(_ plan: DayPlan, calendar: Calendar = .current) {
+        if calendar.isDateInToday(plan.day) {
+            tonightPlan = plan
+        }
+    }
+
+    func clearTonightPlan(calendar: Calendar = .current) {
+        guard let tonightPlan, calendar.isDateInToday(tonightPlan.day) else { return }
+        self.tonightPlan = nil
+    }
+
+    /// Recompute the displayed agenda. Demo mode intentionally replaces the real
+    /// agenda so illustrative events never overlap a user's actual calendar.
+    private func applyAgenda() {
+        agendaEvents = demoEventsEnabled ? Self.demoAgendaEvents() : baseAgenda
+        tonightPlan = nil
+    }
+
+    /// Illustrative events anchored to today, spanning the categories, so the
+    /// Agenda + plan + circadian view can be shown end-to-end without a calendar.
+    static func demoAgendaEvents(now: Date = Date(), calendar: Calendar = .current) -> [AgendaEvent] {
+        let d0 = calendar.startOfDay(for: now)
+        func at(_ dayOffset: Int, _ h: Int, _ m: Int) -> Date {
+            calendar.date(byAdding: .day, value: dayOffset, to: d0)
+                .flatMap { calendar.date(bySettingHour: h, minute: m, second: 0, of: $0) } ?? now
+        }
+        return [
+            AgendaEvent(id: "demo-morning-run", title: "Morning run", start: at(0, 6, 45), end: at(0, 7, 30),
+                        isAllDay: false, category: "neutral"),
+            AgendaEvent(id: "demo-breakfast", title: "Breakfast + commute", start: at(0, 7, 45), end: at(0, 8, 45),
+                        isAllDay: false, category: "neutral"),
+            AgendaEvent(id: "demo-focus", title: "Deep work block", start: at(0, 9, 0), end: at(0, 11, 0),
+                        isAllDay: false, category: "neutral"),
+            AgendaEvent(id: "demo-standup", title: "Team stand-up", start: at(0, 10, 0), end: at(0, 10, 30),
+                        isAllDay: false, category: "neutral"),
+            AgendaEvent(id: "demo-lunch", title: "Lunch with Sam", start: at(0, 12, 30), end: at(0, 13, 30),
+                        isAllDay: false, category: "neutral"),
+            AgendaEvent(id: "demo-presentation-prep", title: "Presentation prep", start: at(0, 14, 0), end: at(0, 15, 30),
+                        isAllDay: false, category: "demanding_event",
+                        why: "A cognitively demanding block can raise evening arousal, so the plan protects a clean wind-down window."),
+            AgendaEvent(id: "demo-milk-tea", title: "Milk tea catch-up", start: at(0, 16, 30), end: at(0, 17, 0),
+                        isAllDay: false, category: "neutral"),
+            AgendaEvent(id: "demo-gym", title: "Strength training", start: at(0, 17, 45), end: at(0, 18, 45),
+                        isAllDay: false, category: "neutral"),
+            AgendaEvent(id: "demo-dinner", title: "Hotpot dinner", start: at(0, 19, 30), end: at(0, 21, 0),
+                        isAllDay: false, category: "neutral"),
+            AgendaEvent(id: "demo-night-out", title: "KTV with friends", start: at(0, 21, 30), end: at(1, 1, 15),
+                        isAllDay: false, category: "social_jetlag",
+                        why: "This runs well past your usual bedtime, pushing your sleep midpoint later and making sleeping in tempting tomorrow."),
+            AgendaEvent(id: "demo-early-training", title: "7 AM training session", start: at(1, 7, 0), end: at(1, 8, 0),
+                        isAllDay: false, category: "early_obligation",
+                        why: "An early obligation after a late night compresses sleep opportunity, so EMBER shifts prep earlier and flags the risk."),
+            AgendaEvent(id: "demo-board", title: "Board presentation", start: at(1, 10, 0), end: at(1, 11, 30),
+                        isAllDay: false, category: "demanding_event",
+                        why: "A high-stakes morning rewards solid sleep beforehand for memory, attention, and emotional control."),
+            AgendaEvent(id: "demo-recovery-walk", title: "Recovery walk", start: at(1, 17, 30), end: at(1, 18, 15),
+                        isAllDay: false, category: "neutral"),
+            AgendaEvent(id: "demo-family-dinner", title: "Family dinner", start: at(1, 19, 0), end: at(1, 20, 15),
+                        isAllDay: false, category: "neutral"),
+            AgendaEvent(id: "demo-family-call", title: "Family video call", start: at(1, 20, 30), end: at(1, 21, 0),
+                        isAllDay: false, category: "neutral"),
+            AgendaEvent(id: "demo-flight", title: "Flight SFO to London", start: at(2, 18, 0), end: at(3, 12, 0),
+                        isAllDay: false, category: "timezone_travel",
+                        why: "An overnight eastbound flight crosses time zones and benefits from a gradual phase advance beforehand."),
+            AgendaEvent(id: "demo-hotel-checkin", title: "Hotel check-in", start: at(3, 13, 0), end: at(3, 14, 0),
+                        isAllDay: false, category: "neutral"),
+            AgendaEvent(id: "demo-light-walk", title: "Bright-light walk", start: at(3, 16, 0), end: at(3, 16, 45),
+                        isAllDay: false, category: "timezone_travel",
+                        why: "Outdoor light at the destination helps anchor the shifted circadian schedule after travel."),
+            AgendaEvent(id: "demo-client-dinner", title: "Client dinner", start: at(3, 20, 30), end: at(3, 22, 30),
+                        isAllDay: false, category: "social_jetlag",
+                        why: "A later dinner after travel can delay wind-down, so the plan keeps the next wake anchor visible."),
+            AgendaEvent(id: "demo-yoga", title: "Hotel gym yoga", start: at(4, 7, 30), end: at(4, 8, 15),
+                        isAllDay: false, category: "neutral"),
+            AgendaEvent(id: "demo-workshop", title: "All-day strategy workshop", start: at(4, 9, 0), end: at(4, 16, 30),
+                        isAllDay: false, category: "demanding_event",
+                        why: "A long cognitive day increases the value of a predictable bedtime and protected wind-down."),
+            AgendaEvent(id: "demo-friends-drinks", title: "Night market with friends", start: at(4, 22, 0), end: at(5, 0, 30),
+                        isAllDay: false, category: "social_jetlag",
+                        why: "A late social plan shifts sleep timing later; EMBER highlights the tradeoff before it happens."),
+            AgendaEvent(id: "demo-early-train", title: "Early high-speed train", start: at(5, 6, 40), end: at(5, 8, 0),
+                        isAllDay: false, category: "early_obligation",
+                        why: "An early departure pulls the practical wake time forward and reduces sleep opportunity."),
+            AgendaEvent(id: "demo-swim", title: "Evening swim", start: at(5, 18, 30), end: at(5, 19, 15),
+                        isAllDay: false, category: "neutral"),
+            AgendaEvent(id: "demo-brunch", title: "Weekend brunch", start: at(6, 11, 0), end: at(6, 12, 30),
+                        isAllDay: false, category: "neutral"),
+            AgendaEvent(id: "demo-movie", title: "Late movie", start: at(6, 21, 45), end: at(7, 0, 10),
+                        isAllDay: false, category: "social_jetlag",
+                        why: "Late entertainment can push the sleep midpoint later, so the app keeps the next morning's wake anchor explicit."),
+        ]
+    }
+
     private func loadCategoryOverrides() -> [String: String] {
         UserDefaults.standard.dictionary(forKey: Keys.calendarOverrides) as? [String: String] ?? [:]
     }
@@ -286,6 +401,9 @@ final class DataStore: ObservableObject {
         let tsts = sleepLogs.suffix(7).map { $0.tstMin }
         if !tsts.isEmpty { parts.append("average sleep over the last \(tsts.count) nights is \(fmtDur(tsts.reduce(0,+) / tsts.count))") }
         if let hrv = lastNightHRV { parts.append("last night's HRV was \(Int(hrv)) ms") }
+        if let dev = wristTempDeviationC, abs(dev) >= 0.3 {
+            parts.append("wrist temperature ran \(dev > 0 ? "+" : "")\(String(format: "%.1f", dev))°C vs baseline (a relative wrist skin measure, not core temperature — can rise with illness, alcohol, or menstrual phase)")
+        }
         if let debt = sleepDebtMin(), debt >= 30 { parts.append("carrying roughly \(fmtDur(debt)) of sleep debt this week") }
         return parts.joined(separator: "; ") + "."
     }
@@ -371,21 +489,31 @@ final class DataStore: ObservableObject {
         cbtiPrescriptions = seed.cbtiPrescriptions
         calendarEvents = seed.calendarEvents
         adaptations = seed.adaptations
-        agendaEvents = seed.calendarEvents.compactMap { e in
+        baseAgenda = seed.calendarEvents.compactMap { e in
             guard let s = Self.parseSeedTs(e.startTs), let en = Self.parseSeedTs(e.endTs) else { return nil }
             return AgendaEvent(id: e.id, title: e.title, start: s, end: en, isAllDay: false,
                                category: RestAlgorithms.normalizedCategory(e.type),
                                why: seed.adaptations.first { $0.eventId == e.id }?.whyItAffectsSleep)
         }
+        applyAgenda()
         regularity = SleepScience.report(logs: seed.sleepLogs)
         pod = seed.pod
         liveHasData = false
         healthLastNightTST = nil
         lastNightHR = nil
         lastNightHRV = nil
+        lastNightWristTempC = nil
+        wristTempBaselineC = nil
         recentHealthNights = []
         todayEnergyDay = nil
         aiError = nil
+    }
+
+    /// Last night's sleeping wrist temperature relative to the recent baseline
+    /// (°C). Relative only — wrist skin, not core; nil until a baseline exists.
+    var wristTempDeviationC: Double? {
+        guard let last = lastNightWristTempC, let base = wristTempBaselineC else { return nil }
+        return ((last - base) * 10).rounded() / 10
     }
 
     // Derived: current thermal prescription (latest block)

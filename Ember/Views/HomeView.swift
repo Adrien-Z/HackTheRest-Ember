@@ -6,14 +6,38 @@ struct HomeView: View {
     @EnvironmentObject var health: HealthManager
     @EnvironmentObject var calendar: CalendarService
     @EnvironmentObject var wakeAlarm: WakeAlarmService
+    @EnvironmentObject var sleepClimate: SleepClimateService
     @State private var showSettings = false
     @State private var showAccount = false
     @State private var insightPage = 0
+    @State private var quickToolPage = 0
+
+    private var effectiveTonightPlan: DayPlan? {
+        if let plan = store.tonightPlan, Calendar.current.isDateInToday(plan.day) {
+            return plan
+        }
+        let offset = store.currentThermalRx?.prescribedOffsetMin ?? store.user.currentOffsetMin
+        return DayPlanner.build(
+            nightOf: Calendar.current.startOfDay(for: Date()),
+            user: store.user,
+            warmingOffsetMin: offset,
+            prepBufferMin: wakeAlarm.prepBufferMin,
+            events: store.agendaEvents.filter { !$0.isAllDay })
+    }
 
     var tonightWarmTime: String {
-        // bed time minus current offset
-        guard let rx = store.currentThermalRx else { return "—" }
-        return offsetTime(from: store.user.targetBedTime, minusMinutes: rx.prescribedOffsetMin)
+        guard let plan = effectiveTonightPlan else { return "—" }
+        return clock(plan.warmingStart)
+    }
+
+    private var tonightBedTime: String {
+        guard let plan = effectiveTonightPlan else { return store.user.targetBedTime }
+        return clock(plan.bed)
+    }
+
+    private var tonightWakeTime: String {
+        guard let plan = effectiveTonightPlan else { return store.user.targetWakeTime }
+        return clock(plan.wake)
     }
 
     var body: some View {
@@ -23,6 +47,7 @@ struct HomeView: View {
                     VStack(spacing: 18) {
                         greeting
                         tonightCard
+                        sleepClimateCard
                         healthInsightCarousel
                         quickToolEntrances
                     }
@@ -49,12 +74,14 @@ struct HomeView: View {
                     .environmentObject(health)
                     .environmentObject(calendar)
                     .environmentObject(wakeAlarm)
+                    .environmentObject(sleepClimate)
             }
             .sheet(isPresented: $showAccount) {
                 AccountView()
             }
             .task {
                 await store.refreshTodayEnergy(health: health)
+                await sleepClimate.refreshIfAuthorized(store: store)
                 while !Task.isCancelled {
                     try? await Task.sleep(nanoseconds: 15 * 60 * 1_000_000_000)
                     guard !Task.isCancelled else { return }
@@ -85,12 +112,12 @@ struct HomeView: View {
             HStack(spacing: 0) {
                 MetricStat(value: tonightWarmTime, label: "start warming", color: Theme.ember)
                 Divider().frame(height: 40).overlay(Color.white.opacity(0.1))
-                MetricStat(value: store.user.targetBedTime, label: "lights out")
+                MetricStat(value: tonightBedTime, label: "lights out")
                 Divider().frame(height: 40).overlay(Color.white.opacity(0.1))
-                MetricStat(value: store.user.targetWakeTime, label: "wake")
+                MetricStat(value: tonightWakeTime, label: "wake")
             }
             if let rx = store.currentThermalRx {
-                Text("\(store.user.warmingMethod) · offset \(rx.prescribedOffsetMin) min before bed")
+                Text(warmingPlanSummary(rx: rx))
                     .font(.footnote).foregroundStyle(.secondary)
             }
             if WakeAlarmService.isSupported {
@@ -107,6 +134,67 @@ struct HomeView: View {
         )
     }
 
+    @ViewBuilder private var sleepClimateCard: some View {
+        if SleepClimateService.isSupported {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: "thermometer.medium")
+                        .foregroundStyle(sleepClimateColor)
+                        .font(.title3)
+                        .frame(width: 28, height: 28)
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text("Sleep climate").font(.headline)
+                            Spacer()
+                            if let snapshot = store.sleepClimate {
+                                Tag(text: snapshot.risk.label, color: sleepClimateColor)
+                            }
+                        }
+                        if let snapshot = store.sleepClimate {
+                            Text(snapshot.summary).font(.footnote).foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Text(snapshot.guidance).font(.footnote)
+                                .fixedSize(horizontal: false, vertical: true)
+                            if let wrist = store.wristTempDeviationC, wrist >= 0.3, snapshot.risk != .low {
+                                Text("Your wrist temperature is also running +\(String(format: "%.1f", wrist))C vs baseline. That is a relative watch signal, not core temperature.")
+                                    .font(.caption2).foregroundStyle(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        } else {
+                            Text("Check tonight's heat and humidity before bed. Weather changes advice only; it does not move your body-clock curve.")
+                                .font(.footnote).foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        if let error = sleepClimate.lastError {
+                            Text(error).font(.caption2).foregroundStyle(.orange)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+                Button {
+                    Task { await sleepClimate.refresh(store: store) }
+                } label: {
+                    Label(store.sleepClimate == nil ? "Check tonight's forecast" : "Refresh forecast",
+                          systemImage: sleepClimate.isLoading ? "clock" : "location.fill")
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Theme.ember)
+                .controlSize(.small)
+                .disabled(sleepClimate.isLoading)
+            }
+            .emberCard(14)
+        }
+    }
+
+    private var sleepClimateColor: Color {
+        switch store.sleepClimate?.risk {
+        case .low: return Theme.mint
+        case .moderate: return Theme.amber
+        case .high: return Theme.ember
+        case nil: return Theme.cool
+        }
+    }
+
     /// Set / move / remove the AlarmKit wake alarm from the plan's wake time.
     @ViewBuilder private var wakeAlarmRow: some View {
         HStack(spacing: 10) {
@@ -114,9 +202,9 @@ struct HomeView: View {
             if let t = wakeAlarm.scheduledTime {
                 Text("Wake alarm · \(t)").font(.footnote)
                 Spacer()
-                if t != store.user.targetWakeTime {
-                    Button("Move to \(store.user.targetWakeTime)") {
-                        Task { await wakeAlarm.setWakeAlarm(at: store.user.targetWakeTime) }
+                if t != tonightWakeTime {
+                    Button("Move to \(tonightWakeTime)") {
+                        Task { await wakeAlarm.setWakeAlarm(at: tonightWakeTime) }
                     }
                     .buttonStyle(.borderedProminent).tint(Theme.ember).controlSize(.small)
                 }
@@ -125,8 +213,8 @@ struct HomeView: View {
             } else {
                 Text("Wake alarm").font(.footnote).foregroundStyle(.secondary)
                 Spacer()
-                Button("Set for \(store.user.targetWakeTime)") {
-                    Task { await wakeAlarm.setWakeAlarm(at: store.user.targetWakeTime) }
+                Button("Set for \(tonightWakeTime)") {
+                    Task { await wakeAlarm.setWakeAlarm(at: tonightWakeTime) }
                 }
                 .buttonStyle(.borderedProminent).tint(Theme.ember).controlSize(.small)
             }
@@ -180,29 +268,77 @@ struct HomeView: View {
     }
 
     private var quickToolEntrances: some View {
-        HStack(spacing: 14) {
-            NavigationLink {
-                WhiteNoiseView()
-            } label: {
-                QuickToolCard(
-                    title: "Flowing Stream",
-                    subtitle: "Gentle water sounds",
-                    icon: "water.waves",
-                    tint: Theme.cool)
-            }
-            .buttonStyle(.plain)
+        VStack(spacing: 10) {
+            GeometryReader { proxy in
+                let pageInset: CGFloat = 8
+                let cardSide = (proxy.size.width - 14 - pageInset * 2) / 2
+                TabView(selection: $quickToolPage) {
+                    HStack(spacing: 14) {
+                        NavigationLink {
+                            WhiteNoiseView()
+                        } label: {
+                            QuickToolCard(
+                                title: "Flowing Stream",
+                                subtitle: "Gentle water sounds",
+                                icon: "water.waves",
+                                tint: Theme.cool)
+                        }
+                        .buttonStyle(.plain)
+                        .frame(width: cardSide, height: cardSide)
+                        breathingToolCard(side: cardSide)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, pageInset)
+                    .tag(0)
 
-            NavigationLink {
-                BreathingTrainingView()
-            } label: {
-                QuickToolCard(
-                    title: "Breathing",
-                    subtitle: "4 · 4 · 6 reset",
-                    icon: "wind",
-                    tint: Theme.mint)
+                    HStack(spacing: 14) {
+                        NavigationLink {
+                            WindDownRitualsView()
+                        } label: {
+                            QuickToolCard(
+                                title: "Rituals",
+                                subtitle: "Warmth, tea, stretch",
+                                icon: "hands.sparkles.fill",
+                                tint: Theme.ember)
+                        }
+                        .buttonStyle(.plain)
+                        .frame(width: cardSide, height: cardSide)
+                        Color.clear.frame(width: cardSide, height: cardSide)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, pageInset)
+                    .tag(1)
+                }
+                .tabViewStyle(.page(indexDisplayMode: .never))
+                .frame(height: cardSide)
             }
-            .buttonStyle(.plain)
+            .aspectRatio(2.04, contentMode: .fit)
+
+            HStack(spacing: 7) {
+                ForEach(0..<2, id: \.self) { index in
+                    Capsule()
+                        .fill(index == quickToolPage ? Theme.ember : Color.white.opacity(0.22))
+                        .frame(width: index == quickToolPage ? 18 : 6, height: 6)
+                        .animation(.easeInOut(duration: 0.2), value: quickToolPage)
+                }
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Quick tools page \(quickToolPage + 1) of 2")
         }
+    }
+
+    private func breathingToolCard(side: CGFloat) -> some View {
+        NavigationLink {
+            BreathingTrainingView()
+        } label: {
+            QuickToolCard(
+                title: "Breathing",
+                subtitle: "4 · 4 · 6 reset",
+                icon: "wind",
+                tint: Theme.mint)
+        }
+        .buttonStyle(.plain)
+        .frame(width: side, height: side)
     }
 
     private var sleepScoreCard: some View {
@@ -429,6 +565,22 @@ struct HomeView: View {
             }
             Spacer(); Image(systemName: "chevron.right").foregroundStyle(.secondary).font(.caption)
         }.emberCard(14)
+    }
+
+    private func warmingPlanSummary(rx: ThermalPrescription) -> String {
+        guard let plan = effectiveTonightPlan else {
+            return "\(store.user.warmingMethod) · offset \(rx.prescribedOffsetMin) min before bed"
+        }
+        let actualOffset = max(0, Int(plan.bed.timeIntervalSince(plan.warmingStart) / 60))
+        if actualOffset == rx.prescribedOffsetMin {
+            return "\(store.user.warmingMethod) · offset \(rx.prescribedOffsetMin) min before bed"
+        }
+        return "\(store.user.warmingMethod) · tonight adjusted to \(actualOffset) min before bed around calendar events"
+    }
+
+    private func clock(_ date: Date) -> String {
+        let c = Calendar.current.dateComponents([.hour, .minute], from: date)
+        return String(format: "%02d:%02d", c.hour ?? 0, c.minute ?? 0)
     }
 }
 

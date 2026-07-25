@@ -10,6 +10,7 @@ struct OnboardingView: View {
     @EnvironmentObject var health: HealthManager
     @EnvironmentObject var calendar: CalendarService
     @EnvironmentObject var wakeAlarm: WakeAlarmService
+    @EnvironmentObject var sleepClimate: SleepClimateService
     @EnvironmentObject var auth: AuthViewModel
 
     @State private var page = 0
@@ -17,10 +18,11 @@ struct OnboardingView: View {
     // Local mirrors of permission state so checkmarks animate immediately.
     @State private var healthGranted = false
     @State private var calendarGranted = false
+    @State private var climateGranted = false
     @State private var alarmGranted = false
     @State private var notifGranted = false
 
-    private let lastPage = 6
+    private let lastPage = 7
 
     var body: some View {
         ZStack {
@@ -36,7 +38,8 @@ struct OnboardingView: View {
                     case 2: philosophy
                     case 3: healthPage
                     case 4: calendarPage
-                    case 5: alarmPage
+                    case 5: climatePage
+                    case 6: alarmPage
                     default: readyPage
                     }
                 }
@@ -88,7 +91,7 @@ struct OnboardingView: View {
         switch page {
         case 0: return "Begin"
         case lastPage: return "Enter EMBER"
-        case 3, 4, 5: return anyGranted(for: page) ? "Continue" : "Maybe later"
+        case 3, 4, 5, 6: return anyGranted(for: page) ? "Continue" : "Maybe later"
         default: return "Continue"
         }
     }
@@ -97,7 +100,8 @@ struct OnboardingView: View {
         switch p {
         case 3: return healthGranted
         case 4: return calendarGranted
-        case 5: return alarmGranted || notifGranted
+        case 5: return climateGranted
+        case 6: return alarmGranted || notifGranted
         default: return true
         }
     }
@@ -148,11 +152,11 @@ struct OnboardingView: View {
         OnboardScaffold {
             OnboardGlyph("gauge.with.dots.needle.bottom.50percent")
             OnboardTitle("Two rest engines,\ntuned to you.")
-            OnboardBody("EMBER runs evidence-based protocols and adapts them from your own data every week:")
+            OnboardBody("EMBER runs evidence-based protocols and adapts them from your own data every week. Built from sleep science, shaped by warmth rituals.")
             VStack(spacing: 12) {
                 EngineBullet(icon: "thermometer.sun.fill", tint: Theme.ember,
                              title: "Thermal Wind-Down",
-                             text: "Times a warming ritual to drop your core temperature so you fall asleep faster.")
+                             text: "Times a foot bath, warm towel, or other warming ritual to support the core-temperature drop before sleep.")
                 EngineBullet(icon: "bed.double.fill", tint: Theme.cool,
                              title: "Sleep Efficiency (CBT-I)",
                              text: "The gold-standard therapy for insomnia — consolidates broken sleep, then widens it.")
@@ -192,6 +196,23 @@ struct OnboardingView: View {
                 await calendar.requestAccess()
                 calendarGranted = calendar.isAuthorized
                 return calendarGranted
+            }
+        }
+    }
+
+    private var climatePage: some View {
+        OnboardScaffold {
+            OnboardGlyph("thermometer.medium", tint: Theme.cool)
+            OnboardTitle("Plan around\ntonight's room climate.")
+            OnboardBody("EMBER can use your approximate location to check overnight heat and humidity. Weather only changes practical wind-down advice — it does not diagnose you or move your circadian rhythm.")
+            PermissionButton(title: "Check Sleep Climate", tint: Theme.cool, granted: climateGranted) {
+                await sleepClimate.refresh(store: store)
+                climateGranted = store.sleepClimate != nil
+                return climateGranted
+            }
+            if let err = sleepClimate.lastError {
+                Text(err).font(.caption2).foregroundStyle(.orange)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }

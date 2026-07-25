@@ -11,8 +11,14 @@ struct CoachView: View {
     /// hardcoded event names.
     private var suggestions: [String] {
         var items = ["Why did my time-in-bed change?"]
-        if let rx = store.currentThermalRx {
+        if let plan = store.tonightPlan, Calendar.current.isDateInToday(plan.day) {
+            items.append("Why start warming at \(clock(plan.warmingStart)) tonight?")
+        } else if let rx = store.currentThermalRx {
             items.append("Why start warming \(rx.prescribedOffsetMin) min before bed?")
+        }
+        items.append("Can I drink tea tonight?")
+        if let climate = store.sleepClimate, climate.risk != .low {
+            items.append("How should I adjust for tonight's heat?")
         }
         for event in store.calendarEvents.prefix(2) {
             items.append("How should I sleep around \"\(event.title)\"?")
@@ -65,6 +71,11 @@ struct CoachView: View {
                 await send(q)
             }
         }
+    }
+
+    private func clock(_ date: Date) -> String {
+        let c = Calendar.current.dateComponents([.hour, .minute], from: date)
+        return String(format: "%02d:%02d", c.hour ?? 0, c.minute ?? 0)
     }
 
     private var suggestionBar: some View {

@@ -134,10 +134,11 @@ private struct InsightHero: View {
     let caption: String
     let symbol: String
     let tint: Color
+    @EnvironmentObject private var store: DataStore
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
-            InsightMascot(style: mascotStyle, tint: tint)
+            InsightMascot(style: mascotStyle, decoration: selectedDecoration, tint: tint)
                 .offset(x: 8, y: -12)
                 .allowsHitTesting(false)
             HStack(spacing: 18) {
@@ -161,6 +162,12 @@ private struct InsightHero: View {
 
     private var mascotStyle: InsightMascot.Style {
         title == "Day energy" ? .battery : .blanket
+    }
+
+    private var selectedDecoration: BoxDecoration? {
+        store.boxSpace.decorations.first {
+            $0.id == store.boxSpace.currentUser.decorationID
+        }
     }
 }
 

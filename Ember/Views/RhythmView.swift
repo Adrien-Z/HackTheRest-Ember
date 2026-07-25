@@ -46,7 +46,7 @@ struct RhythmView: View {
 
     private var sriCard: some View {
         ZStack(alignment: .topTrailing) {
-            InsightMascot(style: .rhythm, tint: Theme.ember)
+            InsightMascot(style: .rhythm, decoration: selectedDecoration, tint: Theme.ember)
                 .offset(x: 6, y: 18)
                 .allowsHitTesting(false)
             VStack(spacing: 14) {
@@ -62,6 +62,12 @@ struct RhythmView: View {
             }
         }
         .emberCard()
+    }
+
+    private var selectedDecoration: BoxDecoration? {
+        store.boxSpace.decorations.first {
+            $0.id == store.boxSpace.currentUser.decorationID
+        }
     }
 
     private var sriBand: (label: String, color: Color, blurb: String) {

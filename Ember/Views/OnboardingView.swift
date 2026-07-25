@@ -158,8 +158,8 @@ struct OnboardingView: View {
                              title: "Thermal Wind-Down",
                              text: "Times a foot bath, warm towel, or other warming ritual to support the core-temperature drop before sleep.")
                 EngineBullet(icon: "bed.double.fill", tint: Theme.cool,
-                             title: "Sleep Efficiency (CBT-I)",
-                             text: "The gold-standard therapy for insomnia — consolidates broken sleep, then widens it.")
+                             title: "Sleep Window Training",
+                             text: "Builds a steady wake time and a realistic sleep window, then widens it as sleep gets more solid.")
             }
             OnboardBody("Whether you take an hour to drift off or wrestle with insomnia, the plan learns and adjusts to fit you.")
         }

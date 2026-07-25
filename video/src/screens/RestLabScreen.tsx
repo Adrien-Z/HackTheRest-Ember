@@ -12,9 +12,9 @@ import {
 } from '../components/Phone';
 import {
   BedDouble,
+  Bubbles,
   Chevron,
   HandsSparkles,
-  Sparkles,
   Thermometer,
   Waves,
   Wind,
@@ -83,16 +83,19 @@ const SmallCard: React.FC<{
   subtitle: string;
   tint: string;
   icon: React.ReactNode;
-}> = ({title, subtitle, tint, icon}) => (
+  pressed?: boolean;
+}> = ({title, subtitle, tint, icon, pressed}) => (
   <div
     style={{
-      minHeight: 124,
-      padding: 13,
+      minHeight: 132,
+      padding: 15,
       borderRadius: 18,
       background: 'rgba(28,31,43,0.96)',
       border: `0.8px solid ${alpha(tint, 0.18)}`,
       display: 'flex',
       flexDirection: 'column',
+      transform: `scale(${pressed ? 0.96 : 1})`,
+      boxShadow: pressed ? `0 0 44px ${alpha(tint, 0.4)}` : 'none',
     }}
   >
     <div
@@ -109,18 +112,19 @@ const SmallCard: React.FC<{
       {icon}
     </div>
     <div style={{flex: 1, minHeight: 6}} />
-    <div style={{fontSize: 15.5, fontWeight: 600}}>{title}</div>
-    <div style={{fontSize: 11, color: Theme.secondaryText, marginTop: 2, lineHeight: 1.25}}>
+    <div style={{fontSize: 17, fontWeight: 600}}>{title}</div>
+    <div style={{fontSize: 12, color: Theme.secondaryText, marginTop: 2, lineHeight: 1.25}}>
       {subtitle}
     </div>
   </div>
 );
 
 /** `RestLabView` — pick the lever: two protocols on top, wind-down tools below. */
-export const RestLabScreen: React.FC<{reveal?: number; pressWarm?: boolean}> = ({
-  reveal = 1,
-  pressWarm = false,
-}) => {
+export const RestLabScreen: React.FC<{
+  reveal?: number;
+  pressWarm?: boolean;
+  pressSigh?: boolean;
+}> = ({reveal = 1, pressWarm = false, pressSigh = false}) => {
   const rise = (i: number) => {
     const t = interpolate(reveal, [i * 0.11, i * 0.11 + 0.48], [0, 1], {
       extrapolateLeft: 'clamp',
@@ -182,46 +186,37 @@ export const RestLabScreen: React.FC<{reveal?: number; pressWarm?: boolean}> = (
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 1fr 1fr',
-              gap: 10,
+              gridTemplateColumns: '1fr 1fr',
+              gap: 11,
               marginTop: 10,
             }}
           >
             <SmallCard
               title="Rituals"
-              subtitle="Warmth, tea"
+              subtitle="Warmth, tea, stretch"
               tint={Theme.ember}
-              icon={<HandsSparkles size={19} color={Theme.ember} />}
+              icon={<HandsSparkles size={20} color={Theme.ember} />}
             />
             <SmallCard
-              title="Breathing"
-              subtitle="4 · 4 · 6"
+              title="Cyclic Sigh"
+              subtitle="Double inhale, long exhale"
               tint={Theme.mint}
-              icon={<Wind size={19} color={Theme.mint} />}
+              icon={<Wind size={20} color={Theme.mint} />}
+              pressed={pressSigh}
             />
             <SmallCard
               title="Sounds"
-              subtitle="Rain, stream"
+              subtitle="Stream, rain, birds"
               tint={Theme.cool}
-              icon={<Waves size={19} color={Theme.cool} />}
+              icon={<Waves size={20} color={Theme.cool} />}
+            />
+            <SmallCard
+              title="Mind Dump"
+              subtitle="Park worries for tomorrow"
+              tint={Theme.amber}
+              icon={<Bubbles size={20} color={Theme.amber} />}
             />
           </div>
-        </div>
-
-        {/* AskCoachLink */}
-        <div style={{...rise(3), marginTop: 14}}>
-          <Card
-            padding={12}
-            style={{display: 'flex', alignItems: 'center', gap: 10}}
-          >
-            <Img
-              src={staticFile('skins/moon_blue.png')}
-              style={{width: 28, height: 28, objectFit: 'contain'}}
-            />
-            <span style={{fontSize: 15, fontWeight: 600}}>Ask the coach</span>
-            <div style={{flex: 1}} />
-            <Chevron size={12} color={Theme.secondaryText} />
-          </Card>
         </div>
       </div>
 

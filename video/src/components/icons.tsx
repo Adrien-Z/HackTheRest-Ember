@@ -215,6 +215,172 @@ export const ArrowUpDown: React.FC<P> = (p) => (
   </Svg>
 );
 
+/** `waveform.path.ecg` — the Daily Rhythm glyph. */
+export const Waveform: React.FC<P> = (p) => (
+  <Svg {...p}>
+    <path
+      d="M1.8 12h4.4l2.2-6.6 3.4 13.2 2.6-8.4 1.8 1.8h5.4"
+      fill="none"
+      strokeWidth={1.9}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+/** `bubble.left.and.text.bubble.right.fill` — the Mind Dump glyph. */
+export const Bubbles: React.FC<P> = (p) => (
+  <Svg {...p}>
+    <path
+      d="M2.2 8.4a4 4 0 0 1 4-4h6.2a4 4 0 0 1 4 4v2.4a4 4 0 0 1-4 4H7.4l-3.6 2.8v-2.9a4 4 0 0 1-1.6-3.2Z"
+      strokeWidth={0}
+    />
+    <path
+      d="M21.8 14.4a3.4 3.4 0 0 0-3.4-3.4h-.5v.2a5.4 5.4 0 0 1-5.4 5.4h-1.1a3.4 3.4 0 0 0 3.2 2.3h3.6l3 2.3v-2.5a3.4 3.4 0 0 0 .6-4.3Z"
+      strokeWidth={0}
+    />
+  </Svg>
+);
+
+export const Gift: React.FC<P> = (p) => (
+  <Svg {...p}>
+    <rect x="2.8" y="9.6" width="18.4" height="11.6" rx="2.4" strokeWidth={0} />
+    <rect x="1.8" y="5.6" width="20.4" height="4.8" rx="1.8" strokeWidth={0} />
+    <path d="M12 5.6V21.2" stroke="#0F121C" strokeWidth={2.2} />
+    <path
+      d="M12 5.6S10.6 2 8.2 2a2.2 2.2 0 0 0 0 4.4M12 5.6S13.4 2 15.8 2a2.2 2.2 0 0 1 0 4.4"
+      fill="none"
+      strokeWidth={1.9}
+      strokeLinecap="round"
+    />
+  </Svg>
+);
+
+export const Ticket: React.FC<P> = (p) => (
+  <Svg {...p}>
+    <path
+      d="M3 7.4a1.8 1.8 0 0 1 1.8-1.8h14.4A1.8 1.8 0 0 1 21 7.4v2.4a2.2 2.2 0 0 0 0 4.4v2.4a1.8 1.8 0 0 1-1.8 1.8H4.8A1.8 1.8 0 0 1 3 16.6v-2.4a2.2 2.2 0 0 0 0-4.4Z"
+      strokeWidth={0}
+    />
+    <path d="M14.4 6.6v10.8" stroke="#0F121C" strokeWidth={1.8} strokeDasharray="2.4 2.4" />
+  </Svg>
+);
+
+export const Lock: React.FC<P> = (p) => (
+  <Svg {...p}>
+    <rect x="4.4" y="10.4" width="15.2" height="10.6" rx="2.6" strokeWidth={0} />
+    <path d="M7.8 10.4V7.6a4.2 4.2 0 1 1 8.4 0v2.8" fill="none" strokeWidth={2} strokeLinecap="round" />
+  </Svg>
+);
+
+export const Tag: React.FC<P> = (p) => (
+  <Svg {...p}>
+    <path
+      d="M11.2 2.6H20a1.4 1.4 0 0 1 1.4 1.4v8.8a1.6 1.6 0 0 1-.5 1.1l-7.4 7.4a1.5 1.5 0 0 1-2.1 0l-8.6-8.6a1.5 1.5 0 0 1 0-2.1l7.4-7.4a1.6 1.6 0 0 1 1-.6Z"
+      strokeWidth={0}
+    />
+    <circle cx="16.6" cy="7.4" r="1.9" fill="#0F121C" stroke="none" />
+  </Svg>
+);
+
+export const Layers: React.FC<P> = (p) => (
+  <Svg {...p}>
+    <path d="M12 2.6 22 7.4 12 12.2 2 7.4Z" strokeWidth={0} />
+    <path d="M2 12.2 12 17l10-4.8M2 16.6 12 21.4l10-4.8" fill="none" strokeWidth={1.9} strokeLinejoin="round" />
+  </Svg>
+);
+
+export const BellBadge: React.FC<P> = (p) => (
+  <Svg {...p}>
+    <path
+      d="M5.4 16.6V10a6.6 6.6 0 0 1 13.2 0v6.6l1.4 2H4Z"
+      strokeWidth={0}
+    />
+    <path d="M9.6 20a2.6 2.6 0 0 0 4.8 0" fill="none" strokeWidth={1.9} strokeLinecap="round" />
+    <circle cx="18.4" cy="5.4" r="3.4" fill="#FABF4A" stroke="#0F121C" strokeWidth={1.4} />
+  </Svg>
+);
+
+export const Mic: React.FC<P> = (p) => (
+  <Svg {...p}>
+    <rect x="8.8" y="2.2" width="6.4" height="12" rx="3.2" strokeWidth={0} />
+    <path d="M5 11.4a7 7 0 0 0 14 0M12 18.4v3.4" fill="none" strokeWidth={1.9} strokeLinecap="round" />
+  </Svg>
+);
+
+export const CheckCircle: React.FC<P> = (p) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="9.4" strokeWidth={0} />
+    <path d="M7.8 12.2 10.6 15l5.6-5.8" stroke="#0F121C" strokeWidth={2.1} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+  </Svg>
+);
+
+export const Rotate: React.FC<P> = (p) => (
+  <Svg {...p}>
+    <path
+      d="M20.2 12a8.2 8.2 0 1 1-2.6-6"
+      fill="none"
+      strokeWidth={2}
+      strokeLinecap="round"
+    />
+    <path d="M18.6 2.6v4h-4" fill="none" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+  </Svg>
+);
+
+export const Humidity: React.FC<P> = (p) => (
+  <Svg {...p}>
+    <path d="M12 2.6c3.6 4.4 6.2 7.7 6.2 10.6a6.2 6.2 0 1 1-12.4 0C5.8 10.3 8.4 7 12 2.6Z" strokeWidth={0} />
+  </Svg>
+);
+
+export const Sunrise: React.FC<P> = (p) => (
+  <Svg {...p}>
+    <path d="M7 15.6a5 5 0 0 1 10 0Z" strokeWidth={0} />
+    <path d="M1.8 18.8h20.4" strokeWidth={2} strokeLinecap="round" />
+    <path d="M12 2.2v3.6M12 2.2 9.4 4.8M12 2.2l2.6 2.6M3.6 9.4l1.8 1.8M20.4 9.4l-1.8 1.8" fill="none" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" />
+  </Svg>
+);
+
+export const MoonZzz: React.FC<P> = (p) => (
+  <Svg {...p}>
+    <path d="M13.8 5a7.6 7.6 0 1 0 5 9A6.2 6.2 0 0 1 13.8 5Z" strokeWidth={0} />
+    <path d="M15.6 2.2h4l-4 4h4" fill="none" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+  </Svg>
+);
+
+export const ArrowDown: React.FC<P> = (p) => (
+  <Svg {...p}>
+    <path d="M12 3.6v13M12 16.6 7.4 12M12 16.6 16.6 12M5.4 20.4h13.2" fill="none" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+  </Svg>
+);
+
+export const Plus: React.FC<P> = (p) => (
+  <Svg {...p}>
+    <path d="M12 4.6v14.8M4.6 12h14.8" fill="none" strokeWidth={2.2} strokeLinecap="round" />
+  </Svg>
+);
+
+export const ArrowUp: React.FC<P> = (p) => (
+  <Svg {...p}>
+    <path d="M12 20.4V7.4M12 7.4 7.4 12M12 7.4 16.6 12" fill="none" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+  </Svg>
+);
+
+export const Cup: React.FC<P> = (p) => (
+  <Svg {...p}>
+    <path d="M3.6 6.6h13.2v7a5 5 0 0 1-5 5H8.6a5 5 0 0 1-5-5Z" strokeWidth={0} />
+    <path d="M16.8 8.6h1.8a2.8 2.8 0 0 1 0 5.6h-1.8" fill="none" strokeWidth={1.8} />
+    <path d="M2.6 21.4h15.2" strokeWidth={1.9} strokeLinecap="round" />
+  </Svg>
+);
+
+export const Figure: React.FC<P> = (p) => (
+  <Svg {...p}>
+    <circle cx="12" cy="4.2" r="2.3" strokeWidth={0} />
+    <path d="M12 7.6v6.2M12 13.8 8.6 21M12 13.8 15.4 21M6.4 10h11.2" fill="none" strokeWidth={2} strokeLinecap="round" />
+  </Svg>
+);
+
 export const Info: React.FC<P> = (p) => (
   <Svg {...p}>
     <circle cx="12" cy="12" r="9.2" fill="none" strokeWidth={1.8} />

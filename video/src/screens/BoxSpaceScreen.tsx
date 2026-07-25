@@ -2,7 +2,7 @@ import React from 'react';
 import {Img, interpolate, spring, staticFile} from 'remotion';
 import {Theme, SF, SFRounded, alpha, mapGradient} from '../theme';
 import {StatusBar, TabBar} from '../components/Phone';
-import {ChartBar, MoonStars, PersonClock, PersonPlus} from '../components/icons';
+import {Gift, PersonClock, PersonPlus} from '../components/icons';
 
 type Person = {
   name: string;
@@ -14,18 +14,33 @@ type Person = {
   me?: boolean;
 };
 
-/** Ring layout of the box world — the current user sits at the centre. */
+/**
+ * `BoxWorldLayout` — the current user holds the centre, friends fill the first
+ * ring at six evenly spaced slots starting at twelve o'clock.
+ */
+// Slightly elliptical: the tiles are taller than they are wide, so the ring is
+// stretched vertically to keep the labels from touching.
+const RING_X = 132;
+const RING_Y = 158;
+const slot = (i: number) => {
+  const angle = -Math.PI / 2 + i * ((2 * Math.PI) / 6);
+  return {x: Math.cos(angle) * RING_X, y: Math.sin(angle) * RING_Y};
+};
+
 export const PEOPLE: Person[] = [
-  {name: 'Alex', skin: 'moon_blue', pts: 2140, rank: 2, x: 0, y: -10, me: true},
-  {name: 'Priya', skin: 'royal_blue', pts: 2480, rank: 1, x: -104, y: -122},
-  {name: 'Sam', skin: 'cozy_blue', pts: 1970, rank: 3, x: 106, y: -104},
-  {name: 'Noor', skin: 'dream_blue', pts: 1815, rank: 4, x: -110, y: 110},
-  {name: 'Théo', skin: 'happy_blue', pts: 1640, rank: 5, x: 112, y: 124},
-  {name: 'Mira', skin: 'sleepy_blue', pts: 1495, rank: 6, x: -4, y: 212},
-  {name: 'Jonas', skin: 'story_blue', pts: 1320, rank: 7, x: -142, y: 8},
-  {name: 'Wren', skin: 'beauty_blue', pts: 1180, rank: 8, x: 140, y: -14},
+  {name: 'Alex', skin: 'moon_blue', pts: 2140, rank: 2, x: 0, y: 0, me: true},
+  {name: 'Priya', skin: 'royal_blue', pts: 2480, rank: 1, ...slot(0)},
+  {name: 'Sam', skin: 'cozy_blue', pts: 1970, rank: 3, ...slot(1)},
+  {name: 'Théo', skin: 'happy_blue', pts: 1640, rank: 5, ...slot(2)},
+  {name: 'Mira', skin: 'sleepy_blue', pts: 1495, rank: 6, ...slot(3)},
+  {name: 'Noor', skin: 'dream_blue', pts: 1815, rank: 4, ...slot(4)},
+  {name: 'Jonas', skin: 'story_blue', pts: 1320, rank: 7, ...slot(5)},
 ];
 
+/**
+ * `BoxResident` — the box, then the name and monthly points stacked under it.
+ * The current user's tile sits on a soft blue plate and glows.
+ */
 const BoxAvatar: React.FC<{
   person: Person;
   pop: number;
@@ -37,54 +52,80 @@ const BoxAvatar: React.FC<{
       left: `calc(50% + ${person.x}px)`,
       top: `calc(50% + ${person.y}px)`,
       transform: `translate(-50%, -50%) scale(${pop}) translateY(${bob}px)`,
+      width: 112,
+      padding: '6px 0',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
+      gap: 5,
       opacity: Math.min(1, pop * 1.6),
+      borderRadius: 16,
+      background: person.me ? alpha(Theme.boxBlue, 0.08) : 'transparent',
     }}
   >
-    <div
-      style={{
-        position: 'absolute',
-        width: 78,
-        height: 26,
-        borderRadius: '50%',
-        background: 'rgba(0,0,0,0.32)',
-        filter: 'blur(9px)',
-        top: 62,
-      }}
-    />
     <Img
       src={staticFile(`skins/${person.skin}.png`)}
       style={{
-        width: person.me ? 96 : 76,
-        height: person.me ? 96 : 76,
+        width: person.me ? 100 : 90,
+        height: person.me ? 100 : 90,
         objectFit: 'contain',
         filter: person.me
-          ? `drop-shadow(0 0 22px ${alpha(Theme.ember, 0.55)})`
-          : 'drop-shadow(0 6px 12px rgba(0,0,0,0.4))',
+          ? `drop-shadow(0 5px 12px ${alpha(Theme.boxBlue, 0.55)})`
+          : 'drop-shadow(0 5px 5px rgba(0,0,0,0.25))',
       }}
     />
+    <div style={{fontSize: 12, fontWeight: 600, lineHeight: 1}}>
+      {person.me ? 'You' : person.name}
+    </div>
+    <div style={{fontSize: 11, color: Theme.secondaryText, lineHeight: 1}}>
+      {person.pts.toLocaleString('en-US')} pts
+    </div>
+  </div>
+);
+
+/**
+ * `BoxMapFloor` — a faint 54pt grid with dashed concentric rings marking each
+ * ring of the world, and a dot at the centre.
+ */
+const MapFloor: React.FC = () => (
+  <div style={{position: 'absolute', inset: 0, overflow: 'hidden'}}>
+    <svg width="100%" height="100%">
+      <defs>
+        <pattern id="floorGrid" width="54" height="54" patternUnits="userSpaceOnUse">
+          <path d="M54 0H0V54" fill="none" stroke="rgba(255,255,255,0.025)" strokeWidth="1" />
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#floorGrid)" />
+    </svg>
+    {[150, 300].map((r, i) => (
+      <div
+        key={r}
+        style={{
+          position: 'absolute',
+          left: '50%',
+          top: '50%',
+          width: r * 2,
+          height: r * 2,
+          marginLeft: -r,
+          marginTop: -r,
+          borderRadius: '50%',
+          border: `1px dashed ${alpha(Theme.boxBlue, i === 0 ? 0.1 : 0.055)}`,
+        }}
+      />
+    ))}
     <div
       style={{
-        marginTop: -4,
-        padding: '3px 9px',
-        borderRadius: 100,
-        background: person.me ? Theme.ember : 'rgba(18,22,34,0.82)',
-        border: `0.75px solid ${person.me ? alpha(Theme.ember, 0.9) : 'rgba(255,255,255,0.14)'}`,
-        fontSize: 10,
-        fontWeight: 700,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 5,
-        whiteSpace: 'nowrap',
+        position: 'absolute',
+        left: '50%',
+        top: '50%',
+        width: 22,
+        height: 22,
+        marginLeft: -11,
+        marginTop: -11,
+        borderRadius: '50%',
+        background: alpha(Theme.boxBlue, 0.08),
       }}
-    >
-      {person.me ? 'ME' : person.name}
-      <span style={{color: person.me ? 'rgba(255,255,255,0.8)' : Theme.tertiaryText, fontWeight: 600}}>
-        {person.pts.toLocaleString('en-US')}
-      </span>
-    </div>
+    />
   </div>
 );
 
@@ -102,7 +143,16 @@ export const BoxSpaceScreen: React.FC<{
   panX?: number;
   panY?: number;
   fps?: number;
-}> = ({frame = 0, pop = 1, points = 2140, panX = 0, panY = 0, fps = 30}) => (
+  rewardsPressed?: boolean;
+}> = ({
+  frame = 0,
+  pop = 1,
+  points = 2140,
+  panX = 0,
+  panY = 0,
+  fps = 30,
+  rewardsPressed = false,
+}) => (
   <div style={{position: 'absolute', inset: 0, fontFamily: SF, background: mapGradient}}>
     {/* world */}
     <div
@@ -112,23 +162,7 @@ export const BoxSpaceScreen: React.FC<{
         transform: `translate(${panX}px, ${panY}px)`,
       }}
     >
-      {/* ring guides */}
-      {[150, 250].map((r) => (
-        <div
-          key={r}
-          style={{
-            position: 'absolute',
-            left: '50%',
-            top: '50%',
-            width: r * 2,
-            height: r * 2,
-            marginLeft: -r,
-            marginTop: -r,
-            borderRadius: '50%',
-            border: '1px solid rgba(255,255,255,0.045)',
-          }}
-        />
-      ))}
+      <MapFloor />
       <div
         style={{
           position: 'absolute',
@@ -254,6 +288,29 @@ export const BoxSpaceScreen: React.FC<{
         }}
       >
         <PersonPlus size={16} color="#fff" />
+      </div>
+      <div style={{flex: 1}} />
+      {/* Blue Box rewards */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          padding: '8px 12px',
+          borderRadius: 100,
+          background: rewardsPressed ? Theme.boxBlue : 'rgba(30,34,48,0.72)',
+          backdropFilter: 'blur(20px)',
+          border: `0.75px solid ${
+            rewardsPressed ? alpha(Theme.boxBlue, 0.9) : 'rgba(255,255,255,0.13)'
+          }`,
+          boxShadow: rewardsPressed ? `0 0 34px ${alpha(Theme.boxBlue, 0.6)}` : 'none',
+          fontSize: 12.5,
+          fontWeight: 600,
+          transform: `scale(${rewardsPressed ? 0.95 : 1})`,
+        }}
+      >
+        <Gift size={14} color="#fff" />
+        Rewards
       </div>
     </div>
 

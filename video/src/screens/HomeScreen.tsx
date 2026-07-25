@@ -10,7 +10,15 @@ import {
   StatusBar,
   TabBar,
 } from '../components/Phone';
-import {Alarm, BedDouble, CheckSeal, Gear, MoonStars, Sparkles} from '../components/icons';
+import {
+  Alarm,
+  BedDouble,
+  CheckSeal,
+  Gear,
+  MoonZzz,
+  Waveform,
+} from '../components/icons';
+import {DailyRhythmView} from './DailyRhythm';
 
 /** Sleep Score sparkline — mirrors `InsightTrendChart`. */
 const TrendChart: React.FC<{progress: number; tint: string}> = ({progress, tint}) => {
@@ -59,8 +67,60 @@ const TrendChart: React.FC<{progress: number; tint: string}> = ({progress, tint}
 };
 
 /**
+ * `InsightMascot` — the translucent box vignette that bobs in the top-right of
+ * each health insight card. `blanket` is the Sleep Score variant: a tilted
+ * blanket, the user's box, and a moon.zzz.
+ */
+const InsightMascot: React.FC<{
+  style: 'blanket';
+  tint: string;
+  /** -1..1 bob phase. */
+  bob: number;
+}> = ({tint, bob}) => (
+  <div
+    style={{
+      position: 'absolute',
+      top: -6,
+      right: -8,
+      width: 92,
+      height: 96,
+      opacity: 0.42,
+      transform: `translateY(${bob * 3}px)`,
+      pointerEvents: 'none',
+    }}
+  >
+    <div
+      style={{
+        position: 'absolute',
+        left: 7,
+        top: 48,
+        width: 78,
+        height: 42,
+        borderRadius: 18,
+        background: alpha(tint, 0.2),
+        transform: 'rotate(-6deg)',
+      }}
+    />
+    <Img
+      src={staticFile('skins/moon_blue.png')}
+      style={{
+        position: 'absolute',
+        left: 17,
+        top: 17,
+        width: 58,
+        height: 58,
+        objectFit: 'contain',
+      }}
+    />
+    <div style={{position: 'absolute', left: 66, top: 14}}>
+      <MoonZzz size={15} color={tint} />
+    </div>
+  </div>
+);
+
+/**
  * `HomeView` — greeting, Tonight's Plan card with the three time metrics and
- * the AlarmKit wake row, and the Apple Health insight carousel.
+ * the AlarmKit wake toggle, and the Apple Health insight carousel.
  */
 export const HomeScreen: React.FC<{
   /** 0-1 reveal of the card stack. */
@@ -72,7 +132,22 @@ export const HomeScreen: React.FC<{
   /** counts up the Sleep Score. */
   score?: number;
   alarmSet?: boolean;
-}> = ({reveal = 1, chart = 1, scroll = 0, score = 87, alarmSet = false}) => {
+  /** -1..1, drives the insight mascot's slow bob. */
+  bob?: number;
+  /** 0-1 sweep of the Daily Rhythm curve. */
+  rhythm?: number;
+  /** shows the weather refresh indicator in the card header. */
+  updating?: boolean;
+}> = ({
+  reveal = 1,
+  chart = 1,
+  scroll = 0,
+  score = 87,
+  alarmSet = false,
+  bob = 0,
+  rhythm = 1,
+  updating = false,
+}) => {
   const rise = (i: number) => {
     const t = interpolate(reveal, [i * 0.12, i * 0.12 + 0.5], [0, 1], {
       extrapolateLeft: 'clamp',
@@ -122,64 +197,65 @@ export const HomeScreen: React.FC<{
         <div style={rise(1)}>
           <Card style={{background: `rgba(31,110,255,0.09)`, marginBottom: 18}}>
             <div style={{display: 'flex', alignItems: 'center', gap: 7, marginBottom: 14}}>
-              <MoonStars size={17} color="#fff" />
-              <span style={{fontSize: 17, fontWeight: 600}}>Tonight&apos;s plan</span>
+              <Waveform size={17} color="#fff" />
+              <span style={{fontSize: 17, fontWeight: 600}}>Daily Rhythm</span>
+              <div style={{flex: 1}} />
+              {updating ? (
+                <div style={{display: 'flex', alignItems: 'center', gap: 5}}>
+                  <div
+                    style={{
+                      width: 11,
+                      height: 11,
+                      borderRadius: 6,
+                      border: `1.6px solid rgba(255,255,255,0.22)`,
+                      borderTopColor: Theme.secondaryText,
+                    }}
+                  />
+                  <span style={{fontSize: 11, color: 'rgba(255,255,255,0.61)'}}>Updating</span>
+                </div>
+              ) : null}
             </div>
-            <div style={{display: 'flex', alignItems: 'center'}}>
-              <MetricStat value="21:50" label="start warming" color={Theme.ember} />
-              <div style={{width: 1, height: 40, background: 'rgba(255,255,255,0.1)'}} />
-              <MetricStat value="22:50" label="lights out" />
-              <div style={{width: 1, height: 40, background: 'rgba(255,255,255,0.1)'}} />
-              <MetricStat value="06:45" label="wake" />
-            </div>
-            <div
-              style={{
-                fontSize: 13,
-                color: Theme.secondaryText,
-                marginTop: 12,
-                lineHeight: 1.4,
-              }}
-            >
-              A 12 minute foot bath at 21:50 drops your core temperature right as
-              lights go out. Your 08:00 meeting moved wake 15 min earlier.
-            </div>
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 7,
-                marginTop: 12,
-                padding: '6px 12px 6px 6px',
-                borderRadius: 100,
-                background: alpha(Theme.ember, 0.26),
-                fontSize: 12,
-                fontWeight: 600,
-              }}
-            >
-              <Img
-                src={staticFile('skins/moon_blue.png')}
-                style={{width: 22, height: 22, objectFit: 'contain'}}
-              />
-              Ask Rest Coach
-            </div>
+            <DailyRhythmView draw={rhythm} />
             <div style={{height: 1, background: 'rgba(255,255,255,0.08)', margin: '14px 0 12px'}} />
+            {/* wake alarm is a Toggle now, kept in sync with AlarmKit */}
             <div style={{display: 'flex', alignItems: 'center', gap: 10}}>
-              <Alarm size={17} color={Theme.amber} />
-              <span style={{fontSize: 13, color: alarmSet ? '#fff' : Theme.secondaryText}}>
-                {alarmSet ? 'Wake alarm · 06:45' : 'Wake alarm'}
-              </span>
+              <div style={{width: 24, display: 'flex', justifyContent: 'center'}}>
+                <Alarm size={17} color={Theme.amber} />
+              </div>
+              <div>
+                <div style={{fontSize: 13, fontWeight: 600}}>Wake alarm</div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: Theme.secondaryText,
+                    marginTop: 2,
+                    fontVariantNumeric: 'tabular-nums',
+                  }}
+                >
+                  06:45
+                </div>
+              </div>
               <div style={{flex: 1}} />
               <div
                 style={{
-                  padding: '5px 12px',
-                  borderRadius: 8,
-                  background: alarmSet ? 'rgba(255,255,255,0.12)' : Theme.ember,
-                  fontSize: 12,
-                  fontWeight: 600,
-                  transition: 'none',
+                  width: 51,
+                  height: 31,
+                  borderRadius: 16,
+                  background: alarmSet ? Theme.ember : 'rgba(255,255,255,0.16)',
+                  padding: 2,
+                  display: 'flex',
+                  justifyContent: alarmSet ? 'flex-end' : 'flex-start',
                 }}
               >
-                {alarmSet ? 'Remove' : 'Set for 06:45'}
+                <div
+                  style={{
+                    width: 27,
+                    height: 27,
+                    borderRadius: 14,
+                    background: '#fff',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.28)',
+                  }}
+                />
               </div>
             </div>
           </Card>
@@ -187,27 +263,20 @@ export const HomeScreen: React.FC<{
 
         {/* Apple Health insight carousel — page 1: Sleep Score */}
         <div style={rise(2)}>
-          <Card style={{height: 276}}>
-            <div style={{display: 'flex', alignItems: 'flex-start', marginBottom: 10}}>
-              <div>
-                <div style={{fontSize: 17, fontWeight: 600}}>Sleep Score</div>
-                <div style={{fontSize: 13, color: Theme.secondaryText, marginTop: 1}}>
-                  Your overnight recovery
-                </div>
-              </div>
-              <div style={{flex: 1}} />
-              <div
-                style={{
-                  width: 30,
-                  height: 30,
-                  borderRadius: 8,
-                  background: alpha(Theme.cool, 0.16),
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <BedDouble size={16} color={Theme.cool} />
+          <Card
+            padding={20}
+            style={{
+              height: 288,
+              position: 'relative',
+              overflow: 'hidden',
+              border: `0.9px solid ${alpha(Theme.cool, 0.28)}`,
+            }}
+          >
+            <InsightMascot style="blanket" tint={Theme.cool} bob={bob} />
+            <div style={{marginBottom: 12, position: 'relative'}}>
+              <div style={{fontSize: 17, fontWeight: 600}}>Sleep Score</div>
+              <div style={{fontSize: 12, color: Theme.secondaryText, marginTop: 2}}>
+                Your overnight recovery
               </div>
             </div>
             <div style={{display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6}}>

@@ -8,7 +8,17 @@ import {AgendaScreen} from '../screens/AgendaScreen';
 import {RestLabScreen, WarmUpDetailScreen} from '../screens/RestLabScreen';
 import {BoxSpaceScreen, DecorationStudioScreen} from '../screens/BoxSpaceScreen';
 import {CoachAvatar, CoachScreen} from '../screens/CoachScreen';
-import {ChartBar, CheckSeal, Thermometer} from '../components/icons';
+import {CyclicSighScreen, MindDumpScreen, sighPhase} from '../screens/WindDownScreens';
+import {RewardsScreen} from '../screens/RewardsScreen';
+import {
+  BellBadge,
+  ChartBar,
+  CheckSeal,
+  Mic,
+  Thermometer,
+  Ticket,
+  Wind,
+} from '../components/icons';
 
 const PHONE_SCALE = 1.04;
 
@@ -32,17 +42,25 @@ export const BeatTonight: React.FC<{duration: number}> = ({duration}) => {
 
   const rise = spring({frame: frame - 2, fps, config: {damping: 17, mass: 1.1}});
   const reveal = interpolate(frame, [14, 96], [0, 1], {extrapolateRight: 'clamp'});
-  const scroll = interpolate(frame, [196, 286], [0, 120], {
+  // The Daily Rhythm curve sweeps sunrise to sunrise, then the page scrolls on
+  // to the Sleep Score.
+  const rhythm = interpolate(frame, [34, 164], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  // The card is on screen from the start, so it settles early rather than
-  // sitting at zero until the scroll reaches it.
-  const chart = interpolate(frame, [58, 148], [0, 1], {
+  // The page only has ~130pt of travel below the fold, so it scrolls to the
+  // end rather than parking the Sleep Score card at the top.
+  const scroll = interpolate(frame, [226, 306], [0, 132], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  const score = interpolate(frame, [58, 136], [0, 87], {
+  // The Sleep Score card is partly on screen from the start, so it settles
+  // early instead of sitting at zero until the scroll reaches it.
+  const chart = interpolate(frame, [76, 166], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const score = interpolate(frame, [76, 154], [0, 87], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -55,11 +73,11 @@ export const BeatTonight: React.FC<{duration: number}> = ({duration}) => {
 
       <div style={{position: 'absolute', left: 132, top: 312}}>
         <Caption
-          headline="Tonight’s plan, ready before you are."
-          sub="Start warming, lights out, wake. Set from your own sleep, not a generic bedtime."
+          headline="Your whole day, one curve."
+          sub="Sunrise, sunset, lights out, wake. Drawn from the real daylight where you are."
           frame={frame}
           start={22}
-          out={176}
+          out={210}
         />
       </div>
       <div style={{position: 'absolute', left: 132, top: 312}}>
@@ -67,7 +85,7 @@ export const BeatTonight: React.FC<{duration: number}> = ({duration}) => {
           headline="It learns every night."
           sub="We read your sleep from Apple Health. Our own science-backed engine scores the night and moves tomorrow’s plan."
           frame={frame}
-          start={182}
+          start={216}
         />
       </div>
 
@@ -86,12 +104,15 @@ export const BeatTonight: React.FC<{duration: number}> = ({duration}) => {
             chart={chart}
             scroll={scroll}
             score={score}
-            alarmSet={frame > 150}
+            alarmSet={frame > 178}
+            bob={Math.sin(frame / 23)}
+            rhythm={rhythm}
+            updating={frame < 40}
           />
         </Phone>
       </div>
 
-      <FloatingCard frame={frame} start={252} x={800} y={158} tint={Theme.cool}>
+      <FloatingCard frame={frame} start={332} x={800} y={158} tint={Theme.cool}>
         <div style={{display: 'flex', alignItems: 'center', gap: 20}}>
           <div
             style={{
@@ -115,7 +136,7 @@ export const BeatTonight: React.FC<{duration: number}> = ({duration}) => {
         </div>
       </FloatingCard>
 
-      <FloatingCard frame={frame} start={292} x={738} y={742} tint={Theme.mint}>
+      <FloatingCard frame={frame} start={366} x={738} y={742} tint={Theme.mint}>
         <div style={{display: 'flex', alignItems: 'center', gap: 15}}>
           <CheckSeal size={32} color={Theme.mint} />
           <div style={{fontSize: 27, fontWeight: 600}}>91% of time in bed, asleep</div>
@@ -317,7 +338,8 @@ export const BeatRestLab: React.FC<{duration: number}> = ({duration}) => {
 
   // iOS push: the detail slides over from the right, the list parks behind it.
   const push = spring({frame: frame - 142, fps, config: {damping: 20, mass: 1}});
-  const chart = interpolate(frame, [188, 288], [0, 1], {
+  // Draw as the pushed screen lands, so the chart is never on screen empty.
+  const chart = interpolate(frame, [156, 252], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -422,6 +444,177 @@ export const BeatRestLab: React.FC<{duration: number}> = ({duration}) => {
   );
 };
 
+// ── Beat 3b · Cyclic Sigh ───────────────────────────────────────────────────
+
+export const BeatCyclicSigh: React.FC<{duration: number}> = ({duration}) => {
+  const frame = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  const fade = useSceneFade(duration);
+
+  const push = spring({frame: frame - 2, fps, config: {damping: 20, mass: 1}});
+  // Enter mid-session so the ring already reads as progress, then breathe on.
+  const elapsed = 96 + Math.max(0, frame - 12) / fps;
+  const p = sighPhase(elapsed);
+  const drift = Math.sin(frame / 90) * 7;
+
+  return (
+    <div style={{position: 'absolute', inset: 0, opacity: fade}}>
+      <StageBackground />
+      <Starfield count={70} opacity={0.45} speed={0.4} />
+      {/* the stage breathes with the exercise */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: `radial-gradient(880px 620px at 68% 50%, ${alpha(
+            p.tint,
+            0.06 + p.breathFill * 0.1,
+          )} 0%, transparent 64%)`,
+        }}
+      />
+
+      <div style={{position: 'absolute', left: 132, top: 306}}>
+        <Caption
+          headline="Five minutes to downshift."
+          sub="The cyclic sigh: two inhales, one long exhale. Your box rises and falls with you, so there is nothing to count."
+          frame={frame}
+          start={30}
+          width={760}
+        />
+      </div>
+
+      <div
+        style={{
+          position: 'absolute',
+          left: 1386,
+          top: 540,
+          transform: `translate(-50%, -50%) translateX(${(1 - push) * 540}px) translateY(${drift}px)`,
+          opacity: push,
+        }}
+      >
+        <Phone scale={PHONE_SCALE}>
+          <CyclicSighScreen elapsed={elapsed} />
+        </Phone>
+      </div>
+
+      <FloatingCard frame={frame} start={186} x={742} y={716} tint={p.tint}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 20}}>
+          <Wind size={34} color={p.tint} />
+          <div>
+            <div style={{fontSize: 27, fontWeight: 600}}>{p.title}</div>
+            <div style={{fontSize: 21, color: Theme.secondaryText, marginTop: 6}}>
+              {p.subtitle}
+            </div>
+          </div>
+        </div>
+      </FloatingCard>
+
+      <Vignette />
+    </div>
+  );
+};
+
+// ── Beat 3c · Mind Dump ─────────────────────────────────────────────────────
+
+export const BeatMindDump: React.FC<{duration: number}> = ({duration}) => {
+  const frame = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  const fade = useSceneFade(duration);
+
+  const push = spring({frame: frame - 2, fps, config: {damping: 20, mass: 1}});
+  // Dictate, send, sort, then the reminder card lands.
+  const recording = frame > 26 && frame < 130;
+  const dictate = interpolate(frame, [34, 126], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const sent = frame > 142;
+  const thinking = frame > 142 && frame < 182;
+  const stream = interpolate(frame, [184, 252], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const reminder = interpolate(frame, [226, 286], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const drift = Math.sin(frame / 90) * 7;
+
+  return (
+    <div style={{position: 'absolute', inset: 0, opacity: fade}}>
+      <StageBackground />
+      <Starfield count={70} opacity={0.45} speed={0.4} />
+
+      <div style={{position: 'absolute', left: 132, top: 306}}>
+        <Caption
+          headline="Say it out loud. Then let it go."
+          sub="Talk or type whatever is circling. EMBER sorts it and holds it for you."
+          frame={frame}
+          start={28}
+          out={196}
+          width={760}
+        />
+      </div>
+      <div style={{position: 'absolute', left: 132, top: 306}}>
+        <Caption
+          headline="It hands it back in the morning."
+          sub="Everything worth keeping becomes a 09:30 reminder, so none of it has to stay in your head tonight."
+          frame={frame}
+          start={202}
+          width={760}
+        />
+      </div>
+
+      <div
+        style={{
+          position: 'absolute',
+          left: 1386,
+          top: 540,
+          transform: `translate(-50%, -50%) translateX(${(1 - push) * 540}px) translateY(${drift}px)`,
+          opacity: push,
+        }}
+      >
+        <Phone scale={PHONE_SCALE}>
+          <MindDumpScreen
+            dictate={dictate}
+            recording={recording}
+            sent={sent}
+            thinking={thinking}
+            stream={stream}
+            reminder={reminder}
+          />
+        </Phone>
+      </div>
+
+      <FloatingCard frame={frame} start={60} out={168} x={742} y={716} tint={Theme.mint}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 20}}>
+          <Mic size={32} color={Theme.mint} />
+          <div>
+            <div style={{fontSize: 27, fontWeight: 600}}>Just speak</div>
+            <div style={{fontSize: 21, color: Theme.secondaryText, marginTop: 6}}>
+              No typing in a dark room
+            </div>
+          </div>
+        </div>
+      </FloatingCard>
+
+      <FloatingCard frame={frame} start={286} x={742} y={716} tint={Theme.amber}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 20}}>
+          <BellBadge size={32} color={Theme.amber} />
+          <div>
+            <div style={{fontSize: 27, fontWeight: 600}}>Tomorrow, 09:30</div>
+            <div style={{fontSize: 21, color: Theme.secondaryText, marginTop: 6}}>
+              Two things, waiting for you
+            </div>
+          </div>
+        </div>
+      </FloatingCard>
+
+      <Vignette />
+    </div>
+  );
+};
+
 // ── Beat 4 · Box Space ──────────────────────────────────────────────────────
 
 export const BeatBoxSpace: React.FC<{duration: number}> = ({duration}) => {
@@ -507,7 +700,7 @@ export const BeatBoxSpace: React.FC<{duration: number}> = ({duration}) => {
         </Phone>
       </div>
 
-      <FloatingCard frame={frame} start={96} out={172} x={172} y={712} tint={Theme.boxBlue}>
+      <FloatingCard frame={frame} start={96} out={162} x={172} y={712} tint={Theme.boxBlue}>
         <div style={{display: 'flex', alignItems: 'center', gap: 24}}>
           <div>
             <div
@@ -526,6 +719,87 @@ export const BeatBoxSpace: React.FC<{duration: number}> = ({duration}) => {
           </div>
           <div style={{width: 1, height: 68, background: 'rgba(255,255,255,0.16)'}} />
           <div style={{fontSize: 27, fontWeight: 600}}>Rank #2</div>
+        </div>
+      </FloatingCard>
+
+      <Vignette />
+    </div>
+  );
+};
+
+// ── Beat 5 · Blue Box rewards ───────────────────────────────────────────────
+
+export const BeatRewards: React.FC<{duration: number}> = ({duration}) => {
+  const frame = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  const fade = useSceneFade(duration);
+
+  const rise = spring({frame: frame - 2, fps, config: {damping: 18, mass: 1.1}});
+  const points = interpolate(frame, [26, 96], [0, 1180], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const reveal = interpolate(frame, [36, 132], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const claimed = frame > 202 ? 'n2-pillow' : null;
+  const drift = Math.sin(frame / 90) * 7;
+
+  return (
+    <div style={{position: 'absolute', inset: 0, opacity: fade}}>
+      <div style={{position: 'absolute', inset: 0, background: mapGradient}} />
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: `radial-gradient(1000px 700px at 52% 50%, ${alpha(Theme.boxBlue, 0.26)} 0%, transparent 66%)`,
+        }}
+      />
+      <Starfield count={60} opacity={0.35} speed={0.4} />
+
+      <div style={{position: 'absolute', left: 132, top: 318}}>
+        <Caption
+          headline="Sleep well. Get actual things."
+          sub="Rest Points are not only for skins. Spend them on real Blue Box perks: pillow coupons, mattress discounts, a warmth ritual kit."
+          frame={frame}
+          start={30}
+          width={740}
+        />
+      </div>
+
+      <div
+        style={{
+          position: 'absolute',
+          left: 1386,
+          top: 540,
+          transform: `translate(-50%, -50%) translateY(${(1 - rise) * 200 + drift}px)`,
+          opacity: rise,
+        }}
+      >
+        <Phone scale={PHONE_SCALE}>
+          <RewardsScreen points={points} reveal={reveal} claimed={claimed} />
+        </Phone>
+      </div>
+
+      <FloatingCard frame={frame} start={216} x={742} y={716} tint={Theme.mint}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 20}}>
+          <Ticket size={32} color={Theme.mint} />
+          <div>
+            <div style={{fontSize: 27, fontWeight: 600}}>Claimed with 250 pts</div>
+            <div
+              style={{
+                fontSize: 22,
+                color: Theme.mint,
+                marginTop: 8,
+                fontFamily: SFRounded,
+                fontWeight: 700,
+                letterSpacing: 1,
+              }}
+            >
+              N2-EMBER-15
+            </div>
+          </div>
         </div>
       </FloatingCard>
 

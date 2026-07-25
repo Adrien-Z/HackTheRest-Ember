@@ -1,8 +1,34 @@
 import React from 'react';
-import {interpolate} from 'remotion';
+import {Img, staticFile} from 'remotion';
 import {Theme, SF, alpha} from '../theme';
 import {NavBar, NightBackground, StatusBar, TabBar} from '../components/Phone';
-import {ArrowUpDown, Info, MoonStars, Thermometer} from '../components/icons';
+import {
+  ArrowUpDown,
+  BedDouble,
+  Info,
+  MoonStars,
+  MoonZzz,
+  Rotate,
+  Sunrise,
+  Thermometer,
+} from '../components/icons';
+
+/** `PlanMetric` — a small icon + monospaced value in the plan banner. */
+const PlanMetric: React.FC<{icon: React.ReactNode; value: string}> = ({icon, value}) => (
+  <div style={{display: 'flex', alignItems: 'center', gap: 5, width: 64}}>
+    {icon}
+    <span
+      style={{
+        fontSize: 11,
+        fontWeight: 600,
+        color: Theme.secondaryText,
+        fontVariantNumeric: 'tabular-nums',
+      }}
+    >
+      {value}
+    </span>
+  </div>
+);
 
 // ── CircadianModel, ported from Ember/Algorithms/CircadianModel.swift ────────
 const WAKE_CONTROL: [number, number][] = [
@@ -225,51 +251,88 @@ export const AgendaScreen: React.FC<{
         ))}
       </div>
 
-      {/* plan banner */}
+      {/* PlanBanner: the user's own box, the night's headline, and its metrics */}
       <div
         style={{
           position: 'absolute',
-          top: 175,
+          top: 172,
           left: 12,
           right: 12,
           zIndex: 20,
           display: 'flex',
-          alignItems: 'center',
-          gap: 9,
-          padding: '9px 12px',
-          borderRadius: 14,
-          background: alpha(Theme.ember, 0.13),
-          border: `1px solid ${alpha(Theme.ember, 0.3)}`,
+          alignItems: 'flex-start',
+          gap: 12,
+          padding: 12,
+          borderRadius: 20,
+          background: 'rgba(28,31,43,0.96)',
+          border: `1px solid ${Theme.hairline}`,
         }}
       >
-        <MoonStars size={15} color={Theme.ember} />
-        <div style={{fontSize: 12.5, fontWeight: 600}}>
-          {hhmm(bedT)} → {hhmm(wakeT)}
+        <Img
+          src={staticFile('skins/moon_blue.png')}
+          style={{width: 46, height: 52, objectFit: 'contain', flexShrink: 0}}
+        />
+        <div style={{flex: 1}}>
+          <div style={{display: 'flex', alignItems: 'center'}}>
+            <span style={{fontSize: 13.5, fontWeight: 600}}>A protected night</span>
+            <div style={{flex: 1}} />
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: 0.4,
+                color: Theme.mint,
+                padding: '3px 8px',
+                borderRadius: 100,
+                background: alpha(Theme.mint, 0.18),
+              }}
+            >
+              LOW SQUEEZE
+            </span>
+          </div>
+          <div style={{fontSize: 11.5, color: Theme.secondaryText, marginTop: 5, lineHeight: 1.35}}>
+            Gym at 18:30 raises your core temperature, so warm-up shifts later and
+            the window still holds.
+          </div>
+          <div style={{display: 'flex', gap: 10, marginTop: 7, alignItems: 'center'}}>
+            <PlanMetric icon={<BedDouble size={12} color={Theme.secondaryText} />} value={hhmm(bedT)} />
+            <PlanMetric icon={<Sunrise size={12} color={Theme.secondaryText} />} value={hhmm(wakeT)} />
+            <PlanMetric icon={<MoonZzz size={12} color={Theme.secondaryText} />} value="7h 55m" />
+            <div style={{flex: 1}} />
+            <Rotate size={13} color={Theme.secondaryText} />
+          </div>
         </div>
-        <div style={{fontSize: 11.5, color: Theme.secondaryText}}>
-          · warm-up {hhmm(warmStart)}
-        </div>
-        <div style={{flex: 1}} />
-        <div
-          style={{
-            fontSize: 10,
-            fontWeight: 700,
-            letterSpacing: 0.4,
-            color: Theme.amber,
-            padding: '3px 8px',
-            borderRadius: 100,
-            background: alpha(Theme.amber, 0.18),
-          }}
-        >
-          ADAPTED
-        </div>
+      </div>
+
+      {/* sleep climate badge, from the live forecast */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 284,
+          right: 16,
+          zIndex: 25,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 5,
+          padding: '5px 10px',
+          borderRadius: 100,
+          background: 'rgba(20,24,36,0.88)',
+          border: `0.8px solid ${alpha(Theme.amber, 0.45)}`,
+          boxShadow: `0 4px 8px ${alpha(Theme.amber, 0.18)}`,
+          fontSize: 11,
+          fontWeight: 700,
+          color: Theme.amber,
+        }}
+      >
+        <Thermometer size={12} color={Theme.amber} />
+        Warm night
       </div>
 
       {/* day canvas */}
       <div
         style={{
           position: 'absolute',
-          top: 226,
+          top: 272,
           left: 12,
           width: CANVAS_W,
           bottom: 96,

@@ -352,8 +352,8 @@ struct HomeView: View {
                 InsightTrendChart(points: insights.sleepHistory, tint: Theme.cool)
                 HStack(spacing: 8) {
                     InsightPill(icon: "bed.double.fill", text: fmtDur(insights.latest.tstMin))
-                    InsightPill(icon: "waveform.path.ecg", text: "\(Int(insights.latest.sePct))% efficient")
-                    InsightPill(icon: "moon.zzz.fill", text: "\(Int(insights.latest.wasoMin))m awake")
+                    InsightPill(icon: "checkmark.seal.fill", text: "\(Int(insights.latest.sePct))%")
+                    InsightPill(icon: "arrow.right", text: "night quality")
                 }
             } else {
                 HealthInsightEmptyState(
@@ -375,9 +375,9 @@ struct HomeView: View {
                 DailyEnergyChart(points: energy.points, tint: Theme.mint)
                 HStack(spacing: 8) {
                     InsightPill(icon: energy.trendIcon, text: energy.trendLabel)
-                    InsightPill(icon: "clock", text: "Today")
+                    InsightPill(icon: "bolt.heart.fill", text: "day estimate")
                     Spacer()
-                    Text("Estimate")
+                    Text("Open")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                 }
@@ -403,7 +403,7 @@ struct HomeView: View {
                     message: "Log a few more nights to see how consistent your sleep timing is.",
                     icon: "waveform.path.ecg")
             } else {
-                scoreHeader(value: Int(rhythm.sri ?? 0), label: "regularity index", tint: Theme.ember)
+                scoreHeader(value: Int(rhythm.sri ?? 0), label: "timing score", tint: Theme.ember)
                 Chart(Array(rhythm.midpoints.enumerated()), id: \.offset) { index, point in
                     LineMark(
                         x: .value("Night", index),
@@ -769,6 +769,15 @@ struct DailyEnergyPoint: Identifiable {
     var id: Date { time }
 }
 
+struct HealthInsightFactor: Identifiable {
+    let id: String
+    let label: String
+    let value: String
+    let score: Int
+    let symbol: String
+    let tint: Color
+}
+
 /// A transparent, non-medical energy balance. It starts each day at a neutral
 /// level, charges during detected sleep/rest, and drains with exertion and
 /// elevated heart rate relative to the person's own recent baseline.
@@ -844,6 +853,8 @@ struct HealthInsightSnapshot {
     let bodyBattery: Int
     let sleepHistory: [HealthInsightPoint]
     let batteryHistory: [HealthInsightPoint]
+    let sleepFactors: [HealthInsightFactor]
+    let bodyFactors: [HealthInsightFactor]
     let hrvLabel: String
     let heartRateLabel: String
     let recoveryLabel: String
@@ -855,7 +866,8 @@ struct HealthInsightSnapshot {
         let hrvBaseline = Self.median(baselineNights.compactMap(\.hrvMs))
         let heartRateBaseline = Self.median(baselineNights.compactMap(\.avgHRBpm))
 
-        sleepScore = Self.sleepScore(for: latest, hrvBaseline: hrvBaseline)
+        let latestSleepComponents = Self.sleepComponents(for: latest, hrvBaseline: hrvBaseline)
+        sleepScore = Self.weightedScore(latestSleepComponents)
         bodyBattery = Self.bodyBattery(
             sleepScore: sleepScore,
             night: latest,
@@ -884,9 +896,22 @@ struct HealthInsightSnapshot {
         hrvLabel = latest.hrvMs.map { "HRV \(Int($0)) ms" } ?? "HRV unavailable"
         heartRateLabel = latest.avgHRBpm.map { "HR \(Int($0)) bpm" } ?? "HR unavailable"
         recoveryLabel = "\(sleepScore >= 75 ? "well recovered" : "take it easy")"
+        sleepFactors = [
+            HealthInsightFactor(id: "duration", label: "Duration", value: fmtDur(latest.tstMin), score: Int(latestSleepComponents[0].value.rounded()), symbol: "bed.double.fill", tint: Theme.cool),
+            HealthInsightFactor(id: "efficiency", label: "Efficiency", value: "\(Int(latest.sePct.rounded()))%", score: Int(latestSleepComponents[1].value.rounded()), symbol: "checkmark.seal.fill", tint: Theme.mint),
+            HealthInsightFactor(id: "onset", label: "Onset", value: "\(Int(latest.solMin.rounded()))m", score: Int(latestSleepComponents[2].value.rounded()), symbol: "timer", tint: Theme.amber),
+            HealthInsightFactor(id: "awake", label: "Awake", value: "\(latest.wasoMin)m", score: Int(latestSleepComponents[3].value.rounded()), symbol: "moon.zzz.fill", tint: Theme.ember)
+        ] + (latestSleepComponents.count > 4 ? [
+            HealthInsightFactor(id: "hrv", label: "HRV", value: latest.hrvMs.map { "\(Int($0)) ms" } ?? "—", score: Int(latestSleepComponents[4].value.rounded()), symbol: "waveform.path.ecg", tint: Theme.cool)
+        ] : [])
+        bodyFactors = Self.bodyFactors(sleepScore: sleepScore, night: latest, hrvBaseline: hrvBaseline, heartRateBaseline: heartRateBaseline)
     }
 
     private static func sleepScore(for night: NightSample, hrvBaseline: Double?) -> Int {
+        weightedScore(sleepComponents(for: night, hrvBaseline: hrvBaseline))
+    }
+
+    private static func sleepComponents(for night: NightSample, hrvBaseline: Double?) -> [(value: Double, weight: Double)] {
         var components: [(value: Double, weight: Double)] = [
             (clamp(Double(night.tstMin) / 480 * 100), 0.34),
             (rangeScore(night.sePct, low: 72, high: 94), 0.26),
@@ -896,6 +921,10 @@ struct HealthInsightSnapshot {
         if let hrv = night.hrvMs, let baseline = hrvBaseline, baseline > 0 {
             components.append((rangeScore(hrv / baseline, low: 0.68, high: 1.12), 0.10))
         }
+        return components
+    }
+
+    private static func weightedScore(_ components: [(value: Double, weight: Double)]) -> Int {
         let totalWeight = components.reduce(0) { $0 + $1.weight }
         return Int((components.reduce(0) { $0 + $1.value * $1.weight } / totalWeight).rounded())
     }
@@ -915,6 +944,26 @@ struct HealthInsightSnapshot {
         }
         let totalWeight = components.reduce(0) { $0 + $1.weight }
         return Int((components.reduce(0) { $0 + $1.value * $1.weight } / totalWeight).rounded())
+    }
+
+    private static func bodyFactors(
+        sleepScore: Int,
+        night: NightSample,
+        hrvBaseline: Double?,
+        heartRateBaseline: Double?
+    ) -> [HealthInsightFactor] {
+        var factors = [
+            HealthInsightFactor(id: "sleep", label: "Sleep charge", value: "\(sleepScore)", score: sleepScore, symbol: "battery.75percent", tint: Theme.mint)
+        ]
+        if let hrv = night.hrvMs, let baseline = hrvBaseline, baseline > 0 {
+            let score = Int(rangeScore(hrv / baseline, low: 0.65, high: 1.15).rounded())
+            factors.append(HealthInsightFactor(id: "hrv", label: "HRV", value: "\(Int(hrv)) ms", score: score, symbol: "waveform.path.ecg", tint: Theme.cool))
+        }
+        if let hr = night.avgHRBpm, let baseline = heartRateBaseline, hr > 0 {
+            let score = Int(rangeScore(baseline / hr, low: 0.82, high: 1.12).rounded())
+            factors.append(HealthInsightFactor(id: "hr", label: "Sleep HR", value: "\(Int(hr)) bpm", score: score, symbol: "heart.fill", tint: Theme.amber))
+        }
+        return factors
     }
 
     private static func median(_ values: [Double]) -> Double? {

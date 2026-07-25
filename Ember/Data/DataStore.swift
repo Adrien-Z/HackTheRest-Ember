@@ -499,14 +499,94 @@ final class DataStore: ObservableObject {
         regularity = SleepScience.report(logs: seed.sleepLogs)
         pod = seed.pod
         liveHasData = false
-        healthLastNightTST = nil
-        lastNightHR = nil
-        lastNightHRV = nil
-        lastNightWristTempC = nil
-        wristTempBaselineC = nil
-        recentHealthNights = []
-        todayEnergyDay = nil
+        recentHealthNights = Self.sampleHealthNights(from: seed.sleepLogs)
+        todayEnergyDay = Self.sampleEnergyDay(from: recentHealthNights)
+        let latest = recentHealthNights.last
+        healthLastNightTST = latest?.tstMin
+        lastNightHR = latest?.avgHRBpm
+        lastNightHRV = latest?.hrvMs
+        lastNightWristTempC = latest?.wristTempC
+        let temps = recentHealthNights.compactMap(\.wristTempC)
+        wristTempBaselineC = temps.count >= 3 ? (temps.reduce(0,+) / Double(temps.count) * 10).rounded() / 10 : nil
         aiError = nil
+    }
+
+    private static func sampleHealthNights(from logs: [SleepLog], calendar: Calendar = .current) -> [NightSample] {
+        let dayFormatter = DateFormatter()
+        dayFormatter.calendar = calendar
+        dayFormatter.timeZone = calendar.timeZone
+        dayFormatter.dateFormat = "yyyy-MM-dd"
+
+        return logs.enumerated().compactMap { index, log in
+            guard let wakeDay = dayFormatter.date(from: log.date),
+                  let lightsOut = sampleDate(day: wakeDay, hhmm: log.lightsOut, wrapsToPreviousDay: true, calendar: calendar),
+                  let wake = sampleDate(day: wakeDay, hhmm: log.wakeTime, wrapsToPreviousDay: false, calendar: calendar)
+            else { return nil }
+
+            let onset = lightsOut.addingTimeInterval((log.solMin ?? 0) * 60)
+            let tibMin = max(1, Int(wake.timeIntervalSince(lightsOut) / 60))
+            let wasoMin = max(0, tibMin - Int((log.solMin ?? 0).rounded()) - log.tstMin)
+            let hrv = 51 + Double((index * 7) % 13) - max(0, (log.solMin ?? 0) - 20) * 0.16
+            let hr = 58 + Double((index * 5) % 7) + Double(wasoMin) * 0.03
+            let wrist = 36.35 + Double((index % 5) - 2) * 0.06
+
+            return NightSample(
+                date: log.date,
+                lightsOut: lightsOut,
+                sleepOnset: onset,
+                finalWake: wake,
+                solMin: log.solMin ?? 0,
+                tstMin: log.tstMin,
+                wasoMin: wasoMin,
+                tibMin: tibMin,
+                sePct: (Double(log.tstMin) / Double(tibMin) * 100).rounded(toPlaces: 1),
+                timeZone: calendar.timeZone,
+                avgHRBpm: hr.rounded(),
+                hrvMs: max(30, hrv).rounded(),
+                wristTempC: (wrist * 10).rounded() / 10)
+        }
+    }
+
+    private static func sampleDate(day: Date, hhmm: String, wrapsToPreviousDay: Bool, calendar: Calendar) -> Date? {
+        let parts = hhmm.split(separator: ":").compactMap { Int($0) }
+        guard parts.count >= 2 else { return nil }
+        let baseDay = wrapsToPreviousDay && parts[0] >= 12
+            ? calendar.date(byAdding: .day, value: -1, to: day) ?? day
+            : day
+        return calendar.date(bySettingHour: parts[0], minute: parts[1], second: 0, of: baseDay)
+    }
+
+    private static func sampleEnergyDay(from nights: [NightSample], calendar: Calendar = .current) -> DailyEnergyDay? {
+        guard let latest = nights.last else { return nil }
+        let start = calendar.startOfDay(for: Date())
+        let hour = calendar.component(.hour, from: Date())
+        let buckets = (0...max(hour, 8)).compactMap { offset -> DailyEnergyInput? in
+            guard let time = calendar.date(byAdding: .hour, value: offset, to: start) else { return nil }
+            let asleep = offset < 6 ? 52.0 : 0
+            let commuteLoad = offset == 8 ? 260.0 : 0
+            let workoutLoad = offset == 17 ? 620.0 : 0
+            let steps = asleep > 0 ? 0 : 70 + Double((offset * 83) % 420) + commuteLoad + workoutLoad
+            let active = asleep > 0 ? 0 : 2 + Double((offset * 5) % 22) + workoutLoad / 55
+            let hr = asleep > 0 ? 56 + Double(offset % 2) : 63 + Double((offset * 3) % 14) + workoutLoad / 160
+            let hrv = asleep > 0 ? latest.hrvMs.map { $0 + 4 } : latest.hrvMs.map { max(30, $0 - Double(offset % 5)) }
+            return DailyEnergyInput(
+                time: time,
+                averageHeartRate: hr,
+                averageHRV: hrv,
+                activeEnergyKcal: active,
+                steps: steps,
+                asleepMinutes: asleep)
+        }
+        let hrvBaseline = median(nights.compactMap(\.hrvMs))
+        let hrBaseline = median(nights.compactMap(\.avgHRBpm))
+        return DailyEnergyDay(buckets: buckets, restingHeartRateBaseline: hrBaseline, hrvBaseline: hrvBaseline)
+    }
+
+    private static func median(_ values: [Double]) -> Double? {
+        guard !values.isEmpty else { return nil }
+        let sorted = values.sorted()
+        let middle = sorted.count / 2
+        return sorted.count.isMultiple(of: 2) ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle]
     }
 
     /// Last night's sleeping wrist temperature relative to the recent baseline

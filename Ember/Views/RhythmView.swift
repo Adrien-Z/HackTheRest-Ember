@@ -32,7 +32,7 @@ struct RhythmView: View {
                         midpointCard
                         coaching
                     }
-                    ScienceNote(text: "Regularity is the strongest modifiable sleep-health lever — in a ~60,000-person UK Biobank study it predicted mortality more strongly than how long people slept (Windred 2024). The Sleep Regularity Index quantifies it (Phillips 2017).")
+                    ScienceNote(text: "SRI checks whether you are asleep or awake at the same clock times from one day to the next. 100 = highly repeatable.", icon: "repeat")
                 }
                 .padding()
                 .lockHorizontal()
@@ -47,12 +47,12 @@ struct RhythmView: View {
     private var sriCard: some View {
         VStack(spacing: 14) {
             HStack {
-                Label("Sleep Regularity Index", systemImage: "waveform.path.ecg").font(.headline)
+                Label("Timing consistency", systemImage: "waveform.path.ecg").font(.headline)
                 Spacer()
                 Tag(text: sriBand.label, color: sriBand.color)
             }
             SRIRingView(value: r.sri ?? 0)
-            Text(sriBand.blurb).font(.footnote).foregroundStyle(.secondary)
+            Text(sriBand.blurb).font(.footnote.weight(.semibold)).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -62,11 +62,11 @@ struct RhythmView: View {
     private var sriBand: (label: String, color: Color, blurb: String) {
         switch r.sri ?? 0 {
         case 80...:    return ("very regular", Theme.mint,
-            "Your sleep/wake timing is highly consistent day to day — the single biggest lever for circadian health, and you're pulling it well.")
+            "Your clock is landing in the same place most nights.")
         case 60..<80:  return ("fairly regular", Theme.amber,
-            "Reasonably consistent, with room to tighten. Anchoring your wake time — even on weekends — is the fastest way to climb.")
+            "Pretty steady. Wake-time drift is the next lever.")
         default:       return ("irregular", Theme.ember,
-            "Your timing swings night to night. A fixed wake time (and protecting it after late nights) would raise this the most.")
+            "Your sleep midpoint is moving around too much.")
         }
     }
 
@@ -74,13 +74,13 @@ struct RhythmView: View {
 
     private var statsCard: some View {
         HStack(spacing: 0) {
-            MetricStat(value: r.avgMidpoint ?? "—", label: "sleep midpoint", color: Theme.cool)
+            MetricStat(value: r.avgMidpoint ?? "—", label: "midpoint", color: Theme.cool)
             Divider().frame(height: 40).overlay(Color.white.opacity(0.1))
             MetricStat(value: r.socialJetlagMin.map { "\(Int($0))m" } ?? "—",
-                       label: "social jetlag",
+                       label: "weekend drift",
                        color: (r.socialJetlagMin ?? 0) >= 60 ? Theme.ember : .primary)
             Divider().frame(height: 40).overlay(Color.white.opacity(0.1))
-            MetricStat(value: r.midpointStdevMin.map { "±\(Int($0))m" } ?? "—", label: "night-to-night")
+            MetricStat(value: r.midpointStdevMin.map { "±\(Int($0))m" } ?? "—", label: "daily drift")
         }
         .emberCard()
     }
@@ -89,8 +89,8 @@ struct RhythmView: View {
 
     private var midpointCard: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Sleep midpoint by night").font(.subheadline.weight(.semibold))
-            Text("When the middle of your night falls. Flat = regular. Amber points are weekends.")
+            Text("Midpoint trail").font(.subheadline.weight(.semibold))
+            Text("Flat = regular. Amber = weekend.")
                 .font(.caption2).foregroundStyle(.secondary)
             MidpointChart(points: r.midpoints)
         }
@@ -102,7 +102,7 @@ struct RhythmView: View {
     @ViewBuilder private var coaching: some View {
         if let sjl = r.socialJetlagMin, sjl >= 60 {
             ScienceNote(
-                text: String(format: "Your sleep midpoint lands about %d min later on weekends — 'social jetlag'. A gap of an hour or more repeatedly shifts your clock, so Monday feels like flying west (Wittmann & Roenneberg 2006). Try capping weekend sleep-ins to ~30 min past your weekday wake.", Int(sjl)),
+                text: String(format: "Weekend midpoint is %d min later. Cap sleep-ins near 30 min to protect Monday.", Int(sjl)),
                 icon: "arrow.left.arrow.right")
         }
     }
